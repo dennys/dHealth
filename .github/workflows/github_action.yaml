@@ -30,6 +30,27 @@ jobs:
           distribution: "temurin"
           cache: "gradle" # Cache Gradle dependencies
 
+      # Cache Android SDK components (NDK, CMake, etc.)
+      - name: Cache Android SDK
+        uses: actions/cache@v4
+        id: android-sdk-cache
+        with:
+          path: |
+            $ANDROID_HOME/ndk
+            $ANDROID_HOME/cmake
+            $ANDROID_HOME/licenses
+          key: ${{ runner.os }}-android-sdk-${{ hashFiles('android/build.gradle') }}
+          restore-keys: |
+            ${{ runner.os }}-android-sdk-
+
+      # Pre-install Android NDK and CMake to avoid slow installation during build
+      - name: Install Android NDK & CMake
+        if: steps.android-sdk-cache.outputs.cache-hit != 'true'
+        run: |
+          echo "y" | sudo ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --install "ndk;27.0.12077973" "cmake;3.22.1"
+          echo "Accepting licenses"
+          yes | sudo ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
+
       # Set up Flutter
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -137,6 +158,12 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      # Configure Android build settings to use cached NDK and CMake
+      - name: Configure Android build settings
+        run: |
+          echo "ndk.dir=${ANDROID_HOME}/ndk/27.0.12077973" >> android/local.properties
+          echo "cmake.dir=${ANDROID_HOME}/cmake/3.22.1" >> android/local.properties
+
       - name: Build debug APK
         run: flutter build apk --debug --no-tree-shake-icons
 
@@ -167,6 +194,12 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
+
+      # Configure Android build settings to use cached NDK and CMake
+      - name: Configure Android build settings
+        run: |
+          echo "ndk.dir=${ANDROID_HOME}/ndk/27.0.12077973" >> android/local.properties
+          echo "cmake.dir=${ANDROID_HOME}/cmake/3.22.1" >> android/local.properties
 
       - name: Build release APK
         run: |
