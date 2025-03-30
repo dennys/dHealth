@@ -59,9 +59,8 @@ jobs:
       - name: Analyze code
         run: flutter analyze || true # Continues even if warnings are found
 
-      # Run tests
-      #- name: Run tests
-      #  run: flutter test
+      - name: Install lcov
+        run: sudo apt-get install lcov -y
 
       - name: Run tests with coverage
         run: |
