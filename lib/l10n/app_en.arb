@@ -1,0 +1,108 @@
+{
+  "@@locale": "en",
+  "menu": "Menu",
+
+  "about": "About",
+  "aboutDescription": "dHealth is an app to track and manage your health data with support for importing and exporting SQLite databases.",
+  "platformSupportDesc": "Works with Health Connect (Android).",
+  "platformSupportDesc_xxx": "Works with Health Connect (Android) and HealthKit (iOS).",
+  "features": "Features",
+  "healthTracking": "Health Data Tracking",
+  "healthTrackingDesc": "Monitor your steps and other health metrics.",
+  "importExportDesc": "Backup or restore your data using SQLite files.",
+  "platformSupport": "Platform Support",
+  "version": "Version",
+  "contact": "Contact",
+  "contactDesc": "For support or feedback, email us at: support@example.com",
+
+  "setup": "Setup",
+  "language": "Language",
+  "selectLanguage": "Select Language",
+  "theme": "Theme",
+  "selectTheme": "Select Theme",
+  "followSystem": "Follow System",
+  "english": "English",
+  "traditionalChinese": "Traditional Chinese",
+  "simplifiedChinese": "Simplified Chinese",
+  "light": "Light",
+  "dark": "Dark",
+  "syncFrequency": "Sync Frequency",
+  "selectSyncFrequency": "Select Sync Frequency",
+  "manual": "Manual",
+  "hourly": "Hourly",
+  "daily": "Daily",
+  "dailyStepGoal": "Daily Step Goal",
+  "setDailyStepGoal": "Set your daily step goal",
+  "steps": "steps",
+  "displaySettings": "Display Settings",
+  "showCumulativeSteps": "Show cumulative steps",
+  "showDailyStepGoal": "Show daily step goal",
+
+  "importExport": "Import/Export",
+  "import": "Import",
+  "importFromPhone": "Import from Phone",
+  "importFromFile": "Import from file",
+  "importClearData": "Clear current data before import",
+  "dateRange": "Import date range",
+  "startDate": "Start Date",
+  "endDate": "End Date",
+  "importIncremental": "Import incremental",
+  "importSuccess": "Import completed successfully",
+  "importFailed": "Import failed",
+  "importIncrementalDesc": "Only import new data since last import",
+  "importFromPhoneDesc": "Import step data from your phone",
+  "importFromFileDesc": "Import from a previously exported file",
+  "exportOptions": "Export Options",
+
+  "export": "Export",
+  "exportToFile": "Export to file",
+  "exportToCSV": "Export to CSV",
+  "shareDatabaseFile": "Share Database File",
+  "exportSuccess": "Export completed successfully",
+  "exportFailed": "Export failed",
+
+  "widgets": "Widgets",
+
+  "todaySteps": "Today's Steps: {steps}",
+  "@todaySteps": {
+    "placeholders": {
+      "steps": {"type": "int"}
+    }
+  },
+  "stepGoalReachedTitle": "Step Goal Reached!",
+  "stepGoalReachedBody": "You've walked {steps} steps today. Great job!",
+  "@stepGoalReachedBody": {
+    "placeholders": {
+      "steps": {"type": "int"}
+    }
+  },
+  "motivationTitle": "Almost There!",
+  "motivationBody": "You're just 1000 steps away from your goal of {goal} steps!",
+  "@motivationBody": {
+    "placeholders": {
+      "goal": {"type": "int"}
+    }
+  },
+  "viewDetails": "View Details",
+
+  "today": "Today",
+  "days": "Days",
+  "weeks": "Weeks",
+  "months": "Months",
+  "years": "Years",
+  "average": "Average",
+  "monday": "Mon",
+  "tuesday": "Tue",
+  "wednesday": "Wed",
+  "thursday": "Thu",
+  "friday": "Fri",
+  "saturday": "Sat",
+  "sunday": "Sun",
+  "noDataInDatabase": "No data available in database",
+  "past": "Past",
+  "ok": "OK",
+  "chartHelpTitle": "Chart Help",
+  "hourlyStepsChartExplanation": "This chart shows your hourly step count.\n\n - 'Cumulative' switch: Toggle to see total steps accumulated over the day.\n - 'Goal' switch: Toggle to display your daily step goal as a horizontal line.\n Adjust these settings to customize your view!",
+  "chartHelpContent": "This chart shows your step count over the selected period. The bars represent daily/weekly/monthly/yearly steps, and the dotted line shows the average steps."
+
+}

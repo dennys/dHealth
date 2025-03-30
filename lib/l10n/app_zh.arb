@@ -1,0 +1,108 @@
+{
+  "@@locale": "zh",
+  "menu": "選單",
+
+  "about": "關於",
+  "aboutDescription": "dHealth 是一款用於追蹤和管理您的健康數據的應用程式，支持導入和導出 SQLite 數據庫。",
+  "platformSupportDesc": "支援 Health Connect（安卓）。",
+  "platformSupportDesc_xxx": "支援 Health Connect（安卓）和 HealthKit（iOS）。",
+  "features": "功能",
+  "healthTracking": "健康數據追蹤",
+  "healthTrackingDesc": "監控您的步數和其他健康指標。",
+  "importExportDesc": "使用 SQLite 文件備份或還原您的數據。",
+  "platformSupport": "平台支援",
+  "version": "版本",
+  "contact": "聯繫",
+  "contactDesc": "如需支援或反饋，請發送電子郵件至：support@example.com",
+
+  "setup": "設定",
+  "language": "語言",
+  "selectLanguage": "選擇語言",
+  "theme": "主題",
+  "selectTheme": "選擇主題",
+  "followSystem": "跟隨系統",
+  "english": "英文",
+  "traditionalChinese": "繁體中文",
+  "simplifiedChinese": "簡體中文",
+  "light": "淺色",
+  "dark": "深色",
+  "syncFrequency": "同步頻率",
+  "selectSyncFrequency": "選擇同步頻率",
+  "manual": "手動",
+  "hourly": "每小時",
+  "daily": "每天",
+  "dailyStepGoal": "每日目標",
+  "setDailyStepGoal": "設定每日目標",
+  "steps": "步數",
+  "displaySettings": "顯示設定",
+  "showCumulativeSteps": "顯示累積步數",
+  "showDailyStepGoal": "顯示每日目標",
+
+  "importExport": "導入/導出",
+  "import": "匯入",
+  "importFromPhone": "從手機匯入",
+  "importFromFile": "從檔案匯入",
+  "importClearData": "匯入前清除當前數據",
+  "dateRange": "匯入日期範圍",
+  "startDate": "開始日期",
+  "endDate": "結束日期",
+  "importIncremental": "增量匯入",
+  "importSuccess": "匯入成功完成",
+  "importFailed": "匯入失敗",
+  "importIncrementalDesc": "僅導入自上次導入以來的新數據",
+  "importFromPhoneDesc": "從您的手機導入步數數據",
+  "importFromFileDesc": "從之前導出的文件導入",
+  "exportOptions": "導出選項",
+
+  "export": "匯出",
+  "exportToFile": "匯出到檔案",
+  "exportToCSV": "匯出為 CSV",
+  "shareDatabaseFile": "匯出到雲端",
+  "exportSuccess": "匯出成功完成",
+  "exportFailed": "匯出失敗",
+
+  "widgets": "小工具",
+
+  "todaySteps": "今日步數：{steps}",
+  "@todaySteps": {
+    "placeholders": {
+      "steps": {"type": "int"}
+    }
+  },
+  "stepGoalReachedTitle": "步數目標達成！",
+  "stepGoalReachedBody": "你今天已經走了 {steps} 步，太棒了！",
+  "@stepGoalReachedBody": {
+    "placeholders": {
+      "steps": {"type": "int"}
+    }
+  },
+  "motivationTitle": "就差一點！",
+  "motivationBody": "你離 {goal} 步的目標只差 1000 步了！",
+  "@motivationBody": {
+    "placeholders": {
+      "goal": {"type": "int"}
+    }
+  },
+  "viewDetails": "查看詳情",
+
+  "today": "今天",
+  "days": "天",
+  "weeks": "週",
+  "months": "月",
+  "years": "年",
+  "average": "平均",
+  "monday": "星期一",
+  "tuesday": "星期二",
+  "wednesday": "星期三",
+  "thursday": "星期四",
+  "friday": "星期五",
+  "saturday": "星期六",
+  "sunday": "星期日",
+  "noDataInDatabase": "數據庫中無可用數據",
+  "past": "過去",
+  "ok": "確定",
+  "chartHelpTitle": "圖表說明",
+  "hourlyStepsChartExplanation": "此圖表顯示您的每小時步數。\n\n - 「累積」開關：切換以查看當天累積的總步數。\n - 「目標」開關：切換以顯示您的每日步數目標為一條水平線。\n 調整這些設定來自訂您的視圖！",
+  "chartHelpContent": "此圖表顯示您在所選期間的步數。柱狀圖表示每日/每週/每月/每年的步數，虛線表示平均步數。"
+
+}
