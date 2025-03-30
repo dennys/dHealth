@@ -16,7 +16,7 @@ jobs:
     name: Setup Environment
     runs-on: ubuntu-latest
     outputs:
-      flutter-version: "3.29.0"
+      flutter-version: '3.29.0'
     steps:
       # Checkout the repository code
       - name: Checkout code
@@ -28,7 +28,7 @@ jobs:
         with:
           java-version: "17"
           distribution: "temurin"
-          cache: "gradle" # Cache Gradle dependencies
+          cache: 'gradle'  # Cache Gradle dependencies
 
       # Cache Android SDK components (NDK, CMake, etc.)
       - name: Cache Android SDK
@@ -45,11 +45,14 @@ jobs:
 
       # Pre-install Android NDK and CMake to avoid slow installation during build
       - name: Install Android NDK & CMake
-        if: steps.android-sdk-cache.outputs.cache-hit != 'true'
         run: |
-          echo "y" | sudo ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --install "ndk;27.0.12077973" "cmake;3.22.1"
+          echo "y" | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --install "ndk;27.0.12077973" "cmake;3.22.1"
           echo "Accepting licenses"
-          yes | sudo ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
+          yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
+          
+          # Verify installation paths
+          echo "Installed NDK path: $(ls -la ${ANDROID_HOME}/ndk/)"
+          echo "Installed CMake path: $(ls -la ${ANDROID_HOME}/cmake/)"
 
       # Set up Flutter
       - name: Set up Flutter
@@ -96,14 +99,14 @@ jobs:
 
       # Run Flutter analyze to check for lint issues
       - name: Analyze code
-        run: flutter analyze || true # Continues even if warnings are found
+        run: flutter analyze || true   # Continues even if warnings are found
 
       # Use a more efficient approach for lcov installation
       - name: Cache apt packages
         id: apt-cache
         uses: actions/cache@v4
         with:
-          path: /var/lib/apt/lists/ # Ubuntu package index cache location
+          path: /var/lib/apt/lists/  # Ubuntu package index cache location
           key: ${{ runner.os }}-apt-lcov-${{ hashFiles('**/pubspec.lock') }}
           restore-keys: |
             ${{ runner.os }}-apt-lcov-
@@ -136,7 +139,7 @@ jobs:
         with:
           name: coverage-report
           path: coverage/html
-          retention-days: 7 # Limit retention to save space
+          retention-days: 7  # Limit retention to save space
 
   build:
     name: Build APK
@@ -158,11 +161,28 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # Configure Android build settings to use cached NDK and CMake
+      # Configure Android build settings with correct paths
       - name: Configure Android build settings
         run: |
-          echo "ndk.dir=${ANDROID_HOME}/ndk/27.0.12077973" >> android/local.properties
-          echo "cmake.dir=${ANDROID_HOME}/cmake/3.22.1" >> android/local.properties
+          echo "Creating android directory if it doesn't exist"
+          mkdir -p android
+          
+          echo "Writing precise paths to local.properties"
+          echo "ndk.dir=${ANDROID_HOME}/ndk/27.0.12077973" > android/local.properties
+          echo "flutter.sdk=${FLUTTER_ROOT}" >> android/local.properties
+          
+          # Add explicit cmake configuration to gradle.properties instead
+          mkdir -p android/app
+          echo "android.defaults.buildfeatures.buildconfig=true" > android/gradle.properties
+          echo "android.useAndroidX=true" >> android/gradle.properties
+          echo "android.enableJetifier=true" >> android/gradle.properties
+          echo "android.cmake.path=${ANDROID_HOME}/cmake/3.22.1" >> android/gradle.properties
+          
+          # Add explicit cmake version to build.gradle
+          if [ -f "android/app/build.gradle" ]; then
+            echo "Configuring CMake version in build.gradle"
+            sed -i '/defaultConfig {/a \\        externalNativeBuild {\n            cmake {\n                version "3.22.1"\n            }\n        }' android/app/build.gradle
+          fi
 
       - name: Build debug APK
         run: flutter build apk --debug --no-tree-shake-icons
@@ -172,7 +192,7 @@ jobs:
         with:
           name: app-debug
           path: build/app/outputs/flutter-apk/app-debug.apk
-          retention-days: 7 # Limit retention to save space
+          retention-days: 7  # Limit retention to save space
 
   release:
     name: Create Release
