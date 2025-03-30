@@ -1,0 +1,9 @@
+# .coveragerc
+ignore_errors: true
+omit:
+  - "**/*.g.dart"
+  - "**/lib/generated/*"
+  - "**/database.g.dart"
+  - "**/*.freezed.dart"
+  - "**/*.mocks.dart"
+  - "**/test/**"
