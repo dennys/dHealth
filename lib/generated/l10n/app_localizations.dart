@@ -439,6 +439,12 @@ abstract class AppLocalizations {
   /// **'Widgets'**
   String get widgets;
 
+  /// No description provided for @chartTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Last {steps} days, average is {average} steps'**
+  String chartTitle(int steps, int average);
+
   /// No description provided for @todaySteps.
   ///
   /// In en, this message translates to:

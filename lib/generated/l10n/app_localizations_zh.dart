@@ -180,6 +180,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get widgets => '小工具';
 
   @override
+  String chartTitle(int steps, int average) {
+    return 'Last $steps days, average is $average steps';
+  }
+
+  @override
   String todaySteps(int steps) {
     return '今日步數：$steps';
   }

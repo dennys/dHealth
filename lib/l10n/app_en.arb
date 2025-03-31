@@ -1,7 +1,6 @@
 {
   "@@locale": "en",
   "menu": "Menu",
-
   "about": "About",
   "aboutDescription": "dHealth is an app to track and manage your health data with support for importing and exporting SQLite databases.",
   "platformSupportDesc": "Works with Health Connect (Android).",
@@ -14,7 +13,6 @@
   "version": "Version",
   "contact": "Contact",
   "contactDesc": "For support or feedback, email us at: support@example.com",
-
   "setup": "Setup",
   "language": "Language",
   "selectLanguage": "Select Language",
@@ -37,7 +35,6 @@
   "displaySettings": "Display Settings",
   "showCumulativeSteps": "Show cumulative steps",
   "showDailyStepGoal": "Show daily step goal",
-
   "importExport": "Import/Export",
   "import": "Import",
   "importFromPhone": "Import from Phone",
@@ -53,38 +50,51 @@
   "importFromPhoneDesc": "Import step data from your phone",
   "importFromFileDesc": "Import from a previously exported file",
   "exportOptions": "Export Options",
-
   "export": "Export",
   "exportToFile": "Export to file",
   "exportToCSV": "Export to CSV",
   "shareDatabaseFile": "Share Database File",
   "exportSuccess": "Export completed successfully",
   "exportFailed": "Export failed",
-
   "widgets": "Widgets",
-
+  "chartTitle": "Last {steps} days, average is {average} steps",
+  "@chartTitle": {
+    "placeholders": {
+      "steps": {
+        "type": "int"
+      },
+      "average": {
+        "type": "int"
+      }
+    }
+  },
   "todaySteps": "Today's Steps: {steps}",
   "@todaySteps": {
     "placeholders": {
-      "steps": {"type": "int"}
+      "steps": {
+        "type": "int"
+      }
     }
   },
   "stepGoalReachedTitle": "Step Goal Reached!",
   "stepGoalReachedBody": "You've walked {steps} steps today. Great job!",
   "@stepGoalReachedBody": {
     "placeholders": {
-      "steps": {"type": "int"}
+      "steps": {
+        "type": "int"
+      }
     }
   },
   "motivationTitle": "Almost There!",
   "motivationBody": "You're just 1000 steps away from your goal of {goal} steps!",
   "@motivationBody": {
     "placeholders": {
-      "goal": {"type": "int"}
+      "goal": {
+        "type": "int"
+      }
     }
   },
   "viewDetails": "View Details",
-
   "today": "Today",
   "days": "Days",
   "weeks": "Weeks",
@@ -104,5 +114,4 @@
   "chartHelpTitle": "Chart Help",
   "hourlyStepsChartExplanation": "This chart shows your hourly step count.\n\n - 'Cumulative' switch: Toggle to see total steps accumulated over the day.\n - 'Goal' switch: Toggle to display your daily step goal as a horizontal line.\n Adjust these settings to customize your view!",
   "chartHelpContent": "This chart shows your step count over the selected period. The bars represent daily/weekly/monthly/yearly steps, and the dotted line shows the average steps."
-
 }
