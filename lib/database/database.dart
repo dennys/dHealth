@@ -42,10 +42,14 @@ class StepDatabase extends _$StepDatabase {
   }
 
   // Get the last updated date
-  Future<DateTime?> getLastUpdatedDate() async {
-    final query = select(dailySteps)..orderBy([(t) => OrderingTerm.desc(t.lastUpdated)]);
+  Future<DateTime?> getLastDate() async {
+    final query =
+        select(dailySteps)
+          ..orderBy([(t) => OrderingTerm.desc(t.date)])
+          ..limit(1);
+    // final results = await query.get(); // Fetch all matching rows
     final result = await query.getSingleOrNull();
-    return result?.lastUpdated;
+    return DateTime.parse(result!.date); // Convert string to DateTime
   }
 
   // Insert or update a daily step entry
@@ -238,12 +242,12 @@ class StepDataService {
     DateTime startDate;
 
     // Get the last updated date from the database
-    final lastUpdated = await database.getLastUpdatedDate();
+    final lastDate = await database.getLastDate();
 
-    if (lastUpdated != null) {
-      // If we have last updated date, start from 2 days before
+    if (lastDate != null) {
+      // If we have last updated date, start from 1 day before
       // (to handle possible midnight crossovers and timezone issues)
-      startDate = lastUpdated.subtract(const Duration(days: 2));
+      startDate = lastDate.subtract(const Duration(days: 1));
     } else {
       // If no previous data, start from 30 days ago
       startDate = now.subtract(const Duration(days: 30));

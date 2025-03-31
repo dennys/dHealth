@@ -244,7 +244,7 @@ class HealthAppState extends State<HealthApp> {
     stepService.syncNewData();
 
     // To refresh a specific range:
-    // await stepService.refreshDataRange(DateTime(2025, 3, 29), DateTime(2025, 3, 31));
+    // await stepService.refreshDataRange(DateTime(2025, 3, 29), DateTime(2025, 4, 30));
 
     // To refresh all data:
     // stepService.refreshAllData();
