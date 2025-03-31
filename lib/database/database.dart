@@ -76,6 +76,91 @@ class StepDatabase extends _$StepDatabase {
   static String _formatDate(DateTime date) {
     return "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
   }
+
+  // 1. Map structure for date to steps mapping
+  Future<Map<DateTime, int>> getStepsMap(DateTime startDate, DateTime endDate) async {
+    final formattedStart = _formatDate(startDate);
+    final formattedEnd = _formatDate(endDate);
+    final results =
+        await (select(dailySteps)..where((t) => t.date.isBiggerOrEqualValue(formattedStart) & t.date.isSmallerOrEqualValue(formattedEnd))).get();
+
+    return Map.fromEntries(results.map((entry) => MapEntry(DateTime.parse(entry.date), entry.stepCount)));
+  }
+
+  // 2. Get daily average steps for 14-day period
+  Future<Map<DateTime, int>> getDailyAverageSteps(DateTime startDate, DateTime endDate) async {
+    final difference = endDate.difference(startDate).inDays;
+    if (difference != 13) {
+      // 14 days including start and end
+      throw Exception('Period must be exactly 14 days');
+    }
+
+    final stepsMap = await getStepsMap(startDate, endDate);
+    final totalSteps = stepsMap.values.fold(0, (sum, steps) => sum + steps);
+    final dailyAverage = (totalSteps / 7).round(); // Average over 7 days
+
+    return {startDate: dailyAverage};
+  }
+
+  // 3. Get all weekly steps
+  Future<List<MapEntry<DateTime, int>>> getAllWeeklySteps(DateTime startDate, DateTime endDate) async {
+    final stepsMap = await getStepsMap(startDate, endDate);
+    final results = <MapEntry<DateTime, int>>[];
+
+    DateTime currentStart = startDate;
+    while (currentStart.isBefore(endDate)) {
+      final weekEnd = currentStart.add(const Duration(days: 6));
+      final weekSteps = stepsMap.entries
+          .where((entry) => !entry.key.isBefore(currentStart) && !entry.key.isAfter(weekEnd))
+          .fold(0, (sum, entry) => sum + entry.value);
+
+      if (weekSteps > 0) {
+        results.add(MapEntry(currentStart, weekSteps));
+      }
+      currentStart = weekEnd.add(const Duration(days: 1));
+    }
+
+    return results;
+  }
+
+  // 4. Get all monthly steps
+  Future<List<MapEntry<DateTime, int>>> getAllMonthlySteps(DateTime startDate, DateTime endDate) async {
+    if (endDate.isBefore(startDate)) {
+      throw Exception('endDate must be after startDate');
+    }
+
+    final stepsMap = await getStepsMap(startDate, endDate);
+    final results = <MapEntry<DateTime, int>>[];
+
+    DateTime currentMonth = DateTime(startDate.year, startDate.month, 1);
+    while (currentMonth.isBefore(endDate) || currentMonth.isAtSameMomentAs(endDate)) {
+      final monthEnd = DateTime(currentMonth.year, currentMonth.month + 1, 0);
+      final monthSteps = stepsMap.entries
+          .where((entry) => !entry.key.isBefore(currentMonth) && !entry.key.isAfter(monthEnd))
+          .fold(0, (sum, entry) => sum + entry.value);
+
+      if (monthSteps > 0) {
+        results.add(MapEntry(currentMonth, monthSteps));
+      }
+      currentMonth = DateTime(currentMonth.year, currentMonth.month + 1, 1);
+    }
+
+    return results;
+  }
+
+  // 5. Get all yearly steps
+  Future<List<MapEntry<DateTime, int>>> getAllYearlySteps() async {
+    final allSteps = await getAllDailySteps();
+    if (allSteps.isEmpty) return [];
+
+    final stepsMap = Map.fromEntries(allSteps.map((entry) => MapEntry(DateTime.parse(entry.date), entry.stepCount)));
+
+    final firstDate = DateTime.parse(allSteps.first.date);
+    final yearStart = DateTime(firstDate.year, 1, 1);
+
+    final totalSteps = stepsMap.values.fold(0, (sum, steps) => sum + steps);
+    return [MapEntry(yearStart, totalSteps)];
+  }
 }
 
 // 3. Now, let's create a service class to handle health data fetching and processing
