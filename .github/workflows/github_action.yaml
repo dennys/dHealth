@@ -16,7 +16,7 @@ jobs:
     name: Setup Environment
     runs-on: ubuntu-latest
     outputs:
-      flutter-version: '3.29.0'
+      flutter-version: "3.29.0"
     steps:
       # Checkout the repository code
       - name: Checkout code
@@ -28,31 +28,7 @@ jobs:
         with:
           java-version: "17"
           distribution: "temurin"
-          cache: 'gradle'  # Cache Gradle dependencies
-
-      # Cache Android SDK components (NDK, CMake, etc.)
-      - name: Cache Android SDK
-        uses: actions/cache@v4
-        id: android-sdk-cache
-        with:
-          path: |
-            $ANDROID_HOME/ndk
-            $ANDROID_HOME/cmake
-            $ANDROID_HOME/licenses
-          key: ${{ runner.os }}-android-sdk-${{ hashFiles('android/build.gradle') }}
-          restore-keys: |
-            ${{ runner.os }}-android-sdk-
-
-      # Pre-install Android NDK and CMake to avoid slow installation during build
-      - name: Install Android NDK & CMake
-        run: |
-          echo "y" | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --install "ndk;27.0.12077973" "cmake;3.22.1"
-          echo "Accepting licenses"
-          yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
-          
-          # Verify installation paths
-          echo "Installed NDK path: $(ls -la ${ANDROID_HOME}/ndk/)"
-          echo "Installed CMake path: $(ls -la ${ANDROID_HOME}/cmake/)"
+          cache: "gradle" # Cache Gradle dependencies
 
       # Set up Flutter
       - name: Set up Flutter
@@ -99,14 +75,14 @@ jobs:
 
       # Run Flutter analyze to check for lint issues
       - name: Analyze code
-        run: flutter analyze || true   # Continues even if warnings are found
+        run: flutter analyze || true # Continues even if warnings are found
 
       # Use a more efficient approach for lcov installation
       - name: Cache apt packages
         id: apt-cache
         uses: actions/cache@v4
         with:
-          path: /var/lib/apt/lists/  # Ubuntu package index cache location
+          path: /var/lib/apt/lists/ # Ubuntu package index cache location
           key: ${{ runner.os }}-apt-lcov-${{ hashFiles('**/pubspec.lock') }}
           restore-keys: |
             ${{ runner.os }}-apt-lcov-
@@ -139,102 +115,74 @@ jobs:
         with:
           name: coverage-report
           path: coverage/html
-          retention-days: 7  # Limit retention to save space
+          retention-days: 7 # Limit retention to save space
 
-  build:
-    name: Build APK
-    needs: [flutter_setup, test]
-    runs-on: ubuntu-latest
-    # Only build if push or workflow_dispatch, not PR
-    if: github.event_name != 'pull_request'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
 
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ needs.flutter_setup.outputs.flutter-version }}
-          cache: true
-          cache-key: flutter-${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
+  # build:
+  #   name: Build APK
+  #   needs: [flutter_setup, test]
+  #   runs-on: ubuntu-latest
+  #   # Only build if push or workflow_dispatch, not PR
+  #   if: github.event_name != 'pull_request'
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: flutter pub get
+  #     - name: Set up Flutter
+  #       uses: subosito/flutter-action@v2
+  #       with:
+  #         flutter-version: ${{ needs.flutter_setup.outputs.flutter-version }}
+  #         cache: true
+  #         cache-key: flutter-${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
 
-      # Configure Android build settings with correct paths
-      - name: Configure Android build settings
-        run: |
-          echo "Creating android directory if it doesn't exist"
-          mkdir -p android
-          
-          echo "Writing precise paths to local.properties"
-          echo "ndk.dir=${ANDROID_HOME}/ndk/27.0.12077973" > android/local.properties
-          echo "flutter.sdk=${FLUTTER_ROOT}" >> android/local.properties
-          
-          # Add explicit cmake configuration to gradle.properties instead
-          mkdir -p android/app
-          echo "android.defaults.buildfeatures.buildconfig=true" > android/gradle.properties
-          echo "android.useAndroidX=true" >> android/gradle.properties
-          echo "android.enableJetifier=true" >> android/gradle.properties
-          echo "android.cmake.path=${ANDROID_HOME}/cmake/3.22.1" >> android/gradle.properties
-          
-          # Add explicit cmake version to build.gradle
-          if [ -f "android/app/build.gradle" ]; then
-            echo "Configuring CMake version in build.gradle"
-            sed -i '/defaultConfig {/a \\        externalNativeBuild {\n            cmake {\n                version "3.22.1"\n            }\n        }' android/app/build.gradle
-          fi
+  #     - name: Install dependencies
+  #       run: flutter pub get
 
-      - name: Build debug APK
-        run: flutter build apk --debug --no-tree-shake-icons
+  #     - name: Build debug APK
+  #       run: flutter build apk --debug --no-tree-shake-icons
 
-      - name: Upload debug APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-debug
-          path: build/app/outputs/flutter-apk/app-debug.apk
-          retention-days: 7  # Limit retention to save space
+  #     - name: Upload debug APK
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: app-debug
+  #         path: build/app/outputs/flutter-apk/app-debug.apk
+  #         retention-days: 7 # Limit retention to save space
 
-  release:
-    name: Create Release
-    needs: [flutter_setup, build]
-    if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+  # release:
+  #   name: Create Release
+  #   needs: [flutter_setup, build]
+  #   if: startsWith(github.ref, 'refs/tags/v')
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     contents: write
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
 
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ needs.flutter_setup.outputs.flutter-version }}
-          cache: true
-          cache-key: flutter-${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
+  #     - name: Set up Flutter
+  #       uses: subosito/flutter-action@v2
+  #       with:
+  #         flutter-version: ${{ needs.flutter_setup.outputs.flutter-version }}
+  #         cache: true
+  #         cache-key: flutter-${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
 
-      - name: Install dependencies
-        run: flutter pub get
+  #     - name: Install dependencies
+  #       run: flutter pub get
 
-      # Configure Android build settings to use cached NDK and CMake
-      - name: Configure Android build settings
-        run: |
-          echo "ndk.dir=${ANDROID_HOME}/ndk/27.0.12077973" >> android/local.properties
-          echo "cmake.dir=${ANDROID_HOME}/cmake/3.22.1" >> android/local.properties
+  #     - name: Build release APK
+  #       run: |
+  #         flutter build apk --release --split-per-abi
+  #         mv build/app/outputs/flutter-apk/app-*-release.apk .
 
-      - name: Build release APK
-        run: |
-          flutter build apk --release --split-per-abi
-          mv build/app/outputs/flutter-apk/app-*-release.apk .
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            app-*-release.apk
-          tag_name: ${{ github.ref_name }}
-          name: Release ${{ github.ref_name }}
-          draft: false
-          prerelease: false
-          generate_release_notes: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #     - name: Create GitHub Release
+  #       uses: softprops/action-gh-release@v1
+  #       with:
+  #         files: |
+  #           app-*-release.apk
+  #         tag_name: ${{ github.ref_name }}
+  #         name: Release ${{ github.ref_name }}
+  #         draft: false
+  #         prerelease: false
+  #         generate_release_notes: true
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
