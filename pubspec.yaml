@@ -48,9 +48,10 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  test: ^1.25.15
+  mockito: ^5.4.5
   drift_dev: ^2.26.0 # Must match the drift version
   build_runner: ^2.4.9 # 2.4.15
-  test: ^1.25.15
 
 flutter:
   uses-material-design: true
