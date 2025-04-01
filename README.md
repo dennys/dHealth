@@ -1,6 +1,7 @@
 # dsteps
 
-[![Flutter CI](https://github.com/dennys/dsteps/actions/workflows/github_action.yaml/badge.svg)](https://github.com/dennys/dsteps/actions/workflows/github_action.yaml)
+[![Flutter CI](https://github.com/dennys/dsteps/actions/workflows/github_action.yaml/badge.svg)](https://github.com/dennys/dHealth/actions/workflows/github_action.yaml)
+[![codecov](https://codecov.io/gh/dennys/dHealth/graph/badge.svg?token=IGNEDCQ0g2)](https://codecov.io/gh/dennys/dHealth)
 ![GitHub Repo stars](https://img.shields.io/github/stars/:dennys/:dstep)
 
 A new Flutter project.
