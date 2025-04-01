@@ -9,28 +9,23 @@ import '../settings_model.dart';
 
 class StepCounterManager {
   final SettingsModel settings;
-  final VoidCallback onPermissionDenied; // 回調處理權限拒絕
-  final VoidCallback onNavigateToMain; // 回調處理導航
+  final VoidCallback onPermissionDenied;
+  final VoidCallback onNavigateToMain;
   final Health health = Health();
   int? todaySteps;
   bool goalReachedNotified = false;
   DateTime? lastMotivationTime;
-  late AppLocalizations _l10n; // 在初始化時設置
-  Timer? _timer; // 用於定期檢查
+  late AppLocalizations _l10n;
+  Timer? _timer; // Keep for foreground if desired
 
   StepCounterManager({required this.settings, required this.onPermissionDenied, required this.onNavigateToMain});
 
   Future<void> initialize() async {
-    // 假設這裡需要一個初始的 context 來獲取 l10n，我們改用預設語言
-    // 實際上，l10n 應在需要時從外部傳入，這裡簡化處理
-    // _l10n = await AppLocalizations.delegate.load(const Locale('en')); // 預設英文
-    _l10n = await AppLocalizations.delegate.load(settings.getLocale() ?? const Locale('en')); // 預設英文
+    _l10n = await AppLocalizations.delegate.load(settings.getLocale() ?? const Locale('en'));
     await _initializeNotifications();
     await _requestPermissionsAndFetchSteps();
-    _startPeriodicCheck();
-
-    // 測試用：強制顯示目標達成通知
-    // await _showGoalReachedNotification(5000);
+    _startPeriodicCheck(); // Optional: Keep for foreground
+    await _scheduleHealthCheck(); // Add for background/terminated
   }
 
   Future<void> _initializeNotifications() async {
@@ -45,31 +40,24 @@ class StepCounterManager {
       ),
     ]);
 
-    // 檢查並請求通知權限
     bool isAllowed = await AwesomeNotifications().isNotificationAllowed();
     if (!isAllowed) {
       bool granted = await AwesomeNotifications().requestPermissionToSendNotifications();
       if (!granted) {
         debugPrint('Notification permission denied');
-        return; // 如果用戶拒絕，可以選擇退出或稍後重試
+        return;
       }
     }
 
-    // 設置通知監聽器
-    AwesomeNotifications().setListeners(
-      onActionReceivedMethod: (ReceivedAction action) async {
-        if (action.buttonKeyPressed == 'view_details') {
-          onNavigateToMain(); // 使用回調處理導航
-        }
-      },
-    );
+    // Set up action listeners for both navigation and health checks
+    AwesomeNotifications().setListeners(onActionReceivedMethod: _handleNotificationAction);
   }
 
   Future<void> _requestPermissionsAndFetchSteps() async {
     List<HealthDataType> types = [HealthDataType.STEPS];
     bool authorized = await health.requestAuthorization(types);
     if (!authorized) {
-      onPermissionDenied(); // 使用回調通知權限問題
+      onPermissionDenied();
       return;
     }
     await _fetchTodaySteps();
@@ -82,20 +70,10 @@ class StepCounterManager {
     List<HealthDataPoint> healthData = await health.getHealthDataFromTypes(types: [HealthDataType.STEPS], startTime: midnight, endTime: now);
 
     int steps = healthData.fold(0, (sum, data) => sum + (data.value as NumericHealthValue).numericValue.toInt());
-
     todaySteps = steps;
 
-    int goal = settings.dailyStepGoal;
-
-    if (_isWithinActiveHours(now)) {
-      if (steps >= goal && !goalReachedNotified) {
-        _showGoalReachedNotification(steps);
-        goalReachedNotified = true;
-      } else if (steps >= goal - 1000 && !goalReachedNotified && _canShowMotivation(now)) {
-        _showMotivationNotification(goal);
-        lastMotivationTime = now;
-      }
-    }
+    // This can still be called in foreground or background checks
+    await _checkAndNotify(steps, now);
   }
 
   bool _isWithinActiveHours(DateTime time) {
@@ -104,8 +82,20 @@ class StepCounterManager {
   }
 
   bool _canShowMotivation(DateTime now) {
-    // return true;
     return lastMotivationTime == null || now.difference(lastMotivationTime!).inHours >= 1;
+  }
+
+  Future<void> _checkAndNotify(int steps, DateTime now) async {
+    int goal = settings.dailyStepGoal;
+    if (_isWithinActiveHours(now)) {
+      if (steps >= goal && !goalReachedNotified) {
+        await _showGoalReachedNotification(steps);
+        goalReachedNotified = true;
+      } else if (steps >= goal - 1000 && !goalReachedNotified && _canShowMotivation(now)) {
+        await _showMotivationNotification(goal);
+        lastMotivationTime = now;
+      }
+    }
   }
 
   Future<void> _showGoalReachedNotification(int steps) async {
@@ -142,6 +132,7 @@ class StepCounterManager {
     );
   }
 
+  // Optional: Keep for foreground periodic checks
   void _startPeriodicCheck() {
     _timer = Timer.periodic(Duration(minutes: 60), (timer) async {
       final now = DateTime.now();
@@ -151,7 +142,43 @@ class StepCounterManager {
     });
   }
 
+  // Schedule periodic health checks for background/terminated state
+  Future<void> _scheduleHealthCheck() async {
+    await AwesomeNotifications().createNotification(
+      content: NotificationContent(
+        id: 2,
+        channelKey: 'step_channel',
+        title: 'Health Check',
+        body: 'Checking steps in background...',
+        displayOnForeground: false, // Silent notification
+      ),
+      actionButtons: [NotificationActionButton(key: 'check_steps', label: 'Check', actionType: ActionType.SilentAction)],
+      schedule: NotificationInterval(
+        interval: Duration(seconds: 3600), // Every 60 minutes (in seconds)
+        repeats: true,
+        preciseAlarm: true, // Exact timing on Android
+      ),
+    );
+  }
+
+  // Handle notification actions (both view_details and check_steps)
+  Future<void> _handleNotificationAction(ReceivedAction action) async {
+    if (action.buttonKeyPressed == 'view_details') {
+      onNavigateToMain();
+    } else if (action.buttonKeyPressed == 'check_steps') {
+      final now = DateTime.now();
+      if (_isWithinActiveHours(now)) {
+        await _fetchTodaySteps();
+        if (goalReachedNotified) {
+          // Cancel the schedule if goal is reached
+          await AwesomeNotifications().cancelSchedule(2);
+        }
+      }
+    }
+  }
+
   void dispose() {
-    _timer?.cancel(); // 停止計時器
+    _timer?.cancel();
+    // Note: Scheduled notifications persist unless explicitly canceled
   }
 }
