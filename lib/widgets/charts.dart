@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:dsteps/database/database.dart';
 import 'package:dsteps/generated/l10n/app_localizations.dart';
 import 'package:dsteps/utils/step_calculator.dart';
+import 'package:dsteps/utils/weekday_utils.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:health/health.dart';
@@ -14,12 +17,169 @@ for chart
 2. refresh data when I pull down the screen
 3. In buildLastNDays(Week/Month)Chart, if users swipe left, load all history data and show it on screen.
 users can swipe right again to see newer data.
-4. Is this a good design? will it make screen flash or ??? 
+4. Is this a good design? will it make screen flash or ???
 5. Why database doesn't provide a API to get ranged data?
 
 Hourly chart
 1. It refresh all screen when change cumulative
 */
+
+import 'package:shared_preferences/shared_preferences.dart';
+
+enum ChartType { daily, weekly, monthly }
+
+// Helper class to hold chart data
+class ChartData {
+  final List<dynamic> dataset;
+  final int average;
+  final int displayRange;
+
+  ChartData(this.dataset, this.average, this.displayRange);
+}
+
+Widget _buildBarChart2(
+  BuildContext context,
+  List<dynamic> dataset,
+  ChartType dataType,
+  String title,
+  int average,
+  int displayRange,
+  double barWidth,
+) {
+  final theme = Theme.of(context);
+  final localizations = AppLocalizations.of(context)!;
+  final isDarkTheme = theme.brightness == Brightness.dark;
+
+  final sortedData = dataset..sort((a, b) => (a[0] as DateTime).compareTo(b[0] as DateTime));
+  int startIndex = sortedData.length > displayRange ? sortedData.length - displayRange : 0;
+
+  bool showAverageLine = true;
+
+  String formatDate(DateTime date) {
+    switch (dataType) {
+      case ChartType.daily:
+        return DateFormat.EEEE(localizations.localeName).format(date);
+      case ChartType.weekly:
+        return DateFormat('M/d', localizations.localeName).format(date);
+      case ChartType.monthly:
+        return DateFormat.MMM(localizations.localeName).format(date);
+    }
+  }
+
+  List<dynamic> getVisibleData(List<dynamic> sortedData) {
+    if (sortedData.isEmpty) return [];
+    final endIndex = (startIndex + displayRange).clamp(0, sortedData.length);
+    return sortedData.sublist(startIndex, endIndex);
+  }
+
+  // List<dynamic> displayData = sortedData.length > displayRange ? sortedData.sublist(sortedData.length - displayRange) : sortedData;
+  late List<dynamic> displayData = getVisibleData(sortedData);
+
+  void handleSwipe(double velocity) {
+    showAverageLine = false;
+    final sortedData = dataset;
+    final direction = velocity > 0 ? -1 : 1; // Left swipe: +1, Right swipe: -1
+    final newStartIndex = (startIndex + direction * displayRange).clamp(0, sortedData.length - displayRange);
+
+    if (newStartIndex != startIndex) {
+      startIndex = newStartIndex;
+      displayData = getVisibleData(sortedData);
+    }
+  }
+
+  return GestureDetector(
+    // onHorizontalDragUpdate: (details) {
+    onHorizontalDragEnd: (details) {
+      handleSwipe(details.primaryVelocity ?? 0);
+      // showAverageLine = false;
+    },
+    child: Stack(
+      children: [
+        BarChart(
+          BarChartData(
+            // ... (rest of BarChartData remains the same)
+            barTouchData: BarTouchData(
+              enabled: true,
+              touchTooltipData: BarTouchTooltipData(
+                // tooltipBgColor: isDarkTheme ? Colors.grey[800]! : Colors.grey[200]!,
+                getTooltipColor: (_) => isDarkTheme ? Colors.grey[800]! : Colors.blueGrey[700]!,
+                getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                  final date = displayData[group.x.toInt()][0] as DateTime;
+                  final count = rod.toY.toInt();
+                  final delta = count - average;
+                  return BarTooltipItem(
+                    '${formatDate(date)}\n$count\n${delta >= 0 ? '+' : ''}$delta',
+                    TextStyle(color: isDarkTheme ? Colors.white : Colors.black, fontSize: 12),
+                  );
+                },
+              ),
+            ),
+            titlesData: FlTitlesData(
+              show: true,
+              bottomTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  getTitlesWidget: (value, meta) {
+                    final index = value.toInt();
+                    if (index >= 0 && index < displayData.length) {
+                      // return Text(formatDate(displayData[index][0]), style: theme.textTheme.caption);
+                      return Text(formatDate(displayData[index][0]), style: theme.textTheme.titleMedium);
+                    }
+                    return const Text('');
+                  },
+                ),
+              ),
+              leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true)),
+            ),
+            borderData: FlBorderData(show: false),
+            barGroups:
+                displayData.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final data = entry.value;
+                  return BarChartGroupData(
+                    x: index,
+                    barRods: [BarChartRodData(toY: data[1].toDouble(), width: barWidth, color: theme.colorScheme.primary)],
+                  );
+                }).toList(),
+            extraLinesData:
+                showAverageLine
+                    ? ExtraLinesData(
+                      horizontalLines: [
+                        HorizontalLine(
+                          y: average.toDouble(),
+                          color: theme.colorScheme.secondary.withValues(alpha: 0.5),
+                          strokeWidth: 2,
+                          dashArray: [5, 5],
+                        ),
+                      ],
+                    )
+                    : null,
+          ),
+        ),
+        // Positioned(top: 8, left: 8, child: Text(title, style: theme.textTheme.subtitle1)),
+        Positioned(top: 8, left: 8, child: Text(title, style: theme.textTheme.titleSmall)),
+        Positioned(
+          top: 8,
+          right: 8,
+          child: IconButton(
+            icon: Icon(Icons.help_outline, color: isDarkTheme ? Colors.white.withValues(alpha: 0.7) : Colors.black.withValues(alpha: 0.7)),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder:
+                    (context) => AlertDialog(
+                      title: Text(localizations.chartHelpTitle),
+                      content: Text(localizations.chartHelpContent),
+                      actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(localizations.ok))],
+                    ),
+              );
+            },
+          ),
+        ),
+      ],
+    ),
+  );
+}
 
 Widget _buildBarChart({
   required BuildContext context,
@@ -248,6 +408,95 @@ Widget _buildStepChart({
   );
 }
 
+// Data Fetching with Error Handling
+Future<ChartData> _fetchChartData({
+  required StepDatabase database,
+  required int n,
+  required ChartType dataType,
+  required String rangeKey,
+  required int defaultRange,
+  DateTime? endDate,
+}) async {
+  try {
+    final now = endDate ?? DateTime.now();
+    late DateTime startDate;
+
+    switch (dataType) {
+      case ChartType.daily:
+        startDate = now.subtract(Duration(days: n));
+        break;
+      case ChartType.weekly:
+        final weekStart = await WeekdayUtils.getWeekStartDay();
+        final daysToSubtract = (weekStart == Weekday.sunday ? 7 : 6) * (n - 1);
+        startDate = now.subtract(Duration(days: daysToSubtract));
+        break;
+      case ChartType.monthly:
+        startDate = DateTime(now.year, now.month - (n - 1), 1);
+        break;
+    }
+
+    late List<dynamic> dataset;
+    switch (dataType) {
+      case ChartType.daily:
+        dataset = await database.getAllDailySteps().timeout(Duration(seconds: 10));
+        break;
+      case ChartType.weekly:
+        dataset = await database.getAllWeeklySteps(startDate, now).timeout(Duration(seconds: 10));
+        break;
+      case ChartType.monthly:
+        dataset = await database.getAllMonthlySteps(startDate, now).timeout(Duration(seconds: 10));
+        break;
+    }
+
+    final average = await database.getDailyAverageSteps(startDate, now).timeout(Duration(seconds: 10));
+    final prefs = await SharedPreferences.getInstance();
+    final displayRange = prefs.getInt(rangeKey) ?? defaultRange;
+
+    return ChartData(dataset, average, displayRange);
+  } on Exception catch (e) {
+    throw Exception('Unexpected error: $e');
+  }
+}
+
+// Daily Chart Implementation
+Future<ChartData> _fetchDailyChartData(StepDatabase database, {int n = 7}) async {
+  final endDate = DateTime.now();
+  final startDate = endDate.subtract(Duration(days: n));
+
+  final dataset = await database.getAllDailySteps();
+  final average = await database.getDailyAverageSteps(startDate, endDate);
+  final prefs = await SharedPreferences.getInstance();
+  final displayRange = prefs.getInt('dailyChartRange') ?? 7;
+
+  return ChartData(dataset, average, displayRange);
+}
+
+Widget buildLastNDaysChart2(BuildContext context, StepDatabase database, {int n = 7}) {
+  late Future<ChartData> chartDataFuture = _fetchDailyChartData(database, n: n);
+
+  return FutureBuilder<ChartData>(
+    future: chartDataFuture,
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      if (snapshot.hasError) {
+        return Center(child: Text('Error: ${snapshot.error}'));
+      }
+      final chartData = snapshot.data!;
+      return _buildBarChart2(
+        context,
+        chartData.dataset,
+        ChartType.daily,
+        AppLocalizations.of(context)!.chartTitle(n, chartData.average),
+        chartData.average,
+        chartData.displayRange,
+        30,
+      );
+    },
+  );
+}
+
 Widget buildLastNDaysChart(BuildContext context, StepDatabase database, {int n = 7}) {
   final DateTime today = DateTime.now();
   final DateTime startDate = today.subtract(Duration(days: n - 1));
@@ -284,6 +533,47 @@ Widget buildLastNDaysChart(BuildContext context, StepDatabase database, {int n =
   );
 }
 
+// Weekly Chart Implementation
+Future<ChartData> _fetchWeeklyChartData(StepDatabase database, {int n = 7}) async {
+  final endDate = DateTime.now();
+  final weekStart = await WeekdayUtils.getWeekStartDay();
+  final daysToSubtract = (weekStart == Weekday.sunday ? 7 : 6) * (n - 1);
+  final startDate = endDate.subtract(Duration(days: daysToSubtract));
+
+  final dataset = await database.getAllWeeklySteps(startDate, endDate);
+  final average = await database.getDailyAverageSteps(startDate, endDate);
+  final prefs = await SharedPreferences.getInstance();
+  final displayRange = prefs.getInt('weeklyChartRange') ?? 4;
+
+  return ChartData(dataset, average, displayRange);
+}
+
+Widget buildLastNWeeksChart2(BuildContext context, StepDatabase database, {int n = 7}) {
+  late Future<ChartData> chartDataFuture = _fetchWeeklyChartData(database, n: n);
+
+  return FutureBuilder<ChartData>(
+    future: chartDataFuture,
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      if (snapshot.hasError) {
+        return Center(child: Text('Error: ${snapshot.error}'));
+      }
+      final chartData = snapshot.data!;
+      return _buildBarChart2(
+        context,
+        chartData.dataset,
+        ChartType.weekly,
+        AppLocalizations.of(context)!.chartTitle(n, chartData.average),
+        chartData.average,
+        chartData.displayRange,
+        30,
+      );
+    },
+  );
+}
+
 Widget buildLastNWeeksChart(BuildContext context, StepDatabase database, {int n = 7}) {
   final DateTime today = DateTime.now();
   final DateTime startDate = today.subtract(Duration(days: (n * 7) - 1));
@@ -316,6 +606,45 @@ Widget buildLastNWeeksChart(BuildContext context, StepDatabase database, {int n 
       return StepCalculator.calculateAverageSteps(prevSteps);
     },
     bottomTitleFormat: (date) => DateFormat('M/d', Localizations.localeOf(context).languageCode).format(date),
+  );
+}
+
+// Monthly Chart Implementation
+Future<ChartData> _fetchMonthlyChartData(StepDatabase database, {int n = 7}) async {
+  final endDate = DateTime.now();
+  final startDate = DateTime(endDate.year, endDate.month - (n - 1), 1);
+
+  final dataset = await database.getAllMonthlySteps(startDate, endDate);
+  final average = await database.getDailyAverageSteps(startDate, endDate);
+  final prefs = await SharedPreferences.getInstance();
+  final displayRange = prefs.getInt('monthlyChartRange') ?? 6;
+
+  return ChartData(dataset, average, displayRange);
+}
+
+Widget buildLastNMonthsChart2(BuildContext context, StepDatabase database, {int n = 7}) {
+  late Future<ChartData> chartDataFuture = _fetchMonthlyChartData(database, n: n);
+
+  return FutureBuilder<ChartData>(
+    future: chartDataFuture,
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      if (snapshot.hasError) {
+        return Center(child: Text('Error: ${snapshot.error}'));
+      }
+      final chartData = snapshot.data!;
+      return _buildBarChart2(
+        context,
+        chartData.dataset,
+        ChartType.monthly,
+        AppLocalizations.of(context)!.chartTitle(n, chartData.average),
+        chartData.average,
+        chartData.displayRange,
+        30,
+      );
+    },
   );
 }
 

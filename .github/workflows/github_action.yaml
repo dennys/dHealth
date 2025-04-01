@@ -87,6 +87,18 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-apt-lcov-
 
+      # - name: Cache apt packages
+      #   uses: actions/cache@v3
+      #   with:
+      #     path: /var/cache/apt/archives
+      #     key: ${{ runner.os }}-apt-${{ hashFiles('**/lockfiles') }}
+      #     restore-keys: ${{ runner.os }}-apt-
+
+      - name: Install SQLite
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsqlite3-dev
+
       - name: Install lcov
         if: steps.apt-cache.outputs.cache-hit != 'true'
         run: |

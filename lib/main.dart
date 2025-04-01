@@ -242,10 +242,10 @@ class HealthAppState extends State<HealthApp> {
     final StepDataService stepService = StepDataService(health: health, database: database);
 
     // Sync new data daily
-    stepService.syncNewData();
+    // stepService.syncNewData();
 
     // To refresh a specific range:
-    // await stepService.refreshDataRange(DateTime(2025, 3, 29), DateTime(2025, 4, 30));
+    await stepService.refreshDataRange(DateTime(2025, 3, 29), DateTime(2025, 4, 30));
 
     // To refresh all data:
     // stepService.refreshAllData();

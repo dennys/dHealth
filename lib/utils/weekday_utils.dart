@@ -1,4 +1,4 @@
-// lib/utils/weekday_utils.dart
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 
@@ -60,7 +60,7 @@ class WeekdayUtils {
 // Example usage
 void main() async {
   final weekStart = await WeekdayUtils.getWeekStartDay();
-  print('Week starts on: ${weekStart.name}');
+  debugPrint('Week starts on: ${weekStart.name}');
 
   // Set new week start
   await WeekdayUtils.setWeekStartDay(Weekday.sunday);

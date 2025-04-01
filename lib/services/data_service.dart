@@ -99,6 +99,7 @@ class StepDataService {
     }
 
     // Fetch and process the data
+    await database.deleteDataInRange(startDate, now);
     final healthData = await fetchData(startTime: startDate, endTime: now);
 
     if (healthData != null && healthData.isNotEmpty) {
