@@ -55,7 +55,8 @@ class StepDataService {
         String dateStr = _formatDate(point.dateFrom);
 
         // Add steps to the corresponding day
-        dailySteps[dateStr] = (dailySteps[dateStr] ?? 0) + (point.value as NumericHealthValue).numericValue.toInt();
+        // dailySteps[dateStr] = (dailySteps[dateStr] ?? 0) + (point.value as NumericHealthValue).numericValue.toInt();
+        dailySteps[dateStr] = (point.value as NumericHealthValue).numericValue.toInt();
       }
     }
 
@@ -99,7 +100,7 @@ class StepDataService {
     }
 
     // Fetch and process the data
-    await database.deleteDataInRange(startDate, now);
+    // await database.deleteDataInRange(startDate, now);
     final healthData = await fetchData(startTime: startDate, endTime: now);
 
     if (healthData != null && healthData.isNotEmpty) {
