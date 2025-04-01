@@ -108,7 +108,7 @@ jobs:
       - name: Run tests with coverage
         run: |
           flutter test --coverage
-          lcov --ignore-errors unused --remove coverage/lcov.info '**/*.g.dart' '**/lib/generated/l10n/*' '**/database.g.dart' -o coverage/lcov.info
+          lcov --ignore-errors unused --remove coverage/lcov.info '**/*.g.dart' '**/app_localizations*.dart' '**/database.g.dart' -o coverage/lcov.info
           # Generate HTML report (optional)
           genhtml coverage/lcov.info -o coverage/html --ignore-errors source
 
