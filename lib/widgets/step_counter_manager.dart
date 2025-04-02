@@ -108,6 +108,7 @@ class StepCounterManager {
         color: Colors.green,
         notificationLayout: NotificationLayout.BigText,
         icon: 'resource://mipmap/ic_launcher',
+        wakeUpScreen: true,
       ),
       actionButtons: [
         NotificationActionButton(key: 'view_details', label: _l10n.viewDetails, color: Colors.blue, actionType: ActionType.SilentAction),
