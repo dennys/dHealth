@@ -55,8 +55,8 @@ class StepDataService {
         String dateStr = _formatDate(point.dateFrom);
 
         // Add steps to the corresponding day
-        // dailySteps[dateStr] = (dailySteps[dateStr] ?? 0) + (point.value as NumericHealthValue).numericValue.toInt();
-        dailySteps[dateStr] = (point.value as NumericHealthValue).numericValue.toInt();
+        dailySteps[dateStr] = (dailySteps[dateStr] ?? 0) + (point.value as NumericHealthValue).numericValue.toInt();
+        // dailySteps[dateStr] = (point.value as NumericHealthValue).numericValue.toInt();
       }
     }
 
@@ -101,11 +101,12 @@ class StepDataService {
 
     // Fetch and process the data
     // await database.deleteDataInRange(startDate, now);
-    final healthData = await fetchData(startTime: startDate, endTime: now);
+    // final healthData = await fetchData(startTime: startDate, endTime: now);
+    refreshDataRange(startDate, now);
 
-    if (healthData != null && healthData.isNotEmpty) {
-      await processAndSaveStepData(healthData);
-    }
+    // if (healthData != null && healthData.isNotEmpty) {
+    //   await processAndSaveStepData(healthData);
+    // }
   }
 
   // Refresh all data (last 30 days by default)
@@ -126,6 +127,8 @@ class StepDataService {
 
   // Refresh data for a specific date range
   Future<void> refreshDataRange(DateTime start, DateTime end, {bool clearData = false}) async {
+    end = end.add(const Duration(days: 1)); // Include the end date fully
+
     // Delete data in the specified range
     await database.deleteDataInRange(start, end);
 
@@ -138,7 +141,7 @@ class StepDataService {
     // Fetch and process fresh data for the range
     final healthData = await fetchData(
       startTime: start,
-      endTime: end.add(const Duration(days: 1)), // Include the end date fully
+      endTime: end, // Include the end date fully
     );
 
     if (healthData != null && healthData.isNotEmpty) {
