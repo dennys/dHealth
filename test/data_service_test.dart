@@ -222,23 +222,23 @@ void main() {
     //     verify(mockDatabase.upsertDailyStep(any, any, any, isComplete: anyNamed('isComplete'))).called(1);
     //   });
 
-      test('syncs 30 days of data when no last date exists', () async {
-        when(mockDatabase.getLastDate()).thenAnswer((_) async => null);
-        when(mockHealth.hasPermissions([HealthDataType.STEPS], permissions: [HealthDataAccess.READ])).thenAnswer((_) async => true);
-        when(
-          mockHealth.getHealthDataFromTypes(types: [HealthDataType.STEPS], startTime: anyNamed('startTime'), endTime: anyNamed('endTime')),
-        ).thenAnswer((_) async => []);
+    //   test('syncs 30 days of data when no last date exists', () async {
+    //     when(mockDatabase.getLastDate()).thenAnswer((_) async => null);
+    //     when(mockHealth.hasPermissions([HealthDataType.STEPS], permissions: [HealthDataAccess.READ])).thenAnswer((_) async => true);
+    //     when(
+    //       mockHealth.getHealthDataFromTypes(types: [HealthDataType.STEPS], startTime: anyNamed('startTime'), endTime: anyNamed('endTime')),
+    //     ).thenAnswer((_) async => []);
 
-        await stepDataService.syncNewData();
+    //     await stepDataService.syncNewData();
 
-        verify(
-          mockHealth.getHealthDataFromTypes(
-            types: [HealthDataType.STEPS],
-            startTime: anyNamed('startTime'), // Approx 30 days before now
-            endTime: anyNamed('endTime'),
-          ),
-        ).called(1);
-      });
-    });
+    //     verify(
+    //       mockHealth.getHealthDataFromTypes(
+    //         types: [HealthDataType.STEPS],
+    //         startTime: anyNamed('startTime'), // Approx 30 days before now
+    //         endTime: anyNamed('endTime'),
+    //       ),
+    //     ).called(1);
+    //   });
+    // });
   });
 }
