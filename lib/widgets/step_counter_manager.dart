@@ -63,16 +63,45 @@ class StepCounterManager {
   }
 
   Future<void> _fetchTodaySteps() async {
-    final now = DateTime.now();
-    final midnight = DateTime(now.year, now.month, now.day);
+    try {
+      final now = DateTime.now();
+      final midnight = DateTime(now.year, now.month, now.day);
 
-    List<HealthDataPoint> healthData = await health.getHealthDataFromTypes(types: [HealthDataType.STEPS], startTime: midnight, endTime: now);
+      List<HealthDataPoint> healthData = await health.getHealthDataFromTypes(types: [HealthDataType.STEPS], startTime: midnight, endTime: now);
 
-    int steps = healthData.fold(0, (sum, data) => sum + (data.value as NumericHealthValue).numericValue.toInt());
-    todaySteps = steps;
+      int steps = healthData.fold(0, (sum, data) => sum + (data.value as NumericHealthValue).numericValue.toInt());
+      todaySteps = steps;
+      debugPrint('Steps successfully fetched: $steps');
+      await _checkAndNotify(steps, now);
+    } catch (e) {
+      debugPrint('Error fetching steps: $e');
+      todaySteps = null; // Reset steps to indicate failure
+      await _showErrorNotification(e.toString()); // Show error notification
+    }
+  }
 
-    // This can still be called in foreground or background checks
-    await _checkAndNotify(steps, now);
+  // New method to show an error notification
+  Future<void> _showErrorNotification(String errorMessage) async {
+    await AwesomeNotifications().createNotification(
+      content: NotificationContent(
+        id: 4, // Unique ID for error notifications
+        channelKey: 'step_channel',
+        title: 'Error', // _l10n.errorTitle ?? 'Error', // Use localized title or fallback
+        body:
+            'Failed to fetch steps: $errorMessage', //_l10n.errorFetchingSteps(errorMessage) ?? 'Failed to fetch steps: $errorMessage', // Localized or raw error
+        color: Colors.red, // Red to indicate an error
+        notificationLayout: NotificationLayout.BigText,
+        icon: 'resource://mipmap/ic_launcher',
+      ),
+      actionButtons: [
+        NotificationActionButton(
+          key: 'view_details',
+          label: _l10n.viewDetails ?? 'View Details',
+          color: Colors.blue,
+          actionType: ActionType.SilentAction,
+        ),
+      ],
+    );
   }
 
   bool _isWithinActiveHours(DateTime time) {
@@ -159,6 +188,7 @@ class StepCounterManager {
         preciseAlarm: true, // Exact timing on Android
       ),
     );
+    debugPrint('Scheduled health check');
   }
 
   // Handle notification actions (both view_details and check_steps)
