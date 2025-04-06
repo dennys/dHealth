@@ -1,6 +1,6 @@
 import 'package:dsteps/database/database.dart';
-import 'package:test/test.dart';
 import 'package:dsteps/utils/step_calculator.dart';
+import 'package:test/test.dart';
 
 void main() {
   group('StepCalculator', () {

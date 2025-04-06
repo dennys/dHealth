@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:health/health.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:get_it/get_it.dart';
 
 class HealthService {
   final Health health = GetIt.I<Health>();
-  // final Health health;
   final List<HealthDataType> types;
   final List<HealthDataAccess> permissions;
 

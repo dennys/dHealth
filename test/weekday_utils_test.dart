@@ -1,7 +1,7 @@
 // test/weekday_utils_test.dart
+import 'package:dsteps/utils/weekday_utils.dart'; // Adjust import path
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:dsteps/utils/weekday_utils.dart'; // Adjust import path
 
 void main() {
   group('WeekdayUtils', () {

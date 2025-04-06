@@ -2,10 +2,9 @@ import 'dart:async';
 
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:dsteps/generated/l10n/app_localizations.dart';
+import 'package:dsteps/settings_model.dart';
 import 'package:flutter/material.dart';
 import 'package:health/health.dart';
-
-import '../settings_model.dart';
 
 class StepCounterManager {
   final SettingsModel settings;

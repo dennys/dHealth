@@ -5,7 +5,6 @@ import 'package:dsteps/generated/l10n/app_localizations.dart';
 import 'package:dsteps/services/data_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:health/health.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -14,9 +13,7 @@ import 'package:share_plus/share_plus.dart';
 enum ImportMode { pastDays, dateRange, incremental }
 
 class ImportExportScreen extends StatefulWidget {
-  final Health healthParams;
-
-  const ImportExportScreen({super.key, required this.healthParams});
+  const ImportExportScreen({super.key});
 
   @override
   State<ImportExportScreen> createState() => _ImportExportScreenState();
@@ -80,9 +77,6 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
       }
 
       final totalDays = endDate.difference(startDate).inDays;
-      // final appDir = await getApplicationDocumentsDirectory();
-      // final dbFile = File(p.join(appDir.path, 'dHealth.sqlite'));
-      // final database = StepDatabase(NativeDatabase(dbFile));
       final stepService = StepDataService();
 
       const chunkSize = 30;

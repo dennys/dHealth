@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:drift/native.dart';
-import 'package:get_it/get_it.dart';
 import 'package:dsteps/generated/l10n/app_localizations.dart';
 import 'package:dsteps/services/data_service.dart';
 import 'package:dsteps/widgets/about.dart';
@@ -10,6 +9,7 @@ import 'package:dsteps/widgets/import_export.dart';
 import 'package:dsteps/widgets/setup.dart';
 import 'package:dsteps/widgets/step_counter_manager.dart';
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:health/health.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -34,9 +34,6 @@ Future<void> setupDependencies() async {
   final File dbFile = File(p.join(appDir.path, 'dHealth.sqlite'));
   getIt.registerLazySingleton<StepDatabase>(() => StepDatabase(NativeDatabase(dbFile)));
 }
-
-// Global Health instance
-// final Health health = Health();
 
 // void main() => runApp(HealthApp());
 
@@ -414,7 +411,7 @@ class HealthAppState extends State<HealthApp> {
                     title: Text(AppLocalizations.of(scaffoldContext)?.importExport ?? 'Import/Export'),
                     onTap: () {
                       Navigator.pop(scaffoldContext);
-                      Navigator.push(scaffoldContext, MaterialPageRoute(builder: (context) => ImportExportScreen(healthParams: health)));
+                      Navigator.push(scaffoldContext, MaterialPageRoute(builder: (context) => ImportExportScreen()));
                     },
                   ),
                   ListTile(

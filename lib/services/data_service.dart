@@ -1,5 +1,3 @@
-// 3. Now, let's create a service class to handle health data fetching and processing
-
 import 'package:dsteps/database/database.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
@@ -95,7 +93,8 @@ class StepDataService {
   }
 
   // Get only new data since last update
-  Future<void> syncNewData_old() async {
+  // ignore: non_constant_identifier_names
+  Future<void> syncNewData_Old() async {
     DateTime now = DateTime.now();
     DateTime startDate;
 

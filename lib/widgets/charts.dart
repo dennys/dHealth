@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dsteps/database/database.dart';
 import 'package:dsteps/generated/l10n/app_localizations.dart';
+import 'package:dsteps/settings_model.dart';
 import 'package:dsteps/utils/step_calculator.dart';
 import 'package:dsteps/utils/weekday_utils.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -9,8 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:health/health.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import '../settings_model.dart';
-
+import 'package:shared_preferences/shared_preferences.dart';
 /*
 for chart
 1. I cannot see the horizontal average line, change the color to bold dotted line with grey color.
@@ -23,8 +23,6 @@ users can swipe right again to see newer data.
 Hourly chart
 1. It refresh all screen when change cumulative
 */
-
-import 'package:shared_preferences/shared_preferences.dart';
 
 enum ChartType { daily, weekly, monthly }
 
