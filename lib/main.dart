@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:drift/native.dart';
+import 'package:get_it/get_it.dart';
 import 'package:dsteps/generated/l10n/app_localizations.dart';
 import 'package:dsteps/services/data_service.dart';
 import 'package:dsteps/widgets/about.dart';
@@ -24,12 +25,24 @@ import 'settings_model.dart';
 import 'util.dart';
 import 'widgets/charts.dart';
 
+// Global GetIt instance
+final getIt = GetIt.instance;
+
+Future<void> setupDependencies() async {
+  getIt.registerLazySingleton<Health>(() => Health());
+  final Directory appDir = await getApplicationDocumentsDirectory();
+  final File dbFile = File(p.join(appDir.path, 'dHealth.sqlite'));
+  getIt.registerLazySingleton<StepDatabase>(() => StepDatabase(NativeDatabase(dbFile)));
+}
+
 // Global Health instance
-final Health health = Health();
+// final Health health = Health();
 
 // void main() => runApp(HealthApp());
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await setupDependencies();
   runApp(ChangeNotifierProvider(create: (_) => SettingsModel(), child: const HealthApp()));
 }
 
@@ -111,10 +124,11 @@ class HealthAppState extends State<HealthApp> {
     });
 
     // configure the health plugin before use and check the Health Connect status
+    final health = GetIt.I<Health>();
     health.configure();
     health.getHealthConnectSdkStatus();
 
-    _healthService = HealthService(health: Health(), types: [HealthDataType.STEPS], permissions: [HealthDataAccess.READ]);
+    _healthService = HealthService(types: [HealthDataType.STEPS], permissions: [HealthDataAccess.READ]);
 
     final settings = Provider.of<SettingsModel>(context, listen: false);
     _stepCounterManager = StepCounterManager(
@@ -154,6 +168,8 @@ class HealthAppState extends State<HealthApp> {
 
   /// 初始化方法，确保 authorize 和 fetchData 只调用一次
   Future<void> _initialize() async {
+    await fetchData();
+
     // 调用授权方法
     final authorized = await _healthService.authorize();
     setState(() {
@@ -165,15 +181,19 @@ class HealthAppState extends State<HealthApp> {
 
     // 如果授权成功，自动获取数据
     // if (authorized) {
-    //   await _fetchData();
+    //   await fetchData();
     // }
   }
 
   /// Install Google Health Connect on this phone.
-  Future<void> installHealthConnect() async => await health.installHealthConnect();
+  Future<void> installHealthConnect() async {
+    final health = GetIt.I<Health>();
+    await health.installHealthConnect();
+  }
 
   /// Authorize, i.e. get permissions to access relevant health data.
   Future<void> authorize() async {
+    final health = GetIt.I<Health>();
     // If we are trying to read Step Count, Workout, Sleep or other data that requires
     // the ACTIVITY_RECOGNITION permission, we need to request the permission first.
     // This requires a special request authorization call.
@@ -205,6 +225,7 @@ class HealthAppState extends State<HealthApp> {
 
   /// Gets the Health Connect status on Android.
   Future<void> getHealthConnectSdkStatus() async {
+    final health = GetIt.I<Health>();
     assert(Platform.isAndroid, "This is only available on Android");
 
     final status = await health.getHealthConnectSdkStatus();
@@ -230,22 +251,23 @@ class HealthAppState extends State<HealthApp> {
     _healthDataList = await _healthService.fetchData(startTime: adjustedResult, endTime: now) ?? [];
 
     // Get a location for the database on disk
-    final Directory appDir = await getApplicationDocumentsDirectory();
-    final File dbFile = File(p.join(appDir.path, 'dHealth.sqlite'));
+    // final Directory appDir = await getApplicationDocumentsDirectory();
+    // final File dbFile = File(p.join(appDir.path, 'dHealth.sqlite'));
 
     // Create database instance
-    final StepDatabase database = StepDatabase(NativeDatabase(dbFile));
+    // final StepDatabase database = StepDatabase(NativeDatabase(dbFile));
     // For test
     // final database = StepDatabase(NativeDatabase.memory());
 
     // Create step data service
-    final StepDataService stepService = StepDataService(health: health, database: database);
+    final StepDataService stepService = StepDataService();
 
     // Sync new data daily
     await stepService.syncNewData();
 
     // To refresh a specific range:
     // await stepService.refreshDataRange(DateTime(2025, 3, 29), DateTime(2025, 4, 30));
+    // await stepService.refreshDataRange(DateTime.now().subtract(const Duration(days: 1)), DateTime.now().add(const Duration(days: 3)));
 
     // To refresh all data:
     // stepService.refreshAllData();
@@ -295,6 +317,7 @@ class HealthAppState extends State<HealthApp> {
 
   /// Fetch steps from the health plugin and show them in the app.
   Future<void> fetchStepData() async {
+    final health = GetIt.I<Health>();
     int? steps;
 
     // get steps for today (i.e., since midnight)
@@ -327,6 +350,7 @@ class HealthAppState extends State<HealthApp> {
 
   /// Revoke access to health data. Note, this only has an effect on Android.
   Future<void> revokeAccess() async {
+    final health = GetIt.I<Health>();
     setState(() => _state = AppState.PERMISSIONS_REVOKING);
 
     bool success = false;
@@ -347,6 +371,7 @@ class HealthAppState extends State<HealthApp> {
 
   @override
   Widget build(BuildContext context) {
+    final health = GetIt.I<Health>();
     final SettingsModel settings = Provider.of<SettingsModel>(context);
     return MaterialApp(
       theme: ThemeData.light(),

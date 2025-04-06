@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:health/health.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:get_it/get_it.dart';
 
 class HealthService {
-  final Health health;
+  final Health health = GetIt.I<Health>();
+  // final Health health;
   final List<HealthDataType> types;
   final List<HealthDataAccess> permissions;
 
-  HealthService({required this.health, required this.types, required this.permissions});
+  HealthService({required this.types, required this.permissions});
 
   /// Authorize, i.e. get permissions to access relevant health data.
   Future<bool> authorize() async {

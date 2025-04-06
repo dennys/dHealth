@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:drift/native.dart';
 import 'package:dsteps/database/util.dart';
 import 'package:dsteps/generated/l10n/app_localizations.dart';
 import 'package:dsteps/services/data_service.dart';
@@ -11,8 +10,6 @@ import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-
-import '../database/database.dart';
 
 enum ImportMode { pastDays, dateRange, incremental }
 
@@ -83,10 +80,10 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
       }
 
       final totalDays = endDate.difference(startDate).inDays;
-      final appDir = await getApplicationDocumentsDirectory();
-      final dbFile = File(p.join(appDir.path, 'dHealth.sqlite'));
-      final database = StepDatabase(NativeDatabase(dbFile));
-      final stepService = StepDataService(health: widget.healthParams, database: database);
+      // final appDir = await getApplicationDocumentsDirectory();
+      // final dbFile = File(p.join(appDir.path, 'dHealth.sqlite'));
+      // final database = StepDatabase(NativeDatabase(dbFile));
+      final stepService = StepDataService();
 
       const chunkSize = 30;
       final totalChunks = (totalDays / chunkSize).ceil();

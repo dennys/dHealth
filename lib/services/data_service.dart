@@ -1,18 +1,15 @@
 // 3. Now, let's create a service class to handle health data fetching and processing
-import 'dart:io';
 
-import 'package:drift/native.dart';
 import 'package:dsteps/database/database.dart';
 import 'package:flutter/foundation.dart';
+import 'package:get_it/get_it.dart';
 import 'package:health/health.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 
 class StepDataService {
-  final Health health;
-  final StepDatabase database;
+  final Health health = GetIt.I<Health>();
+  final StepDatabase database = GetIt.I<StepDatabase>();
 
-  StepDataService({required this.health, required this.database});
+  StepDataService();
 
   // Helper method to format date as YYYY-MM-DD
   static String _formatDate(DateTime date) {
@@ -82,8 +79,23 @@ class StepDataService {
     }
   }
 
-  // Get only new data since last update
+  Future<DateTime> _calculateStartDate(DateTime now) async {
+    final lastDate = await database.getLastDate();
+    if (lastDate != null) {
+      return lastDate.subtract(const Duration(days: 1));
+    } else {
+      return now.subtract(const Duration(days: 30));
+    }
+  }
+
   Future<void> syncNewData() async {
+    DateTime now = DateTime.now();
+    DateTime startDate = await _calculateStartDate(now); // Waits for the whole logic
+    await refreshDataRange(startDate, now);
+  }
+
+  // Get only new data since last update
+  Future<void> syncNewData_old() async {
     DateTime now = DateTime.now();
     DateTime startDate;
 
@@ -153,20 +165,20 @@ class StepDataService {
 // 4. Example usage in a main file
 Future<void> setupStepTracking() async {
   // Get a location for the database on disk
-  final appDir = await getApplicationDocumentsDirectory();
-  final dbFile = File(p.join(appDir.path, 'dHealth.sqlite'));
+  // final appDir = await getApplicationDocumentsDirectory();
+  // final dbFile = File(p.join(appDir.path, 'dHealth.sqlite'));
 
   // Create database instance
-  final database = StepDatabase(NativeDatabase(dbFile));
+  // final database = StepDatabase(NativeDatabase(dbFile));
 
   // For test
   // final database = StepDatabase(NativeDatabase.memory());
 
   // Create health factory
-  final health = Health();
+  // final health = Health();
 
   // Create step data service
-  final stepService = StepDataService(health: health, database: database);
+  final stepService = StepDataService();
 
   // Sync new data daily
   stepService.syncNewData();
