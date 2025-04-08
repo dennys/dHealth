@@ -3,11 +3,13 @@ import 'dart:io';
 
 import 'package:drift/native.dart';
 import 'package:dsteps/generated/l10n/app_localizations.dart';
+import 'package:dsteps/services/background_service.dart';
 import 'package:dsteps/services/data_service.dart';
+import 'package:dsteps/services/notification_service.dart';
 import 'package:dsteps/widgets/about.dart';
 import 'package:dsteps/widgets/import_export.dart';
 import 'package:dsteps/widgets/setup.dart';
-import 'package:dsteps/widgets/step_counter_manager.dart';
+// import 'package:dsteps/widgets/step_counter_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:health/health.dart';
@@ -40,6 +42,10 @@ Future<void> setupDependencies() async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await setupDependencies();
+
+  await NotificationService.initialize();
+  await BackgroundService.init();
+
   runApp(ChangeNotifierProvider(create: (_) => SettingsModel(), child: const HealthApp()));
 }
 
@@ -51,7 +57,7 @@ class HealthApp extends StatefulWidget {
 }
 
 class HealthAppState extends State<HealthApp> {
-  late StepCounterManager _stepCounterManager;
+  // late StepCounterManager _stepCounterManager;
   String _language = 'system';
   String _theme = 'system';
   List<HealthDataPoint> _healthDataList = [];
@@ -128,20 +134,20 @@ class HealthAppState extends State<HealthApp> {
     _healthService = HealthService(types: [HealthDataType.STEPS], permissions: [HealthDataAccess.READ]);
 
     final settings = Provider.of<SettingsModel>(context, listen: false);
-    _stepCounterManager = StepCounterManager(
-      settings: settings,
-      onPermissionDenied: () {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Please grant Health Connect permissions')));
-        }
-      },
-      onNavigateToMain: () {
-        if (mounted) {
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HealthApp()));
-        }
-      },
-    );
-    _stepCounterManager.initialize();
+    // _stepCounterManager = StepCounterManager(
+    //   settings: settings,
+    //   onPermissionDenied: () {
+    //     if (mounted) {
+    //       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Please grant Health Connect permissions')));
+    //     }
+    //   },
+    //   onNavigateToMain: () {
+    //     if (mounted) {
+    //       Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HealthApp()));
+    //     }
+    //   },
+    // );
+    // _stepCounterManager.initialize();
 
     // 在 Widgets 渲染完成后调用 authorize，避免在 initState 中直接使用 async
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -151,7 +157,7 @@ class HealthAppState extends State<HealthApp> {
 
   @override
   void dispose() {
-    _stepCounterManager.dispose(); // 清理計時器
+    // _stepCounterManager.dispose(); // 清理計時器
     super.dispose();
   }
 
