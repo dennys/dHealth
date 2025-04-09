@@ -23,6 +23,7 @@
   "contactDesc": "For support or feedback, email us at: support@example.com",
   "oooooSetup": "",
   "setup": "Setup",
+  "interface": "Interface",
   "language": "Language",
   "selectLanguage": "Select Language",
   "theme": "Theme",
@@ -41,6 +42,9 @@
   "every15Minutes": "Every 15 minutes",
   "every30Minutes": "Every 30 minutes",
   "every1Hour": "Every hour",
+  "selectStartTime": "Select Start Time",
+  "selectEndTime": "Select End Time",
+  "endTimeError": "End time must be after start time",
   "activeHours": "Active Hours",
   "startOnBoot": "Start on Boot",
   "stopOnTerminate": "Stop on Terminate",
@@ -93,6 +97,7 @@
       }
     }
   },
+  "notification": "Notification",
   "notificationAppearance": "Notification Appearance",
   "notificationSound": "Notification Sound",
   "notificationSoundDescription": "Play a sound when notifications are received.",

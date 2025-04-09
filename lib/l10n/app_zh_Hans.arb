@@ -23,6 +23,7 @@
   "contactDesc": "如需支援或反馈，请发送电子邮件至：support@example.com",
   "oooooSetup": "",
   "setup": "设定",
+  "interface": "介面",
   "language": "语言",
   "selectLanguage": "选择语言",
   "theme": "主题",
@@ -93,6 +94,7 @@
       }
     }
   },
+  "notification": "通知",
   "notificationAppearance": "通知外观",
   "notificationSound": "通知声音",
   "notificationSoundDescription": "收到通知时播放声音。",
