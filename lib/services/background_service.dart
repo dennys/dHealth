@@ -34,6 +34,7 @@ class BackgroundService {
         requiresCharging: false,
         requiresStorageNotLow: false,
         requiresDeviceIdle: false,
+        // requiredNetworkType: NetworkType.NONE, // Removed requiredNetworkType since no network is needed
         // Removed requiredNetworkType since no network is needed
       ),
       _onBackgroundFetch,
@@ -85,18 +86,20 @@ class BackgroundService {
       // Get goal
       final prefs = SharedPreferencesAsync();
       final goal = await prefs.getInt('dailyStepGoal') ?? 1000; // Default 6000 steps
+      final steps = await _fetchTodaySteps();
 
       // Get today steps
-      final health = getIt<Health>();
-      final now = DateTime.now();
-      final midnight = DateTime(now.year, now.month, now.day);
-      List<HealthDataPoint> healthData = await health.getHealthDataFromTypes(types: [HealthDataType.STEPS], startTime: midnight, endTime: now);
-      final int steps = healthData.fold(0, (sum, data) => sum + (data.value as NumericHealthValue).numericValue.toInt());
+      // final now = DateTime.now();
+      // final midnight = DateTime(now.year, now.month, now.day);
+      // List<HealthDataPoint> healthData = await health.getHealthDataFromTypes(types: [HealthDataType.STEPS], startTime: midnight, endTime: now);
+      // final int steps = healthData.fold(0, (sum, data) => sum + (data.value as NumericHealthValue).numericValue.toInt());
 
       if (steps >= goal) {
         NotificationService.showGoalReachedNotification(steps, goal);
       } else if (goal - steps < 1000) {
         NotificationService.showAlmostThereNotification(steps, goal);
+      } else {
+        NotificationService.showAlmostThereNotification(goal, steps);
       }
 
       // Call another function (placeholder)
@@ -104,6 +107,18 @@ class BackgroundService {
     } catch (e) {
       NotificationService.showErrorNotification(e.toString());
     }
+  }
+
+  static Future<int> _fetchTodaySteps() async {
+    final health = Health();
+    final now = DateTime.now();
+    int step = 1000;
+    final midnight = DateTime(now.year, now.month, now.day);
+    List<HealthDataPoint> healthData = await health.getHealthDataFromTypes(types: [HealthDataType.STEPS], startTime: midnight, endTime: now);
+
+    // Calculate the sum directly from the list
+    step = healthData.fold<int>(0, (sum, data) => sum + (data.value as NumericHealthValue).numericValue.toInt());
+    return step;
   }
 
   static Future<void> _callAnotherFunction() async {

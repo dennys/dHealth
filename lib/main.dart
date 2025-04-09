@@ -8,6 +8,7 @@ import 'package:dsteps/services/data_service.dart';
 import 'package:dsteps/services/notification_service.dart';
 import 'package:dsteps/widgets/about.dart';
 import 'package:dsteps/widgets/import_export.dart';
+import 'package:dsteps/widgets/notification_setup.dart';
 import 'package:dsteps/widgets/setup.dart';
 // import 'package:dsteps/widgets/step_counter_manager.dart';
 import 'package:flutter/material.dart';
@@ -426,6 +427,14 @@ class HealthAppState extends State<HealthApp> {
                     onTap: () {
                       Navigator.pop(scaffoldContext);
                       Navigator.push(scaffoldContext, MaterialPageRoute(builder: (context) => const SetupScreen()));
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.settings),
+                    title: Text(AppLocalizations.of(scaffoldContext)?.notificationSettings ?? 'Notification Settings'),
+                    onTap: () {
+                      Navigator.pop(scaffoldContext);
+                      Navigator.push(scaffoldContext, MaterialPageRoute(builder: (context) => const NotificationSetupScreen()));
                     },
                   ),
                   ListTile(

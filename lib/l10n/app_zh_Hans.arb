@@ -1,7 +1,14 @@
 {
   "@@locale": "zh_Hans",
+  "oooooCommon": "",
+  "cancel": "取消",
+  "interval": "间隔",
+  "minutesUnit": "分钟",
+  "hoursUnit": "小时",
+  "save": "储存",
+  "custom": "自订",
   "menu": "选单",
-
+  "oooooAbout": "",
   "about": "关于",
   "aboutDescription": "dHealth 是一款用于追踪和管理您的健康数据的应用程式，支持导入和导出 SQLite 数据库。",
   "platformSupportDesc": "支援 Health Connect（安卓）。",
@@ -14,7 +21,7 @@
   "version": "版本",
   "contact": "联系",
   "contactDesc": "如需支援或反馈，请发送电子邮件至：support@example.com",
-
+  "oooooSetup": "",
   "setup": "设定",
   "language": "语言",
   "selectLanguage": "选择语言",
@@ -26,9 +33,19 @@
   "simplifiedChinese": "简体中文",
   "light": "浅色",
   "dark": "深色",
+  "healthDataSync": "健康数据同步",
+  "healthDataSyncDesc": "设定如何从您的健康应用程式复制健康数据到此应用程式。",
+  "enableBackgroundSync": "启用背景同步",
   "syncFrequency": "同步频率",
-  "selectSyncFrequency": "选择同步频率",
-  "manual": "手动",
+  "customSyncTitle": "自订同步频率",
+  "every15Minutes": "每15分钟",
+  "every30Minutes": "每30分钟",
+  "every1Hour": "每小时",
+  "activeHours": "活动时间",
+  "startOnBoot": "开机时启动",
+  "stopOnTerminate": "终止时停止",
+  "persistentSync": "持续同步",
+  "persistentSyncReminder": "注意：即使您强制停止应用程式，同步也会继续。",
   "hourly": "每小时",
   "daily": "每天",
   "dailyStepGoal": "每日目标",
@@ -37,7 +54,60 @@
   "displaySettings": "显示设定",
   "showCumulativeSteps": "显示累积步数",
   "showDailyStepGoal": "显示每日目标",
-
+  "oooooNotificationSetup": "",
+  "notificationSettings": "通知设定",
+  "enableNotifications": "启用通知",
+  "enableNotificationsDescription": "开启或关闭通知。",
+  "notificationFrequency": "通知频率",
+  "notificationFrequencyDescription": "接收通知的频率。",
+  "notificationTypes": "通知类型",
+  "reachGoalNotification": "目标达成",
+  "reachGoalNotificationDescription": "达到目标时通知。",
+  "motivationNotification": "激励（接近达成）",
+  "motivationNotificationDescription": "接近目标时鼓励。",
+  "motivationTimeLimit": "激励频率限制",
+  "motivationTimeLimitDescription": "激励通知之间的最小时间间隔。",
+  "exceptionNotification": "异常情况",
+  "exceptionNotificationDescription": "通知异常或错误。",
+  "newAccomplishmentNotification": "新成就",
+  "newAccomplishmentNotificationDescription": "通知新的成就。",
+  "customFrequency": "自订频率",
+  "minutesLabel": "分钟",
+  "enterMinutes": "输入分钟数",
+  "ok": "确定",
+  "minutes": "{count} 分钟",
+  "@minutes": {
+    "description": "分钟格式",
+    "placeholders": {
+      "count": {
+        "type": "Object"
+      }
+    }
+  },
+  "hours": "{count} 小时",
+  "@hours": {
+    "description": "小时格式",
+    "placeholders": {
+      "count": {
+        "type": "Object"
+      }
+    }
+  },
+  "notificationAppearance": "通知外观",
+  "notificationSound": "通知声音",
+  "notificationSoundDescription": "收到通知时播放声音。",
+  "notificationVibration": "震动",
+  "notificationVibrationDescription": "收到通知时震动。",
+  "notificationPriority": "通知优先级",
+  "notificationPriorityDescription": "设定通知的重要性。",
+  "lowPriority": "低",
+  "defaultPriority": "预设",
+  "highPriority": "高",
+  "notificationTimeWindow": "通知时间范围",
+  "startTime": "开始时间",
+  "startTimeDescription": "接收通知的最早时间。",
+  "endTime": "结束时间",
+  "endTimeDescription": "接收通知的最晚时间。",
   "importExport": "导入/导出",
   "import": "汇入",
   "importFromPhone": "从手机汇入",
@@ -53,38 +123,51 @@
   "importFromPhoneDesc": "从您的手机导入步数数据",
   "importFromFileDesc": "从之前导出的文件导入",
   "exportOptions": "导出选项",
-
   "export": "汇出",
   "exportToFile": "汇出到档案",
   "exportToCSV": "汇出为 CSV",
   "shareDatabaseFile": "汇出到云端",
   "exportSuccess": "汇出成功完成",
   "exportFailed": "汇出失败",
-
   "widgets": "小工具",
-
+  "chartTitle": "过去 {steps} 天，平均 {average} 步",
+  "@chartTitle": {
+    "placeholders": {
+      "steps": {
+        "type": "int"
+      },
+      "average": {
+        "type": "int"
+      }
+    }
+  },
   "todaySteps": "今日步数：{steps}",
   "@todaySteps": {
     "placeholders": {
-      "steps": {"type": "int"}
+      "steps": {
+        "type": "int"
+      }
     }
   },
   "stepGoalReachedTitle": "步数目标达成！",
   "stepGoalReachedBody": "你今天已经走了 {steps} 步，太棒了！",
   "@stepGoalReachedBody": {
     "placeholders": {
-      "steps": {"type": "int"}
+      "steps": {
+        "type": "int"
+      }
     }
   },
   "motivationTitle": "就差一点！",
   "motivationBody": "你离 {goal} 步的目标只差 1000 步了！",
   "@motivationBody": {
     "placeholders": {
-      "goal": {"type": "int"}
+      "goal": {
+        "type": "int"
+      }
     }
   },
   "viewDetails": "查看详情",
-
   "today": "今天",
   "days": "天",
   "weeks": "周",
@@ -100,10 +183,7 @@
   "sunday": "星期日",
   "noDataInDatabase": "数据库中无可用数据",
   "past": "过去",
-  "ok": "确定",
   "chartHelpTitle": "图表说明",
   "hourlyStepsChartExplanation": "此图表显示您的每小时步数。\n\n - 「累积」开关：切换以查看当天累积的总步数。\n - 「目标」开关：切换以显示您的每日步数目标为一条水平线。\n 调整这些设定来自订您的视图！",
   "chartHelpContent": "此图表显示您在所选期间的步数。柱状图表示每日/每周/每月/每年的步数，虚线表示平均步数。"
-
-
 }

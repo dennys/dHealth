@@ -14,6 +14,57 @@ class SetupScreen extends StatelessWidget {
     final textColor = isDarkTheme ? Colors.white : Theme.of(context).textTheme.bodyLarge?.color;
     final secondaryTextColor = isDarkTheme ? Colors.white.withValues(alpha: 0.8) : Theme.of(context).hintColor;
 
+    // Helper method for Active Hours picker (example implementation)
+    void showActiveHoursPicker(BuildContext context, SettingsModel settings) async {
+      // Implement a time range picker here (e.g., using showTimePicker or a custom dialog)
+      // Update settings.activeStartHour and settings.activeEndHour based on user input
+    }
+
+    // Custom Sync Frequency Dialog
+    Future<void> showCustomSyncDialog(BuildContext context, SettingsModel settings) async {
+      int? interval;
+      String unit = 'minutes'; // Default unit
+
+      await showDialog(
+        context: context,
+        builder:
+            (context) => AlertDialog(
+              title: Text(localizations?.customSyncTitle ?? 'Custom Sync Frequency'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(labelText: localizations?.interval ?? 'Interval', hintText: 'e.g., 45'),
+                    onChanged: (value) => interval = int.tryParse(value),
+                  ),
+                  DropdownButton<String>(
+                    value: unit,
+                    items: [
+                      DropdownMenuItem(value: 'minutes', child: Text(localizations?.minutesUnit ?? 'Minutes')),
+                      DropdownMenuItem(value: 'hours', child: Text(localizations?.hoursUnit ?? 'Hours')),
+                    ],
+                    onChanged: (value) => unit = value ?? 'minutes',
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(context), child: Text(localizations?.cancel ?? 'Cancel')),
+                TextButton(
+                  onPressed: () {
+                    if (interval != null && interval! > 0) {
+                      final value = unit == 'minutes' ? '${interval}m' : '${interval}h';
+                      settings.setCustomSyncFrequency(value); // Use the new method
+                    }
+                    Navigator.pop(context);
+                  },
+                  child: Text(localizations?.save ?? 'Save'),
+                ),
+              ],
+            ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text(localizations?.setup ?? 'Setup', style: TextStyle(color: Colors.white)),
@@ -96,26 +147,127 @@ class SetupScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
 
-            // Sync Frequency Setting
-            _buildSectionTitle(context, localizations?.syncFrequency ?? 'Sync Frequency', Icons.sync, isDarkTheme),
+            // // Sync Frequency Setting
+            // _buildSectionTitle(context, localizations?.syncFrequency ?? 'Sync Frequency', Icons.sync, isDarkTheme),
+            // const SizedBox(height: 12),
+            // _buildCard(
+            //   context,
+            //   DropdownButtonFormField<String>(
+            //     value: settings.syncFrequency,
+            //     icon: Icon(Icons.arrow_drop_down, color: Theme.of(context).primaryColor),
+            //     decoration: InputDecoration(
+            //       border: InputBorder.none,
+            //       labelText: localizations?.selectSyncFrequency ?? 'Select Sync Frequency',
+            //       labelStyle: TextStyle(color: secondaryTextColor),
+            //     ),
+            //     dropdownColor: isDarkTheme ? Colors.grey[850] : Theme.of(context).cardColor,
+            //     items: [
+            //       DropdownMenuItem(value: 'manual', child: Text(localizations?.manual ?? 'Manual', style: TextStyle(color: textColor))),
+            //       DropdownMenuItem(value: 'hourly', child: Text(localizations?.hourly ?? 'Hourly', style: TextStyle(color: textColor))),
+            //       DropdownMenuItem(value: 'daily', child: Text(localizations?.daily ?? 'Daily', style: TextStyle(color: textColor))),
+            //     ],
+            //     onChanged: (value) => value != null ? settings.setSyncFrequency(value) : null,
+            //   ),
+            //   isDarkTheme,
+            // ),
+            // const SizedBox(height: 24),
+
+            // Health Data Sync Setting
+            _buildSectionTitle(context, localizations?.healthDataSync ?? 'Health Data Sync', Icons.sync, isDarkTheme),
+            const SizedBox(height: 8),
+            Text(
+              localizations?.healthDataSyncDesc ?? 'Configure how health data is copied from your health app to this app.',
+              style: TextStyle(color: secondaryTextColor, fontSize: 14),
+            ),
             const SizedBox(height: 12),
             _buildCard(
               context,
-              DropdownButtonFormField<String>(
-                value: settings.syncFrequency,
-                icon: Icon(Icons.arrow_drop_down, color: Theme.of(context).primaryColor),
-                decoration: InputDecoration(
-                  border: InputBorder.none,
-                  labelText: localizations?.selectSyncFrequency ?? 'Select Sync Frequency',
-                  labelStyle: TextStyle(color: secondaryTextColor),
-                ),
-                dropdownColor: isDarkTheme ? Colors.grey[850] : Theme.of(context).cardColor,
-                items: [
-                  DropdownMenuItem(value: 'manual', child: Text(localizations?.manual ?? 'Manual', style: TextStyle(color: textColor))),
-                  DropdownMenuItem(value: 'hourly', child: Text(localizations?.hourly ?? 'Hourly', style: TextStyle(color: textColor))),
-                  DropdownMenuItem(value: 'daily', child: Text(localizations?.daily ?? 'Daily', style: TextStyle(color: textColor))),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Enable Background Sync
+                  SwitchListTile(
+                    title: Text(localizations?.enableBackgroundSync ?? 'Enable Background Sync', style: TextStyle(color: textColor)),
+                    value: settings.healthSyncEnabled,
+                    onChanged: (value) => settings.setHealthSyncEnabled(value),
+                    activeColor: Theme.of(context).primaryColor,
+                  ),
+                  if (settings.healthSyncEnabled) ...[
+                    // Sync Frequency
+                    DropdownButtonFormField<String>(
+                      value: settings.syncFrequency,
+                      icon: Icon(Icons.arrow_drop_down, color: Theme.of(context).primaryColor),
+                      decoration: InputDecoration(
+                        border: InputBorder.none,
+                        labelText: localizations?.syncFrequency ?? 'Sync Frequency',
+                        labelStyle: TextStyle(color: secondaryTextColor),
+                      ),
+                      dropdownColor: isDarkTheme ? Colors.grey[850] : Theme.of(context).cardColor,
+                      items: [
+                        DropdownMenuItem(
+                          value: '15m',
+                          child: Text(localizations?.every15Minutes ?? 'Every 15 minutes', style: TextStyle(color: textColor)),
+                        ),
+                        DropdownMenuItem(
+                          value: '30m',
+                          child: Text(localizations?.every30Minutes ?? 'Every 30 minutes', style: TextStyle(color: textColor)),
+                        ),
+                        DropdownMenuItem(value: '1h', child: Text(localizations?.every1Hour ?? 'Every hour', style: TextStyle(color: textColor))),
+                        DropdownMenuItem(value: 'custom', child: Text(localizations?.custom ?? 'Custom', style: TextStyle(color: textColor))),
+                        DropdownMenuItem(value: 'manual', child: Text(localizations?.custom ?? 'manual', style: TextStyle(color: textColor))),
+                      ],
+                      onChanged: (value) async {
+                        if (value == 'custom') {
+                          await showCustomSyncDialog(context, settings);
+                        } else if (value != null) {
+                          settings.setSyncFrequency(value);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    // Active Hours
+                    ListTile(
+                      title: Text(localizations?.activeHours ?? 'Active Hours', style: TextStyle(color: textColor)),
+                      subtitle: Text(
+                        'From ${settings.activeStartHour}:00 to ${settings.activeEndHour}:00',
+                        style: TextStyle(color: secondaryTextColor),
+                      ),
+                      trailing: Icon(Icons.edit, color: Theme.of(context).primaryColor),
+                      onTap: () => showActiveHoursPicker(context, settings),
+                    ),
+                  ],
+                  // Start on Boot
+                  SwitchListTile(
+                    title: Text(localizations?.startOnBoot ?? 'Start on Boot', style: TextStyle(color: textColor)),
+                    value: settings.startOnBoot,
+                    onChanged: (value) => settings.setStartOnBoot(value),
+                    activeColor: Theme.of(context).primaryColor,
+                  ),
+                  // Stop on Terminate (optional, hidden by default)
+                  SwitchListTile(
+                    title: Text(localizations?.stopOnTerminate ?? 'Stop on Terminate', style: TextStyle(color: textColor)),
+                    value: settings.stopOnTerminate,
+                    onChanged: (value) => settings.setStopOnTerminate(value),
+                    activeColor: Theme.of(context).primaryColor,
+                  ),
+                  // Persistent Sync (replacing Headless Mode)
+                  SwitchListTile(
+                    title: Text(localizations?.persistentSync ?? 'Persistent Sync', style: TextStyle(color: textColor)),
+                    value: settings.persistentSync,
+                    onChanged: (value) => settings.setPersistentSync(value),
+                    activeColor: Theme.of(context).primaryColor,
+                  ),
+                  Visibility(
+                    visible: settings.persistentSync,
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 16.0, top: 8.0),
+                      child: Text(
+                        localizations?.persistentSyncReminder ?? 'Note: Sync will continue even if you force-stop the app.',
+                        style: TextStyle(color: Colors.orange, fontSize: 12),
+                      ),
+                    ),
+                  ),
                 ],
-                onChanged: (value) => value != null ? settings.setSyncFrequency(value) : null,
               ),
               isDarkTheme,
             ),

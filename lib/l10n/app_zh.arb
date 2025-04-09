@@ -1,6 +1,14 @@
 {
   "@@locale": "zh",
+  "oooooCommon": "",
+  "cancel": "取消",
+  "interval": "間隔",
+  "minutesUnit": "分鐘",
+  "hoursUnit": "小時",
+  "save": "儲存",
+  "custom": "自訂",
   "menu": "選單",
+  "oooooAbout": "",
   "about": "關於",
   "aboutDescription": "dHealth 是一款用於追蹤和管理您的健康數據的應用程式，支持導入和導出 SQLite 數據庫。",
   "platformSupportDesc": "支援 Health Connect（安卓）。",
@@ -13,6 +21,7 @@
   "version": "版本",
   "contact": "聯繫",
   "contactDesc": "如需支援或反饋，請發送電子郵件至：support@example.com",
+  "oooooSetup": "",
   "setup": "設定",
   "language": "語言",
   "selectLanguage": "選擇語言",
@@ -24,9 +33,19 @@
   "simplifiedChinese": "簡體中文",
   "light": "淺色",
   "dark": "深色",
+  "healthDataSync": "健康數據同步",
+  "healthDataSyncDesc": "設定如何從您的健康應用程式複製健康數據到此應用程式。",
+  "enableBackgroundSync": "啟用背景同步",
   "syncFrequency": "同步頻率",
-  "selectSyncFrequency": "選擇同步頻率",
-  "manual": "手動",
+  "customSyncTitle": "自訂同步頻率",
+  "every15Minutes": "每15分鐘",
+  "every30Minutes": "每30分鐘",
+  "every1Hour": "每小時",
+  "activeHours": "活動時間",
+  "startOnBoot": "開機時啟動",
+  "stopOnTerminate": "終止時停止",
+  "persistentSync": "持續同步",
+  "persistentSyncReminder": "注意：即使您強制停止應用程式，同步也會繼續。",
   "hourly": "每小時",
   "daily": "每天",
   "dailyStepGoal": "每日目標",
@@ -35,6 +54,60 @@
   "displaySettings": "顯示設定",
   "showCumulativeSteps": "顯示累積步數",
   "showDailyStepGoal": "顯示每日目標",
+  "oooooNotificationSetup": "",
+  "notificationSettings": "通知設定",
+  "enableNotifications": "啟用通知",
+  "enableNotificationsDescription": "開啟或關閉通知。",
+  "notificationFrequency": "通知頻率",
+  "notificationFrequencyDescription": "接收通知的頻率。",
+  "notificationTypes": "通知類型",
+  "reachGoalNotification": "目標達成",
+  "reachGoalNotificationDescription": "達到目標時通知。",
+  "motivationNotification": "激勵（接近達成）",
+  "motivationNotificationDescription": "接近目標時鼓勵。",
+  "motivationTimeLimit": "激勵頻率限制",
+  "motivationTimeLimitDescription": "激勵通知之間的最小時間間隔。",
+  "exceptionNotification": "異常情況",
+  "exceptionNotificationDescription": "通知異常或錯誤。",
+  "newAccomplishmentNotification": "新成就",
+  "newAccomplishmentNotificationDescription": "通知新的成就。",
+  "customFrequency": "自訂頻率",
+  "minutesLabel": "分鐘",
+  "enterMinutes": "輸入分鐘數",
+  "ok": "確定",
+  "minutes": "{count} 分鐘",
+  "@minutes": {
+    "description": "分鐘格式",
+    "placeholders": {
+      "count": {
+        "type": "Object"
+      }
+    }
+  },
+  "hours": "{count} 小時",
+  "@hours": {
+    "description": "小時格式",
+    "placeholders": {
+      "count": {
+        "type": "Object"
+      }
+    }
+  },
+  "notificationAppearance": "通知外觀",
+  "notificationSound": "通知聲音",
+  "notificationSoundDescription": "收到通知時播放聲音。",
+  "notificationVibration": "震動",
+  "notificationVibrationDescription": "收到通知時震動。",
+  "notificationPriority": "通知優先級",
+  "notificationPriorityDescription": "設定通知的重要性。",
+  "lowPriority": "低",
+  "defaultPriority": "預設",
+  "highPriority": "高",
+  "notificationTimeWindow": "通知時間範圍",
+  "startTime": "開始時間",
+  "startTimeDescription": "接收通知的最早時間。",
+  "endTime": "結束時間",
+  "endTimeDescription": "接收通知的最晚時間。",
   "importExport": "導入/導出",
   "import": "匯入",
   "importFromPhone": "從手機匯入",
@@ -57,6 +130,17 @@
   "exportSuccess": "匯出成功完成",
   "exportFailed": "匯出失敗",
   "widgets": "小工具",
+  "chartTitle": "過去 {steps} 天，平均 {average} 步",
+  "@chartTitle": {
+    "placeholders": {
+      "steps": {
+        "type": "int"
+      },
+      "average": {
+        "type": "int"
+      }
+    }
+  },
   "todaySteps": "今日步數：{steps}",
   "@todaySteps": {
     "placeholders": {
@@ -99,7 +183,6 @@
   "sunday": "星期日",
   "noDataInDatabase": "數據庫中無可用數據",
   "past": "過去",
-  "ok": "確定",
   "chartHelpTitle": "圖表說明",
   "hourlyStepsChartExplanation": "此圖表顯示您的每小時步數。\n\n - 「累積」開關：切換以查看當天累積的總步數。\n - 「目標」開關：切換以顯示您的每日步數目標為一條水平線。\n 調整這些設定來自訂您的視圖！",
   "chartHelpContent": "此圖表顯示您在所選期間的步數。柱狀圖表示每日/每週/每月/每年的步數，虛線表示平均步數。"
