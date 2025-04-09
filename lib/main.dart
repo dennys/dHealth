@@ -430,7 +430,7 @@ class HealthAppState extends State<HealthApp> {
                     },
                   ),
                   ListTile(
-                    leading: const Icon(Icons.settings),
+                    leading: const Icon(Icons.notifications_rounded),
                     title: Text(AppLocalizations.of(scaffoldContext)?.notificationSettings ?? 'Notification Settings'),
                     onTap: () {
                       Navigator.pop(scaffoldContext);

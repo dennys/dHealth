@@ -47,6 +47,7 @@ class NotificationSetupScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
+          Text(localizations.notification, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: textColor)),
           // Enable Notifications
           SwitchListTile(
             title: Text(localizations.enableNotifications, style: TextStyle(color: textColor)),
@@ -54,7 +55,6 @@ class NotificationSetupScreen extends StatelessWidget {
             value: settings.notificationsEnabled,
             onChanged: (value) => settings.setNotificationsEnabled(value),
           ),
-          const Divider(),
 
           // Notification Frequency
           ListTile(

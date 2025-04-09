@@ -1,4 +1,5 @@
 import 'package:background_fetch/background_fetch.dart';
+import 'package:flutter/foundation.dart';
 import 'package:health/health.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:get_it/get_it.dart';
@@ -109,16 +110,43 @@ class BackgroundService {
     }
   }
 
+  // static Future<int> _fetchTodaySteps() async {
+  //   final health = Health();
+  //   final now = DateTime.now();
+  //   int step = 1000;
+  //   final midnight = DateTime(now.year, now.month, now.day);
+  //   List<HealthDataPoint> healthData = await health.getHealthDataFromTypes(types: [HealthDataType.STEPS], startTime: midnight, endTime: now);
+
+  //   // Calculate the sum directly from the list
+  //   step = healthData.fold<int>(0, (sum, data) => sum + (data.value as NumericHealthValue).numericValue.toInt());
+  //   return step;
+  // }
+
   static Future<int> _fetchTodaySteps() async {
     final health = Health();
     final now = DateTime.now();
-    int step = 1000;
     final midnight = DateTime(now.year, now.month, now.day);
+
+    // Add debug print
+    debugPrint("Fetching steps from $midnight to $now");
+
     List<HealthDataPoint> healthData = await health.getHealthDataFromTypes(types: [HealthDataType.STEPS], startTime: midnight, endTime: now);
 
-    // Calculate the sum directly from the list
-    step = healthData.fold<int>(0, (sum, data) => sum + (data.value as NumericHealthValue).numericValue.toInt());
-    return step;
+    // Check if we got any data
+    debugPrint("Retrieved ${healthData.length} health data points");
+
+    // Examine the data if available
+    if (healthData.isNotEmpty) {
+      for (var data in healthData) {
+        debugPrint("Step data: ${data.value}");
+      }
+    }
+
+    // Calculate steps
+    int steps = healthData.fold<int>(0, (sum, data) => sum + (data.value as NumericHealthValue).numericValue.toInt());
+
+    debugPrint("Calculated steps: $steps");
+    return steps;
   }
 
   static Future<void> _callAnotherFunction() async {
