@@ -173,7 +173,12 @@ class NotificationSetupScreen extends StatelessWidget {
             subtitle: Text(localizations.startTimeDescription, style: TextStyle(color: secondaryTextColor)),
             trailing: Text(settings.startTime.format(context), style: TextStyle(color: textColor)),
             onTap: () async {
-              final time = await showTimePicker(context: context, initialTime: settings.startTime);
+              final time = await showTimePicker(
+                context: context,
+                initialTime: settings.endTime,
+                // force to use en_US because I like it's layour
+                builder: (context, child) => Localizations.override(context: context, locale: const Locale('en', 'US'), child: child!),
+              );
               if (time != null) {
                 settings.setStartTime(time);
               }
@@ -184,7 +189,12 @@ class NotificationSetupScreen extends StatelessWidget {
             subtitle: Text(localizations.endTimeDescription, style: TextStyle(color: secondaryTextColor)),
             trailing: Text(settings.endTime.format(context), style: TextStyle(color: textColor)),
             onTap: () async {
-              final time = await showTimePicker(context: context, initialTime: settings.endTime);
+              final time = await showTimePicker(
+                context: context,
+                initialTime: settings.endTime,
+                // force to use en_US because I like it's layour
+                builder: (context, child) => Localizations.override(context: context, locale: const Locale('en', 'US'), child: child!),
+              );
               if (time != null) {
                 settings.setEndTime(time);
               }
