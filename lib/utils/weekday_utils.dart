@@ -30,8 +30,8 @@ class WeekdayUtils {
   static Future<Weekday> getWeekStartDay() async {
     try {
       // 1.1 Try to get from SharedPreferences
-      final prefs = await SharedPreferences.getInstance();
-      final storedValue = prefs.getInt(_weekStartKey);
+      final prefs = SharedPreferencesAsync();
+      final storedValue = await prefs.getInt(_weekStartKey);
 
       if (storedValue != null) {
         return Weekday.fromValue(storedValue);
@@ -52,7 +52,7 @@ class WeekdayUtils {
 
   // Optional: Method to set the week start day
   static Future<void> setWeekStartDay(Weekday weekday) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = SharedPreferencesAsync();
     await prefs.setInt(_weekStartKey, weekday.value);
   }
 }

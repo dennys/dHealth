@@ -447,8 +447,8 @@ Future<ChartData> _fetchChartData({
     }
 
     final average = await database.getDailyAverageSteps(startDate, now).timeout(Duration(seconds: 10));
-    final prefs = await SharedPreferences.getInstance();
-    final displayRange = prefs.getInt(rangeKey) ?? defaultRange;
+    final prefs = SharedPreferencesAsync();
+    final displayRange = await prefs.getInt(rangeKey) ?? defaultRange;
 
     return ChartData(dataset, average, displayRange);
   } on Exception catch (e) {
@@ -463,8 +463,8 @@ Future<ChartData> _fetchDailyChartData(StepDatabase database, {int n = 7}) async
 
   final dataset = await database.getAllDailySteps();
   final average = await database.getDailyAverageSteps(startDate, endDate);
-  final prefs = await SharedPreferences.getInstance();
-  final displayRange = prefs.getInt('dailyChartRange') ?? 7;
+  final prefs = SharedPreferencesAsync();
+  final displayRange = await prefs.getInt('dailyChartRange') ?? 7;
 
   return ChartData(dataset, average, displayRange);
 }
@@ -540,8 +540,8 @@ Future<ChartData> _fetchWeeklyChartData(StepDatabase database, {int n = 7}) asyn
 
   final dataset = await database.getAllWeeklySteps(startDate, endDate);
   final average = await database.getDailyAverageSteps(startDate, endDate);
-  final prefs = await SharedPreferences.getInstance();
-  final displayRange = prefs.getInt('weeklyChartRange') ?? 4;
+  final prefs = SharedPreferencesAsync();
+  final displayRange = await prefs.getInt('weeklyChartRange') ?? 4;
 
   return ChartData(dataset, average, displayRange);
 }
@@ -614,8 +614,8 @@ Future<ChartData> _fetchMonthlyChartData(StepDatabase database, {int n = 7}) asy
 
   final dataset = await database.getAllMonthlySteps(startDate, endDate);
   final average = await database.getDailyAverageSteps(startDate, endDate);
-  final prefs = await SharedPreferences.getInstance();
-  final displayRange = prefs.getInt('monthlyChartRange') ?? 6;
+  final prefs = SharedPreferencesAsync();
+  final displayRange = await prefs.getInt('monthlyChartRange') ?? 6;
 
   return ChartData(dataset, average, displayRange);
 }

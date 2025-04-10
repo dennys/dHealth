@@ -97,11 +97,59 @@ abstract class AppLocalizations {
     Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant')
   ];
 
+  /// No description provided for @oooooCommon.
+  ///
+  /// In en, this message translates to:
+  /// **''**
+  String get oooooCommon;
+
+  /// No description provided for @cancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancel;
+
+  /// No description provided for @interval.
+  ///
+  /// In en, this message translates to:
+  /// **'Interval'**
+  String get interval;
+
+  /// No description provided for @minutesUnit.
+  ///
+  /// In en, this message translates to:
+  /// **'Minutes'**
+  String get minutesUnit;
+
+  /// No description provided for @hoursUnit.
+  ///
+  /// In en, this message translates to:
+  /// **'Hours'**
+  String get hoursUnit;
+
+  /// No description provided for @save.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get save;
+
+  /// No description provided for @custom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get custom;
+
   /// No description provided for @menu.
   ///
   /// In en, this message translates to:
   /// **'Menu'**
   String get menu;
+
+  /// No description provided for @oooooAbout.
+  ///
+  /// In en, this message translates to:
+  /// **''**
+  String get oooooAbout;
 
   /// No description provided for @about.
   ///
@@ -175,11 +223,23 @@ abstract class AppLocalizations {
   /// **'For support or feedback, email us at: support@example.com'**
   String get contactDesc;
 
+  /// No description provided for @oooooSetup.
+  ///
+  /// In en, this message translates to:
+  /// **''**
+  String get oooooSetup;
+
   /// No description provided for @setup.
   ///
   /// In en, this message translates to:
   /// **'Setup'**
   String get setup;
+
+  /// No description provided for @interface.
+  ///
+  /// In en, this message translates to:
+  /// **'Interface'**
+  String get interface;
 
   /// No description provided for @language.
   ///
@@ -241,23 +301,101 @@ abstract class AppLocalizations {
   /// **'Dark'**
   String get dark;
 
+  /// No description provided for @healthDataSync.
+  ///
+  /// In en, this message translates to:
+  /// **'Health Data Sync'**
+  String get healthDataSync;
+
+  /// No description provided for @healthDataSyncDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure how to sync health data from your phone.'**
+  String get healthDataSyncDesc;
+
+  /// No description provided for @enableBackgroundSync.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable Background Sync'**
+  String get enableBackgroundSync;
+
   /// No description provided for @syncFrequency.
   ///
   /// In en, this message translates to:
   /// **'Sync Frequency'**
   String get syncFrequency;
 
-  /// No description provided for @selectSyncFrequency.
+  /// No description provided for @customSyncTitle.
   ///
   /// In en, this message translates to:
-  /// **'Select Sync Frequency'**
-  String get selectSyncFrequency;
+  /// **'Custom Sync Frequency'**
+  String get customSyncTitle;
 
-  /// No description provided for @manual.
+  /// No description provided for @every15Minutes.
   ///
   /// In en, this message translates to:
-  /// **'Manual'**
-  String get manual;
+  /// **'Every 15 minutes'**
+  String get every15Minutes;
+
+  /// No description provided for @every30Minutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Every 30 minutes'**
+  String get every30Minutes;
+
+  /// No description provided for @every1Hour.
+  ///
+  /// In en, this message translates to:
+  /// **'Every hour'**
+  String get every1Hour;
+
+  /// No description provided for @selectStartTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Start Time'**
+  String get selectStartTime;
+
+  /// No description provided for @selectEndTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Select End Time'**
+  String get selectEndTime;
+
+  /// No description provided for @endTimeError.
+  ///
+  /// In en, this message translates to:
+  /// **'End time must be after start time'**
+  String get endTimeError;
+
+  /// No description provided for @activeHours.
+  ///
+  /// In en, this message translates to:
+  /// **'Active Hours'**
+  String get activeHours;
+
+  /// No description provided for @startOnBoot.
+  ///
+  /// In en, this message translates to:
+  /// **'Start on Boot'**
+  String get startOnBoot;
+
+  /// No description provided for @stopOnTerminate.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop on Terminate'**
+  String get stopOnTerminate;
+
+  /// No description provided for @persistentSync.
+  ///
+  /// In en, this message translates to:
+  /// **'Persistent Sync'**
+  String get persistentSync;
+
+  /// No description provided for @persistentSyncReminder.
+  ///
+  /// In en, this message translates to:
+  /// **'Note: Sync will continue even if you force-stop the app.'**
+  String get persistentSyncReminder;
 
   /// No description provided for @hourly.
   ///
@@ -306,6 +444,240 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Show daily step goal'**
   String get showDailyStepGoal;
+
+  /// No description provided for @oooooNotificationSetup.
+  ///
+  /// In en, this message translates to:
+  /// **''**
+  String get oooooNotificationSetup;
+
+  /// No description provided for @notificationSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification Settings'**
+  String get notificationSettings;
+
+  /// No description provided for @enableNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable Notifications'**
+  String get enableNotifications;
+
+  /// No description provided for @enableNotificationsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn notifications on or off.'**
+  String get enableNotificationsDescription;
+
+  /// No description provided for @notificationFrequency.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification Frequency'**
+  String get notificationFrequency;
+
+  /// No description provided for @notificationFrequencyDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'How often to receive notifications.'**
+  String get notificationFrequencyDescription;
+
+  /// No description provided for @notificationTypes.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification Types'**
+  String get notificationTypes;
+
+  /// No description provided for @reachGoalNotification.
+  ///
+  /// In en, this message translates to:
+  /// **'Goal Reached'**
+  String get reachGoalNotification;
+
+  /// No description provided for @reachGoalNotificationDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Notify when a goal is achieved.'**
+  String get reachGoalNotificationDescription;
+
+  /// No description provided for @motivationNotification.
+  ///
+  /// In en, this message translates to:
+  /// **'Motivation (Almost There)'**
+  String get motivationNotification;
+
+  /// No description provided for @motivationNotificationDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Encourage when near a goal.'**
+  String get motivationNotificationDescription;
+
+  /// No description provided for @motivationTimeLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Motivation Frequency Limit'**
+  String get motivationTimeLimit;
+
+  /// No description provided for @motivationTimeLimitDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Minimum time between motivation notifications.'**
+  String get motivationTimeLimitDescription;
+
+  /// No description provided for @exceptionNotification.
+  ///
+  /// In en, this message translates to:
+  /// **'Exceptions'**
+  String get exceptionNotification;
+
+  /// No description provided for @exceptionNotificationDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Notify about exceptions or errors.'**
+  String get exceptionNotificationDescription;
+
+  /// No description provided for @newAccomplishmentNotification.
+  ///
+  /// In en, this message translates to:
+  /// **'New Accomplishments'**
+  String get newAccomplishmentNotification;
+
+  /// No description provided for @newAccomplishmentNotificationDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Notify about new achievements.'**
+  String get newAccomplishmentNotificationDescription;
+
+  /// No description provided for @customFrequency.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom Frequency'**
+  String get customFrequency;
+
+  /// No description provided for @minutesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Minutes'**
+  String get minutesLabel;
+
+  /// No description provided for @enterMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter minutes'**
+  String get enterMinutes;
+
+  /// No description provided for @ok.
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get ok;
+
+  /// Format for minutes
+  ///
+  /// In en, this message translates to:
+  /// **'{count} minutes'**
+  String minutes(Object count);
+
+  /// Format for hours
+  ///
+  /// In en, this message translates to:
+  /// **'{count} hours'**
+  String hours(Object count);
+
+  /// No description provided for @notification.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification'**
+  String get notification;
+
+  /// No description provided for @notificationAppearance.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification Appearance'**
+  String get notificationAppearance;
+
+  /// No description provided for @notificationSound.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification Sound'**
+  String get notificationSound;
+
+  /// No description provided for @notificationSoundDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Play a sound when notifications are received.'**
+  String get notificationSoundDescription;
+
+  /// No description provided for @notificationVibration.
+  ///
+  /// In en, this message translates to:
+  /// **'Vibration'**
+  String get notificationVibration;
+
+  /// No description provided for @notificationVibrationDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Vibrate when notifications are received.'**
+  String get notificationVibrationDescription;
+
+  /// No description provided for @notificationPriority.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification Priority'**
+  String get notificationPriority;
+
+  /// No description provided for @notificationPriorityDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Set the importance of notifications.'**
+  String get notificationPriorityDescription;
+
+  /// No description provided for @lowPriority.
+  ///
+  /// In en, this message translates to:
+  /// **'Low'**
+  String get lowPriority;
+
+  /// No description provided for @defaultPriority.
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get defaultPriority;
+
+  /// No description provided for @highPriority.
+  ///
+  /// In en, this message translates to:
+  /// **'High'**
+  String get highPriority;
+
+  /// No description provided for @notificationTimeWindow.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification Time Window'**
+  String get notificationTimeWindow;
+
+  /// No description provided for @startTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Start Time'**
+  String get startTime;
+
+  /// No description provided for @startTimeDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Earliest time to receive notifications.'**
+  String get startTimeDescription;
+
+  /// No description provided for @endTime.
+  ///
+  /// In en, this message translates to:
+  /// **'End Time'**
+  String get endTime;
+
+  /// No description provided for @endTimeDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Latest time to receive notifications.'**
+  String get endTimeDescription;
 
   /// No description provided for @importExport.
   ///
@@ -570,12 +942,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Past'**
   String get past;
-
-  /// No description provided for @ok.
-  ///
-  /// In en, this message translates to:
-  /// **'OK'**
-  String get ok;
 
   /// No description provided for @chartHelpTitle.
   ///

@@ -9,7 +9,31 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get oooooCommon => '';
+
+  @override
+  String get cancel => 'Cancel';
+
+  @override
+  String get interval => 'Interval';
+
+  @override
+  String get minutesUnit => 'Minutes';
+
+  @override
+  String get hoursUnit => 'Hours';
+
+  @override
+  String get save => 'Save';
+
+  @override
+  String get custom => 'Custom';
+
+  @override
   String get menu => 'Menu';
+
+  @override
+  String get oooooAbout => '';
 
   @override
   String get about => 'About';
@@ -48,7 +72,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get contactDesc => 'For support or feedback, email us at: support@example.com';
 
   @override
+  String get oooooSetup => '';
+
+  @override
   String get setup => 'Setup';
+
+  @override
+  String get interface => 'Interface';
 
   @override
   String get language => 'Language';
@@ -81,13 +111,52 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dark => 'Dark';
 
   @override
+  String get healthDataSync => 'Health Data Sync';
+
+  @override
+  String get healthDataSyncDesc => 'Configure how to sync health data from your phone.';
+
+  @override
+  String get enableBackgroundSync => 'Enable Background Sync';
+
+  @override
   String get syncFrequency => 'Sync Frequency';
 
   @override
-  String get selectSyncFrequency => 'Select Sync Frequency';
+  String get customSyncTitle => 'Custom Sync Frequency';
 
   @override
-  String get manual => 'Manual';
+  String get every15Minutes => 'Every 15 minutes';
+
+  @override
+  String get every30Minutes => 'Every 30 minutes';
+
+  @override
+  String get every1Hour => 'Every hour';
+
+  @override
+  String get selectStartTime => 'Select Start Time';
+
+  @override
+  String get selectEndTime => 'Select End Time';
+
+  @override
+  String get endTimeError => 'End time must be after start time';
+
+  @override
+  String get activeHours => 'Active Hours';
+
+  @override
+  String get startOnBoot => 'Start on Boot';
+
+  @override
+  String get stopOnTerminate => 'Stop on Terminate';
+
+  @override
+  String get persistentSync => 'Persistent Sync';
+
+  @override
+  String get persistentSyncReminder => 'Note: Sync will continue even if you force-stop the app.';
 
   @override
   String get hourly => 'Hourly';
@@ -112,6 +181,127 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get showDailyStepGoal => 'Show daily step goal';
+
+  @override
+  String get oooooNotificationSetup => '';
+
+  @override
+  String get notificationSettings => 'Notification Settings';
+
+  @override
+  String get enableNotifications => 'Enable Notifications';
+
+  @override
+  String get enableNotificationsDescription => 'Turn notifications on or off.';
+
+  @override
+  String get notificationFrequency => 'Notification Frequency';
+
+  @override
+  String get notificationFrequencyDescription => 'How often to receive notifications.';
+
+  @override
+  String get notificationTypes => 'Notification Types';
+
+  @override
+  String get reachGoalNotification => 'Goal Reached';
+
+  @override
+  String get reachGoalNotificationDescription => 'Notify when a goal is achieved.';
+
+  @override
+  String get motivationNotification => 'Motivation (Almost There)';
+
+  @override
+  String get motivationNotificationDescription => 'Encourage when near a goal.';
+
+  @override
+  String get motivationTimeLimit => 'Motivation Frequency Limit';
+
+  @override
+  String get motivationTimeLimitDescription => 'Minimum time between motivation notifications.';
+
+  @override
+  String get exceptionNotification => 'Exceptions';
+
+  @override
+  String get exceptionNotificationDescription => 'Notify about exceptions or errors.';
+
+  @override
+  String get newAccomplishmentNotification => 'New Accomplishments';
+
+  @override
+  String get newAccomplishmentNotificationDescription => 'Notify about new achievements.';
+
+  @override
+  String get customFrequency => 'Custom Frequency';
+
+  @override
+  String get minutesLabel => 'Minutes';
+
+  @override
+  String get enterMinutes => 'Enter minutes';
+
+  @override
+  String get ok => 'OK';
+
+  @override
+  String minutes(Object count) {
+    return '$count minutes';
+  }
+
+  @override
+  String hours(Object count) {
+    return '$count hours';
+  }
+
+  @override
+  String get notification => 'Notification';
+
+  @override
+  String get notificationAppearance => 'Notification Appearance';
+
+  @override
+  String get notificationSound => 'Notification Sound';
+
+  @override
+  String get notificationSoundDescription => 'Play a sound when notifications are received.';
+
+  @override
+  String get notificationVibration => 'Vibration';
+
+  @override
+  String get notificationVibrationDescription => 'Vibrate when notifications are received.';
+
+  @override
+  String get notificationPriority => 'Notification Priority';
+
+  @override
+  String get notificationPriorityDescription => 'Set the importance of notifications.';
+
+  @override
+  String get lowPriority => 'Low';
+
+  @override
+  String get defaultPriority => 'Default';
+
+  @override
+  String get highPriority => 'High';
+
+  @override
+  String get notificationTimeWindow => 'Notification Time Window';
+
+  @override
+  String get startTime => 'Start Time';
+
+  @override
+  String get startTimeDescription => 'Earliest time to receive notifications.';
+
+  @override
+  String get endTime => 'End Time';
+
+  @override
+  String get endTimeDescription => 'Latest time to receive notifications.';
 
   @override
   String get importExport => 'Import/Export';
@@ -252,9 +442,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get past => 'Past';
-
-  @override
-  String get ok => 'OK';
 
   @override
   String get chartHelpTitle => 'Chart Help';

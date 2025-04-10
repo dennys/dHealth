@@ -16,50 +16,60 @@ class _SetupScreenState extends State<SetupScreen> {
     final localizations = AppLocalizations.of(context);
     final settings = Provider.of<SettingsModel>(context);
     final isDarkTheme = Theme.of(context).brightness == Brightness.dark;
-    final secondaryTextColor = isDarkTheme ? Colors.white.withOpacity(0.8) : Theme.of(context).hintColor;
+    final secondaryTextColor = isDarkTheme ? Colors.white.withValues(alpha: .8) : Theme.of(context).hintColor;
 
     // Custom Sync Frequency Dialog
-    Future<void> showCustomSyncDialog(SettingsModel settings) async {
-      int? interval;
-      String unit = 'minutes'; // Default unit
-
+    Future<void> showCustomDialog(SettingsModel settings) async {
+      int? customValue;
       await showDialog(
         context: context,
-        builder:
-            (dialogContext) => AlertDialog(
-              title: Text(localizations?.customSyncTitle ?? 'Custom Sync Frequency'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(labelText: localizations?.interval ?? 'Interval', hintText: 'e.g., 45'),
-                    onChanged: (value) => interval = int.tryParse(value),
-                  ),
-                  DropdownButton<String>(
-                    value: unit,
-                    items: [
-                      DropdownMenuItem(value: 'minutes', child: Text(localizations?.minutesUnit ?? 'Minutes')),
-                      DropdownMenuItem(value: 'hours', child: Text(localizations?.hoursUnit ?? 'Hours')),
-                    ],
-                    onChanged: (value) => unit = value ?? 'minutes',
-                  ),
-                ],
+        builder: (context) {
+          return AlertDialog(
+            title: Text(localizations?.customSyncTitle ?? 'Custom Sync Frequency'),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(
+                color:
+                    Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey[700]! // Visible in dark theme
+                        : Colors.grey[300]!, // Visible in light theme
               ),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(dialogContext), child: Text(localizations?.cancel ?? 'Cancel')),
-                TextButton(
-                  onPressed: () {
-                    if (interval != null && interval! > 0) {
-                      final value = unit == 'minutes' ? '${interval}m' : '${interval}h';
-                      settings.setCustomSyncFrequency(value);
-                    }
-                    Navigator.pop(dialogContext);
-                  },
-                  child: Text(localizations?.save ?? 'Save'),
-                ),
-              ],
             ),
+            // backgroundColor: Theme.of(context).dialogBackgroundColor,
+            backgroundColor: Theme.of(context).dialogTheme.backgroundColor,
+            content: TextField(
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: localizations?.interval ?? 'Interval',
+                suffixText: localizations?.minutesUnit ?? 'minutes',
+                border: OutlineInputBorder(
+                  borderSide: BorderSide(
+                    color:
+                        Theme.of(context).brightness == Brightness.dark
+                            ? Colors
+                                .white70 // Visible in dark theme
+                            : Colors.black54, // Visible in light theme
+                  ),
+                ),
+              ),
+              onChanged: (value) {
+                customValue = int.tryParse(value);
+              },
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context), child: Text(localizations?.cancel ?? 'Cancel')),
+              TextButton(
+                onPressed: () {
+                  if (customValue != null) {
+                    settings.setSyncFrequency(customValue!);
+                  }
+                  Navigator.pop(context);
+                },
+                child: Text(localizations?.save ?? 'Save'),
+              ),
+            ],
+          );
+        },
       );
     }
 
@@ -115,7 +125,7 @@ class _SetupScreenState extends State<SetupScreen> {
             ),
           ),
           Text(
-            localizations?.healthDataSyncDesc ?? 'Configure how health data is copied from your health app to this app.',
+            localizations?.healthDataSyncDesc ?? 'Configure how to sync health data from your phone.',
             style: TextStyle(color: secondaryTextColor),
           ),
           SwitchListTile(
@@ -131,25 +141,50 @@ class _SetupScreenState extends State<SetupScreen> {
                 children: [
                   ListTile(
                     title: Text(localizations?.syncFrequency ?? 'Sync Frequency'),
-                    subtitle: DropdownButton<String>(
-                      value: settings.syncFrequency,
-                      isExpanded: true,
-                      items: [
-                        DropdownMenuItem(value: '15m', child: Text(localizations?.every15Minutes ?? 'Every 15 minutes')),
-                        DropdownMenuItem(value: '30m', child: Text(localizations?.every30Minutes ?? 'Every 30 minutes')),
-                        DropdownMenuItem(value: '1h', child: Text(localizations?.every1Hour ?? 'Every hour')),
-                        DropdownMenuItem(value: 'custom', child: Text(localizations?.custom ?? 'Custom')),
-                        DropdownMenuItem(value: 'manual', child: Text(localizations?.custom ?? 'Manual')),
-                      ],
-                      onChanged: (value) async {
-                        if (value == 'custom') {
-                          await showCustomSyncDialog(settings);
-                        } else if (value != null) {
-                          settings.setSyncFrequency(value);
-                        }
-                      },
+                    trailing: SizedBox(
+                      width: 150, // Adjust this value based on your layout
+                      child: DropdownButton<int>(
+                        isExpanded: true,
+                        value:
+                            settings.syncFrequency != null && settings.predefinedSyncFrequency.contains(settings.syncFrequency)
+                                ? settings.syncFrequency
+                                : null,
+                        hint: Text(
+                          settings.syncFrequency != null
+                              ? '$settings.syncFrequency ${localizations?.minutesUnit ?? 'minutes'}'
+                              : 'Select an interval',
+                        ),
+                        items:
+                            settings.predefinedSyncFrequency
+                                .map(
+                                  (value) => DropdownMenuItem(
+                                    value: value,
+                                    child: Text(value == 60 ? '1 hr' : '$value ${localizations?.minutesUnit ?? 'm'}'),
+                                  ),
+                                )
+                                .toList()
+                              ..add(
+                                DropdownMenuItem(
+                                  value: -1, // Flag for custom
+                                  child: Text(localizations?.custom ?? 'Custom'),
+                                ),
+                              ),
+                        onChanged: (value) async {
+                          if (value == -1) {
+                            await showCustomDialog(settings);
+                          } else if (value != null) {
+                            settings.setSyncFrequency(value);
+                          }
+                        },
+                        dropdownColor:
+                            Theme.of(context).brightness == Brightness.dark
+                                ? Colors.grey[800] // Visible dropdown in dark theme
+                                : Colors.white, // Light theme
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                   ),
+
                   ListTile(
                     title: Text(localizations?.activeHours ?? 'Active Hours'),
                     subtitle: Text('From ${settings.activeStartHour}:00 to ${settings.activeEndHour}:00'),

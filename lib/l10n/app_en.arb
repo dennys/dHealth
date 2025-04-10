@@ -35,7 +35,7 @@
   "light": "Light",
   "dark": "Dark",
   "healthDataSync": "Health Data Sync",
-  "healthDataSyncDesc": "Configure how health data is copied from your health app to this app.",
+  "healthDataSyncDesc": "Configure how to sync health data from your phone.",
   "enableBackgroundSync": "Enable Background Sync",
   "syncFrequency": "Sync Frequency",
   "customSyncTitle": "Custom Sync Frequency",

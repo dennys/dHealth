@@ -6,9 +6,10 @@ import 'package:get_it/get_it.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:io' show Platform;
 import 'notification_service.dart';
-import '../main.dart';
 
+@pragma('vm:entry-point')
 void backgroundFetchHeadlessTask(HeadlessTask task) async {
+  await NotificationService.showGoalReachedNotification(11111, 11111);
   String taskId = task.taskId;
   bool isTimeout = task.timeout;
   if (isTimeout) {
@@ -32,19 +33,55 @@ class BackgroundService {
     // Initialize health data access when app is in foreground
     await _initializeHealthAccess();
 
-    await BackgroundFetch.configure(
+    if (Platform.isAndroid) {
+      // Request all necessary permissions
+      var statuses =
+          await [
+            Permission.activityRecognition,
+            Permission.notification,
+            Permission.ignoreBatteryOptimizations,
+            Permission.scheduleExactAlarm,
+          ].request();
+
+      // Check if any permission was denied
+      if (statuses.values.any((status) => status.isDenied)) {
+        debugPrint('Some permissions were denied: $statuses');
+        // Handle denied permissions
+      }
+    }
+
+    int status = await BackgroundFetch.configure(
       BackgroundFetchConfig(
-        minimumFetchInterval: await _getInterval(),
-        stopOnTerminate: false,
-        enableHeadless: await _isHeadlessEnabled(),
-        requiresBatteryNotLow: false,
-        requiresCharging: false,
-        requiresStorageNotLow: false,
-        requiresDeviceIdle: false,
+        minimumFetchInterval: 15, //await _getInterval(),
+        forceAlarmManager: false, //false,
+        stopOnTerminate: false, //await _isStopOnTerminateEnabled(),
+        startOnBoot: true, //await _isStartOnBootEnabled(),
+        enableHeadless: false,
+        // requiresBatteryNotLow: false,
+        // requiresCharging: false,
+        // requiresStorageNotLow: false,
+        // requiresDeviceIdle: false,
+        requiredNetworkType: NetworkType.NONE,
       ),
-      _onBackgroundFetch,
-      _onBackgroundFetchTimeout,
+      // _onBackgroundFetch,
+      (String taskId) async {
+        debugPrint('[BackgroundFetch] Event received: $taskId');
+        _onBackgroundFetch(taskId);
+        // BackgroundFetch.finish(taskId);
+      },
+      (String taskId) async {
+        debugPrint('[BackgroundFetch] Task timeout: $taskId');
+        // _onBackgroundFetchTimeout(taskId);
+        BackgroundFetch.finish(taskId);
+      },
     );
+    if (status != 0) {
+      debugPrint("BackgroundFetch failed to start: $status");
+      await NotificationService.showGoalReachedNotification(22222222, 22222222);
+    } else {
+      debugPrint("BackgroundFetch started successfully: $status");
+      await NotificationService.showGoalReachedNotification(33333, 33333);
+    }
 
     BackgroundFetch.registerHeadlessTask(backgroundFetchHeadlessTask);
   }
@@ -60,7 +97,7 @@ class BackgroundService {
 
       if (authorized) {
         // Store authorization status in shared preferences
-        final prefs = await SharedPreferences.getInstance();
+        final prefs = SharedPreferencesAsync();
         await prefs.setBool(HEALTH_AUTH_KEY, true);
 
         // Fetch steps once to establish connection
@@ -88,13 +125,33 @@ class BackgroundService {
   }
 
   static Future<int> _getInterval() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt('fetch_interval') ?? 15; // Default 15 minutes
+    final prefs = SharedPreferencesAsync();
+    final interval = await prefs.getInt('health_sync_frequency') ?? 15;
+    return interval;
   }
 
+  // In flutter, I want to let users to choose a time interval, users can choose 15m, 30m, 1hr, or custom
+  // And save the result to shared_preference. is there a best practice?
+  // What should I save to shared_preference? a string '15m', '30m', '1hr', 'custom'
+  // When user choose 'custom', save the value into another value?
+  // Or save 'custom-xxx' in the same field?
+
   static Future<bool> _isHeadlessEnabled() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool('headless_mode') ?? true; // Default true
+    final prefs = SharedPreferencesAsync();
+    final headless = await prefs.getBool('health_sync_headless_mode') ?? true; // Default true
+    return headless;
+  }
+
+  static Future<bool> _isStopOnTerminateEnabled() async {
+    final prefs = SharedPreferencesAsync();
+    final stopOnTerminate = await prefs.getBool('health_sync_stop_on_terminate') ?? true; // Default true
+    return stopOnTerminate;
+  }
+
+  static Future<bool> _isStartOnBootEnabled() async {
+    final prefs = SharedPreferencesAsync();
+    final startOnBoot = await prefs.getBool('health_sync_start_on_boot') ?? true; // Default true
+    return startOnBoot;
   }
 
   static void _onBackgroundFetch(String taskId) async {
@@ -109,16 +166,16 @@ class BackgroundService {
   static Future<void> _executeTask() async {
     try {
       // Check if health auth was granted while in foreground
-      final prefs = await SharedPreferences.getInstance();
-      final healthAuthGranted = prefs.getBool(HEALTH_AUTH_KEY) ?? false;
+      final prefs = SharedPreferencesAsync();
+      // final healthAuthGranted = await prefs.getBool(HEALTH_AUTH_KEY);
 
-      if (!healthAuthGranted) {
-        NotificationService.showPermissionDeniedNotification();
-        return;
-      }
+      // if (!healthAuthGranted) {
+      //   NotificationService.showPermissionDeniedNotification();
+      //   return;
+      // }
 
       // Get goal
-      final dailyStepGoal = prefs.getInt('dailyStepGoal') ?? 10000; // Default 10000 steps
+      final dailyStepGoal = await prefs.getInt('dailyStepGoal') ?? 10000; // Default 10000 steps
 
       // Get steps for today
       final steps = await _fetchTodaySteps();
