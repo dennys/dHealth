@@ -37,11 +37,11 @@ class BackgroundService {
     // Initialize Workmanager
     await Workmanager().initialize(callbackDispatcher, isInDebugMode: kDebugMode);
 
-    // Request permissions
-    await _requestPermissions();
+    // // Request permissions
+    // await _requestPermissions();
 
-    // Initialize health access
-    await _initializeHealthAccess();
+    // // Initialize health access
+    // await _initializeHealthAccess();
 
     // Schedule periodic task
     await scheduleTask();
@@ -57,7 +57,7 @@ class BackgroundService {
     await Workmanager().registerPeriodicTask(
       stepTrackerTask,
       stepTrackerTask,
-      frequency: Duration(minutes: interval),
+      frequency: Duration(minutes: 15),
       initialDelay: Duration(seconds: 10),
       existingWorkPolicy: ExistingWorkPolicy.replace,
       constraints: Constraints(
@@ -81,7 +81,7 @@ class BackgroundService {
       debugPrint("Health authorization status: $authorized");
 
       if (authorized) {
-        final prefs = await SharedPreferences.getInstance();
+        final prefs = SharedPreferencesAsync();
         await prefs.setBool(HEALTH_AUTH_KEY, true);
 
         final now = DateTime.now();
@@ -102,13 +102,13 @@ class BackgroundService {
   }
 
   static Future<int> _getInterval() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt(SYNC_FREQUENCY_KEY) ?? 15;
+    final prefs = SharedPreferencesAsync();
+    return await prefs.getInt(SYNC_FREQUENCY_KEY) ?? 15;
   }
 
   // Method to save user-selected interval
   static Future<void> saveSyncInterval(String interval) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = SharedPreferencesAsync();
     int minutes;
 
     switch (interval) {
@@ -137,8 +137,8 @@ class BackgroundService {
 
   static Future<void> _executeTask() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final dailyStepGoal = prefs.getInt('dailyStepGoal') ?? 10000;
+      final prefs = SharedPreferencesAsync();
+      final dailyStepGoal = await prefs.getInt('dailyStepGoal') ?? 10000;
 
       final steps = await _fetchTodaySteps();
       debugPrint("Workmanager task fetched steps: $steps");
@@ -147,10 +147,12 @@ class BackgroundService {
         await NotificationService.showGoalReachedNotification(steps, dailyStepGoal);
       } else if (dailyStepGoal - steps < 1000) {
         await NotificationService.showAlmostThereNotification(steps, dailyStepGoal);
+      } else {
+        await NotificationService.showErrorNotification("Not fit any criteria");
       }
     } catch (e) {
       debugPrint("Task execution error: $e");
-      await NotificationService.showErrorNotification("Error: ${e.toString()}");
+      await NotificationService.showErrorNotification("😢 Error: ${e.toString()}");
     }
   }
 
