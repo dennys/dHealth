@@ -9,7 +9,31 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
+  String get oooooCommon => '';
+
+  @override
+  String get cancel => '取消';
+
+  @override
+  String get interval => '間隔';
+
+  @override
+  String get minutesUnit => '分鐘';
+
+  @override
+  String get hoursUnit => '小時';
+
+  @override
+  String get save => '儲存';
+
+  @override
+  String get custom => '自訂';
+
+  @override
   String get menu => '選單';
+
+  @override
+  String get oooooAbout => '';
 
   @override
   String get about => '關於';
@@ -48,7 +72,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get contactDesc => '如需支援或反饋，請發送電子郵件至：support@example.com';
 
   @override
+  String get oooooSetup => '';
+
+  @override
   String get setup => '設定';
+
+  @override
+  String get interface => '介面';
 
   @override
   String get language => '語言';
@@ -81,13 +111,52 @@ class AppLocalizationsZh extends AppLocalizations {
   String get dark => '深色';
 
   @override
+  String get healthDataSync => '健康數據同步';
+
+  @override
+  String get healthDataSyncDesc => '設定如何從您的健康應用程式複製健康數據到此應用程式。';
+
+  @override
+  String get enableBackgroundSync => '啟用背景同步';
+
+  @override
   String get syncFrequency => '同步頻率';
 
   @override
-  String get selectSyncFrequency => '選擇同步頻率';
+  String get customSyncTitle => '自訂同步頻率';
 
   @override
-  String get manual => '手動';
+  String get every15Minutes => '每15分鐘';
+
+  @override
+  String get every30Minutes => '每30分鐘';
+
+  @override
+  String get every1Hour => '每小時';
+
+  @override
+  String get selectStartTime => 'Select Start Time';
+
+  @override
+  String get selectEndTime => 'Select End Time';
+
+  @override
+  String get endTimeError => 'End time must be after start time';
+
+  @override
+  String get activeHours => '活動時間';
+
+  @override
+  String get startOnBoot => '開機時啟動';
+
+  @override
+  String get stopOnTerminate => '終止時停止';
+
+  @override
+  String get persistentSync => '持續同步';
+
+  @override
+  String get persistentSyncReminder => '注意：即使您強制停止應用程式，同步也會繼續。';
 
   @override
   String get hourly => '每小時';
@@ -112,6 +181,127 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get showDailyStepGoal => '顯示每日目標';
+
+  @override
+  String get oooooNotificationSetup => '';
+
+  @override
+  String get notificationSettings => '通知設定';
+
+  @override
+  String get enableNotifications => '啟用通知';
+
+  @override
+  String get enableNotificationsDescription => '開啟或關閉通知。';
+
+  @override
+  String get notificationFrequency => '通知頻率';
+
+  @override
+  String get notificationFrequencyDescription => '接收通知的頻率。';
+
+  @override
+  String get notificationTypes => '通知類型';
+
+  @override
+  String get reachGoalNotification => '目標達成';
+
+  @override
+  String get reachGoalNotificationDescription => '達到目標時通知。';
+
+  @override
+  String get motivationNotification => '激勵（接近達成）';
+
+  @override
+  String get motivationNotificationDescription => '接近目標時鼓勵。';
+
+  @override
+  String get motivationTimeLimit => '激勵頻率限制';
+
+  @override
+  String get motivationTimeLimitDescription => '激勵通知之間的最小時間間隔。';
+
+  @override
+  String get exceptionNotification => '異常情況';
+
+  @override
+  String get exceptionNotificationDescription => '通知異常或錯誤。';
+
+  @override
+  String get newAccomplishmentNotification => '新成就';
+
+  @override
+  String get newAccomplishmentNotificationDescription => '通知新的成就。';
+
+  @override
+  String get customFrequency => '自訂頻率';
+
+  @override
+  String get minutesLabel => '分鐘';
+
+  @override
+  String get enterMinutes => '輸入分鐘數';
+
+  @override
+  String get ok => '確定';
+
+  @override
+  String minutes(Object count) {
+    return '$count 分鐘';
+  }
+
+  @override
+  String hours(Object count) {
+    return '$count 小時';
+  }
+
+  @override
+  String get notification => '通知';
+
+  @override
+  String get notificationAppearance => '通知外觀';
+
+  @override
+  String get notificationSound => '通知聲音';
+
+  @override
+  String get notificationSoundDescription => '收到通知時播放聲音。';
+
+  @override
+  String get notificationVibration => '震動';
+
+  @override
+  String get notificationVibrationDescription => '收到通知時震動。';
+
+  @override
+  String get notificationPriority => '通知優先級';
+
+  @override
+  String get notificationPriorityDescription => '設定通知的重要性。';
+
+  @override
+  String get lowPriority => '低';
+
+  @override
+  String get defaultPriority => '預設';
+
+  @override
+  String get highPriority => '高';
+
+  @override
+  String get notificationTimeWindow => '通知時間範圍';
+
+  @override
+  String get startTime => '開始時間';
+
+  @override
+  String get startTimeDescription => '接收通知的最早時間。';
+
+  @override
+  String get endTime => '結束時間';
+
+  @override
+  String get endTimeDescription => '接收通知的最晚時間。';
 
   @override
   String get importExport => '導入/導出';
@@ -181,7 +371,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String chartTitle(int steps, int average) {
-    return 'Last $steps days, average is $average steps';
+    return '過去 $steps 天，平均 $average 步';
   }
 
   @override
@@ -254,9 +444,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get past => '過去';
 
   @override
-  String get ok => '確定';
-
-  @override
   String get chartHelpTitle => '圖表說明';
 
   @override
@@ -271,7 +458,31 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   AppLocalizationsZhHans(): super('zh_Hans');
 
   @override
+  String get oooooCommon => '';
+
+  @override
+  String get cancel => '取消';
+
+  @override
+  String get interval => '间隔';
+
+  @override
+  String get minutesUnit => '分钟';
+
+  @override
+  String get hoursUnit => '小时';
+
+  @override
+  String get save => '储存';
+
+  @override
+  String get custom => '自订';
+
+  @override
   String get menu => '选单';
+
+  @override
+  String get oooooAbout => '';
 
   @override
   String get about => '关于';
@@ -310,7 +521,13 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get contactDesc => '如需支援或反馈，请发送电子邮件至：support@example.com';
 
   @override
+  String get oooooSetup => '';
+
+  @override
   String get setup => '设定';
+
+  @override
+  String get interface => '介面';
 
   @override
   String get language => '语言';
@@ -343,13 +560,43 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get dark => '深色';
 
   @override
+  String get healthDataSync => '健康数据同步';
+
+  @override
+  String get healthDataSyncDesc => '设定如何从您的健康应用程式复制健康数据到此应用程式。';
+
+  @override
+  String get enableBackgroundSync => '启用背景同步';
+
+  @override
   String get syncFrequency => '同步频率';
 
   @override
-  String get selectSyncFrequency => '选择同步频率';
+  String get customSyncTitle => '自订同步频率';
 
   @override
-  String get manual => '手动';
+  String get every15Minutes => '每15分钟';
+
+  @override
+  String get every30Minutes => '每30分钟';
+
+  @override
+  String get every1Hour => '每小时';
+
+  @override
+  String get activeHours => '活动时间';
+
+  @override
+  String get startOnBoot => '开机时启动';
+
+  @override
+  String get stopOnTerminate => '终止时停止';
+
+  @override
+  String get persistentSync => '持续同步';
+
+  @override
+  String get persistentSyncReminder => '注意：即使您强制停止应用程式，同步也会继续。';
 
   @override
   String get hourly => '每小时';
@@ -374,6 +621,127 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get showDailyStepGoal => '显示每日目标';
+
+  @override
+  String get oooooNotificationSetup => '';
+
+  @override
+  String get notificationSettings => '通知设定';
+
+  @override
+  String get enableNotifications => '启用通知';
+
+  @override
+  String get enableNotificationsDescription => '开启或关闭通知。';
+
+  @override
+  String get notificationFrequency => '通知频率';
+
+  @override
+  String get notificationFrequencyDescription => '接收通知的频率。';
+
+  @override
+  String get notificationTypes => '通知类型';
+
+  @override
+  String get reachGoalNotification => '目标达成';
+
+  @override
+  String get reachGoalNotificationDescription => '达到目标时通知。';
+
+  @override
+  String get motivationNotification => '激励（接近达成）';
+
+  @override
+  String get motivationNotificationDescription => '接近目标时鼓励。';
+
+  @override
+  String get motivationTimeLimit => '激励频率限制';
+
+  @override
+  String get motivationTimeLimitDescription => '激励通知之间的最小时间间隔。';
+
+  @override
+  String get exceptionNotification => '异常情况';
+
+  @override
+  String get exceptionNotificationDescription => '通知异常或错误。';
+
+  @override
+  String get newAccomplishmentNotification => '新成就';
+
+  @override
+  String get newAccomplishmentNotificationDescription => '通知新的成就。';
+
+  @override
+  String get customFrequency => '自订频率';
+
+  @override
+  String get minutesLabel => '分钟';
+
+  @override
+  String get enterMinutes => '输入分钟数';
+
+  @override
+  String get ok => '确定';
+
+  @override
+  String minutes(Object count) {
+    return '$count 分钟';
+  }
+
+  @override
+  String hours(Object count) {
+    return '$count 小时';
+  }
+
+  @override
+  String get notification => '通知';
+
+  @override
+  String get notificationAppearance => '通知外观';
+
+  @override
+  String get notificationSound => '通知声音';
+
+  @override
+  String get notificationSoundDescription => '收到通知时播放声音。';
+
+  @override
+  String get notificationVibration => '震动';
+
+  @override
+  String get notificationVibrationDescription => '收到通知时震动。';
+
+  @override
+  String get notificationPriority => '通知优先级';
+
+  @override
+  String get notificationPriorityDescription => '设定通知的重要性。';
+
+  @override
+  String get lowPriority => '低';
+
+  @override
+  String get defaultPriority => '预设';
+
+  @override
+  String get highPriority => '高';
+
+  @override
+  String get notificationTimeWindow => '通知时间范围';
+
+  @override
+  String get startTime => '开始时间';
+
+  @override
+  String get startTimeDescription => '接收通知的最早时间。';
+
+  @override
+  String get endTime => '结束时间';
+
+  @override
+  String get endTimeDescription => '接收通知的最晚时间。';
 
   @override
   String get importExport => '导入/导出';
@@ -440,6 +808,11 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get widgets => '小工具';
+
+  @override
+  String chartTitle(int steps, int average) {
+    return '过去 $steps 天，平均 $average 步';
+  }
 
   @override
   String todaySteps(int steps) {
@@ -511,9 +884,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get past => '过去';
 
   @override
-  String get ok => '确定';
-
-  @override
   String get chartHelpTitle => '图表说明';
 
   @override
@@ -528,7 +898,31 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   AppLocalizationsZhHant(): super('zh_Hant');
 
   @override
+  String get oooooCommon => '';
+
+  @override
+  String get cancel => '取消';
+
+  @override
+  String get interval => '間隔';
+
+  @override
+  String get minutesUnit => '分鐘';
+
+  @override
+  String get hoursUnit => '小時';
+
+  @override
+  String get save => '儲存';
+
+  @override
+  String get custom => '自訂';
+
+  @override
   String get menu => '選單';
+
+  @override
+  String get oooooAbout => '';
 
   @override
   String get about => '關於';
@@ -567,7 +961,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get contactDesc => '如需支援或反饋，請發送電子郵件至：support@example.com';
 
   @override
+  String get oooooSetup => '';
+
+  @override
   String get setup => '設定';
+
+  @override
+  String get interface => '介面';
 
   @override
   String get language => '語言';
@@ -600,13 +1000,43 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get dark => '深色';
 
   @override
+  String get healthDataSync => '健康數據同步';
+
+  @override
+  String get healthDataSyncDesc => '設定如何從您的健康應用程式複製健康數據到此應用程式。';
+
+  @override
+  String get enableBackgroundSync => '啟用背景同步';
+
+  @override
   String get syncFrequency => '同步頻率';
 
   @override
-  String get selectSyncFrequency => '選擇同步頻率';
+  String get customSyncTitle => '自訂同步頻率';
 
   @override
-  String get manual => '手動';
+  String get every15Minutes => '每15分鐘';
+
+  @override
+  String get every30Minutes => '每30分鐘';
+
+  @override
+  String get every1Hour => '每小時';
+
+  @override
+  String get activeHours => '活動時間';
+
+  @override
+  String get startOnBoot => '開機時啟動';
+
+  @override
+  String get stopOnTerminate => '終止時停止';
+
+  @override
+  String get persistentSync => '持續同步';
+
+  @override
+  String get persistentSyncReminder => '注意：即使您強制停止應用程式，同步也會繼續。';
 
   @override
   String get hourly => '每小時';
@@ -631,6 +1061,127 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get showDailyStepGoal => '顯示每日目標';
+
+  @override
+  String get oooooNotificationSetup => '';
+
+  @override
+  String get notificationSettings => '通知設定';
+
+  @override
+  String get enableNotifications => '啟用通知';
+
+  @override
+  String get enableNotificationsDescription => '開啟或關閉通知。';
+
+  @override
+  String get notificationFrequency => '通知頻率';
+
+  @override
+  String get notificationFrequencyDescription => '接收通知的頻率。';
+
+  @override
+  String get notificationTypes => '通知類型';
+
+  @override
+  String get reachGoalNotification => '目標達成';
+
+  @override
+  String get reachGoalNotificationDescription => '達到目標時通知。';
+
+  @override
+  String get motivationNotification => '激勵（接近達成）';
+
+  @override
+  String get motivationNotificationDescription => '接近目標時鼓勵。';
+
+  @override
+  String get motivationTimeLimit => '激勵頻率限制';
+
+  @override
+  String get motivationTimeLimitDescription => '激勵通知之間的最小時間間隔。';
+
+  @override
+  String get exceptionNotification => '異常情況';
+
+  @override
+  String get exceptionNotificationDescription => '通知異常或錯誤。';
+
+  @override
+  String get newAccomplishmentNotification => '新成就';
+
+  @override
+  String get newAccomplishmentNotificationDescription => '通知新的成就。';
+
+  @override
+  String get customFrequency => '自訂頻率';
+
+  @override
+  String get minutesLabel => '分鐘';
+
+  @override
+  String get enterMinutes => '輸入分鐘數';
+
+  @override
+  String get ok => '確定';
+
+  @override
+  String minutes(Object count) {
+    return '$count 分鐘';
+  }
+
+  @override
+  String hours(Object count) {
+    return '$count 小時';
+  }
+
+  @override
+  String get notification => '通知';
+
+  @override
+  String get notificationAppearance => '通知外觀';
+
+  @override
+  String get notificationSound => '通知聲音';
+
+  @override
+  String get notificationSoundDescription => '收到通知時播放聲音。';
+
+  @override
+  String get notificationVibration => '震動';
+
+  @override
+  String get notificationVibrationDescription => '收到通知時震動。';
+
+  @override
+  String get notificationPriority => '通知優先級';
+
+  @override
+  String get notificationPriorityDescription => '設定通知的重要性。';
+
+  @override
+  String get lowPriority => '低';
+
+  @override
+  String get defaultPriority => '預設';
+
+  @override
+  String get highPriority => '高';
+
+  @override
+  String get notificationTimeWindow => '通知時間範圍';
+
+  @override
+  String get startTime => '開始時間';
+
+  @override
+  String get startTimeDescription => '接收通知的最早時間。';
+
+  @override
+  String get endTime => '結束時間';
+
+  @override
+  String get endTimeDescription => '接收通知的最晚時間。';
 
   @override
   String get importExport => '導入/導出';
@@ -697,6 +1248,11 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get widgets => '小工具';
+
+  @override
+  String chartTitle(int steps, int average) {
+    return '過去 $steps 天，平均 $average 步';
+  }
 
   @override
   String todaySteps(int steps) {
@@ -766,9 +1322,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get past => '過去';
-
-  @override
-  String get ok => '確定';
 
   @override
   String get chartHelpTitle => '圖表說明';

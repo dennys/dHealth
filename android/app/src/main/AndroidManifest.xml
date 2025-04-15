@@ -1,8 +1,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
     <uses-permission android:name="android.permission.health.READ_STEPS" />
     <uses-permission android:name="android.permission.health.WRITE_STEPS" />
     <uses-permission android:name="android.permission.health.READ_HEALTH_DATA_HISTORY" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" /> <!-- Android 13+ -->
     <uses-permission android:name="android.permission.WAKE_LOCK" /> <!-- wakeUpScreen: true-->
@@ -11,6 +15,7 @@
         android:label="dsteps"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <receiver android:name="com.transistorsoft.flutter.backgroundfetch.HeadlessBroadcastReceiver" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

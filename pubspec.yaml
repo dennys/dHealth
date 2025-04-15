@@ -36,11 +36,11 @@ dependencies:
   # carp_serializable: ^2.0.0
 
   # workmanager: ^0.5.2
-  # workmanager:
-  #   git:
-  #     url: https://github.com/fluttercommunity/flutter_workmanager.git
-  #     path: workmanager
-  #     ref: main
+  workmanager:
+    git:
+      url: https://github.com/fluttercommunity/flutter_workmanager.git
+      path: workmanager
+      ref: main
   #  device_info_plus: ^11.3.3
 
 dependency_overrides:

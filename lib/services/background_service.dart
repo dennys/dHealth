@@ -1,161 +1,229 @@
-import 'package:background_fetch/background_fetch.dart';
 import 'package:flutter/foundation.dart';
 import 'package:health/health.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:get_it/get_it.dart';
-import 'package:permission_handler/permission_handler.dart'; // Add this for permissions
+import 'package:permission_handler/permission_handler.dart';
+import 'package:workmanager/workmanager.dart';
+import 'dart:io' show Platform;
 import 'notification_service.dart';
-import '../main.dart'; // Assuming GetIt setup is in main.dart
 
-void backgroundFetchHeadlessTask(HeadlessTask task) async {
-  String taskId = task.taskId;
-  bool isTimeout = task.timeout;
-  if (isTimeout) {
-    BackgroundFetch.finish(taskId);
-    return;
-  }
-  await BackgroundService._executeTask();
-  BackgroundFetch.finish(taskId);
+// Define the task key
+const String stepTrackerTask = "com.example.step_tracker";
+
+@pragma('vm:entry-point')
+void callbackDispatcher() {
+  Workmanager().executeTask((task, inputData) async {
+    try {
+      switch (task) {
+        case stepTrackerTask:
+          await BackgroundService._executeTask();
+          break;
+      }
+      return Future.value(true);
+    } catch (e) {
+      debugPrint("Workmanager task error: $e");
+      return Future.value(false);
+    }
+  });
 }
 
 class BackgroundService {
-  static const String TASK_ID = "com.example.step_tracker";
   static final GetIt getIt = GetIt.instance;
+  static final Health health = Health();
+  static const String HEALTH_AUTH_KEY = "health_auth_token";
+  static const String SYNC_FREQUENCY_KEY = "health_sync_frequency";
 
   static Future<void> init() async {
-    // Check and request necessary permissions
-    await _requestPermissions();
+    // Initialize Workmanager
+    await Workmanager().initialize(callbackDispatcher, isInDebugMode: kDebugMode);
 
-    await BackgroundFetch.configure(
-      BackgroundFetchConfig(
-        minimumFetchInterval: await _getInterval(),
-        stopOnTerminate: false,
-        enableHeadless: await _isHeadlessEnabled(),
+    // // Request permissions
+    // await _requestPermissions();
+
+    // // Initialize health access
+    // await _initializeHealthAccess();
+
+    // Schedule periodic task
+    await scheduleTask();
+  }
+
+  static Future<void> scheduleTask() async {
+    final interval = await _getInterval();
+
+    // Cancel any existing tasks
+    await Workmanager().cancelByUniqueName(stepTrackerTask);
+
+    // Schedule new periodic task
+    await Workmanager().registerPeriodicTask(
+      stepTrackerTask,
+      stepTrackerTask,
+      frequency: Duration(minutes: 15),
+      initialDelay: Duration(seconds: 10),
+      existingWorkPolicy: ExistingWorkPolicy.replace,
+      constraints: Constraints(
+        networkType: NetworkType.not_required,
         requiresBatteryNotLow: false,
         requiresCharging: false,
-        requiresStorageNotLow: false,
         requiresDeviceIdle: false,
-        // requiredNetworkType: NetworkType.NONE, // Removed requiredNetworkType since no network is needed
-        // Removed requiredNetworkType since no network is needed
+        requiresStorageNotLow: false,
       ),
-      _onBackgroundFetch,
-      _onBackgroundFetchTimeout,
     );
 
-    BackgroundFetch.registerHeadlessTask(backgroundFetchHeadlessTask);
+    debugPrint("Scheduled Workmanager task with interval: $interval minutes");
+  }
+
+  static Future<void> _initializeHealthAccess() async {
+    try {
+      final types = [HealthDataType.STEPS];
+      final permissions = [HealthDataAccess.READ];
+
+      bool authorized = await health.requestAuthorization(types, permissions: permissions);
+      debugPrint("Health authorization status: $authorized");
+
+      if (authorized) {
+        final prefs = SharedPreferencesAsync();
+        await prefs.setBool(HEALTH_AUTH_KEY, true);
+
+        final now = DateTime.now();
+        final midnight = DateTime(now.year, now.month, now.day);
+        await health.getHealthDataFromTypes(types: types, startTime: midnight, endTime: now);
+      }
+    } catch (e) {
+      debugPrint("Error initializing health access: $e");
+    }
   }
 
   static Future<void> _requestPermissions() async {
-    // Request activity recognition permission (for steps, adjust based on your health package)
-    if (await Permission.activityRecognition.isDenied) {
-      await Permission.activityRecognition.request();
-    }
-
-    // Request notification permission
-    if (await Permission.notification.isDenied) {
+    if (Platform.isAndroid) {
+      await [Permission.activityRecognition, Permission.notification].request();
+    } else {
       await Permission.notification.request();
     }
   }
 
   static Future<int> _getInterval() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt('fetch_interval') ?? 15; // Default 60 minutes
+    final prefs = SharedPreferencesAsync();
+    return await prefs.getInt(SYNC_FREQUENCY_KEY) ?? 15;
   }
 
-  static Future<bool> _isHeadlessEnabled() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool('headless_mode') ?? false; // Default false
-  }
+  // Method to save user-selected interval
+  static Future<void> saveSyncInterval(String interval) async {
+    final prefs = SharedPreferencesAsync();
+    int minutes;
 
-  static void _onBackgroundFetch(String taskId) async {
-    await _executeTask();
-    BackgroundFetch.finish(taskId);
-  }
+    switch (interval) {
+      case '15m':
+        minutes = 15;
+        break;
+      case '30m':
+        minutes = 30;
+        break;
+      case '1hr':
+        minutes = 60;
+        break;
+      default:
+        // Handle custom interval
+        if (interval.startsWith('custom-')) {
+          minutes = int.parse(interval.replaceFirst('custom-', ''));
+        } else {
+          minutes = 15; // Default fallback
+        }
+    }
 
-  static void _onBackgroundFetchTimeout(String taskId) {
-    BackgroundFetch.finish(taskId);
+    await prefs.setInt(SYNC_FREQUENCY_KEY, minutes);
+    // Reschedule task with new interval
+    await scheduleTask();
   }
 
   static Future<void> _executeTask() async {
     try {
-      // Check if permissions are granted before proceeding
-      if (await Permission.activityRecognition.isDenied) {
-        NotificationService.showPermissionDeniedNotification();
-        return;
-      }
-
-      // Get goal
       final prefs = SharedPreferencesAsync();
-      final goal = await prefs.getInt('dailyStepGoal') ?? 1000; // Default 6000 steps
+      final dailyStepGoal = await prefs.getInt('dailyStepGoal') ?? 10000;
+
       final steps = await _fetchTodaySteps();
+      debugPrint("Workmanager task fetched steps: $steps");
 
-      // Get today steps
-      // final now = DateTime.now();
-      // final midnight = DateTime(now.year, now.month, now.day);
-      // List<HealthDataPoint> healthData = await health.getHealthDataFromTypes(types: [HealthDataType.STEPS], startTime: midnight, endTime: now);
-      // final int steps = healthData.fold(0, (sum, data) => sum + (data.value as NumericHealthValue).numericValue.toInt());
-
-      if (steps >= goal) {
-        NotificationService.showGoalReachedNotification(steps, goal);
-      } else if (goal - steps < 1000) {
-        NotificationService.showAlmostThereNotification(steps, goal);
+      if (steps >= dailyStepGoal) {
+        await NotificationService.showGoalReachedNotification(steps, dailyStepGoal);
+      } else if (dailyStepGoal - steps < 1000) {
+        await NotificationService.showAlmostThereNotification(steps, dailyStepGoal);
       } else {
-        NotificationService.showAlmostThereNotification(goal, steps);
+        await NotificationService.showErrorNotification("Not fit any criteria");
       }
-
-      // Call another function (placeholder)
-      await _callAnotherFunction();
     } catch (e) {
-      NotificationService.showErrorNotification(e.toString());
+      debugPrint("Task execution error: $e");
+      await NotificationService.showErrorNotification("😢 Error: ${e.toString()}");
     }
   }
-
-  // static Future<int> _fetchTodaySteps() async {
-  //   final health = Health();
-  //   final now = DateTime.now();
-  //   int step = 1000;
-  //   final midnight = DateTime(now.year, now.month, now.day);
-  //   List<HealthDataPoint> healthData = await health.getHealthDataFromTypes(types: [HealthDataType.STEPS], startTime: midnight, endTime: now);
-
-  //   // Calculate the sum directly from the list
-  //   step = healthData.fold<int>(0, (sum, data) => sum + (data.value as NumericHealthValue).numericValue.toInt());
-  //   return step;
-  // }
 
   static Future<int> _fetchTodaySteps() async {
-    final health = Health();
-    final now = DateTime.now();
-    final midnight = DateTime(now.year, now.month, now.day);
+    try {
+      final now = DateTime.now();
+      final midnight = DateTime(now.year, now.month, now.day);
 
-    // Add debug print
-    debugPrint("Fetching steps from $midnight to $now");
-
-    List<HealthDataPoint> healthData = await health.getHealthDataFromTypes(types: [HealthDataType.STEPS], startTime: midnight, endTime: now);
-
-    // Check if we got any data
-    debugPrint("Retrieved ${healthData.length} health data points");
-
-    // Examine the data if available
-    if (healthData.isNotEmpty) {
-      for (var data in healthData) {
-        debugPrint("Step data: ${data.value}");
+      if (Platform.isAndroid) {
+        return await _fetchAndroidSteps(midnight, now);
       }
+      return await _fetchAppleHealthSteps(midnight, now);
+    } catch (e) {
+      debugPrint("Error fetching steps: $e");
+      return 0;
     }
-
-    // Calculate steps
-    int steps = healthData.fold<int>(0, (sum, data) => sum + (data.value as NumericHealthValue).numericValue.toInt());
-
-    debugPrint("Calculated steps: $steps");
-    return steps;
   }
 
-  static Future<void> _callAnotherFunction() async {
-    // Placeholder for future implementation
+  static Future<int> _fetchAndroidSteps(DateTime start, DateTime end) async {
+    try {
+      final types = [HealthDataType.STEPS];
+      final permissions = [HealthDataAccess.READ];
+
+      bool authorized = await health.requestAuthorization(types, permissions: permissions);
+      if (!authorized) return 0;
+
+      List<HealthDataPoint> healthData = await health.getHealthDataFromTypes(types: types, startTime: start, endTime: end);
+
+      int steps = healthData.fold<int>(0, (sum, data) => sum + (data.value as NumericHealthValue).numericValue.toInt());
+
+      if (steps == 0) {
+        steps = await _getAggregatedSteps(start, end);
+      }
+
+      return steps;
+    } catch (e) {
+      debugPrint("Error fetching Android steps: $e");
+      return await _getAggregatedSteps(start, end);
+    }
   }
 
-  static Future<void> showHeadlessWarning() async {
-    if (await _isHeadlessEnabled()) {
-      NotificationService.showHeadlessModeNotification();
+  static Future<int> _fetchAppleHealthSteps(DateTime start, DateTime end) async {
+    try {
+      final types = [HealthDataType.STEPS];
+      final permissions = [HealthDataAccess.READ];
+
+      // bool authorized = await health.requestAuthorization types, permissions: permissions);
+      // if (!authorized) return 0;
+
+      List<HealthDataPoint> healthData = await health.getHealthDataFromTypes(types: types, startTime: start, endTime: end);
+
+      int steps = healthData.fold<int>(0, (sum, data) => sum + (data.value as NumericHealthValue).numericValue.toInt());
+
+      if (steps == 0) {
+        steps = await _getAggregatedSteps(start, end);
+      }
+
+      return steps;
+    } catch (e) {
+      debugPrint("Error fetching Apple Health steps: $e");
+      return await _getAggregatedSteps(start, end);
+    }
+  }
+
+  static Future<int> _getAggregatedSteps(DateTime start, DateTime end) async {
+    try {
+      int? steps = await health.getTotalStepsInInterval(start, end);
+      return steps ?? 0;
+    } catch (e) {
+      debugPrint("Error getting aggregated steps: $e");
+      return 0;
     }
   }
 }

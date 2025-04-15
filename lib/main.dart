@@ -162,13 +162,13 @@ class HealthAppState extends State<HealthApp> {
     super.dispose();
   }
 
-  Future<void> _loadPreferences() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _language = prefs.getString('language') ?? 'system';
-      _theme = prefs.getString('theme') ?? 'system';
-    });
-  }
+  // Future<void> _loadPreferences() async {
+  //   final prefs = await SharedPreferences.getInstance();
+  //   setState(() {
+  //     _language = prefs.getString('language') ?? 'system';
+  //     _theme = prefs.getString('theme') ?? 'system';
+  //   });
+  // }
 
   /// 初始化方法，确保 authorize 和 fetchData 只调用一次
   Future<void> _initialize() async {
