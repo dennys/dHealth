@@ -378,8 +378,16 @@ class HealthAppState extends State<HealthApp> {
     final health = GetIt.I<Health>();
     final SettingsModel settings = Provider.of<SettingsModel>(context);
     return MaterialApp(
-      theme: ThemeData.light(),
-      darkTheme: ThemeData.dark(),
+      // theme: ThemeData.light(),
+      theme: ThemeData(
+        primarySwatch: Colors.green,
+        colorScheme: ColorScheme.fromSwatch(primarySwatch: Colors.green, accentColor: Colors.greenAccent),
+        drawerTheme: DrawerThemeData(
+          backgroundColor: Colors.green[50], // 淺綠色背景
+        ),
+      ),
+      // darkTheme: ThemeData.dark(),
+      darkTheme: ThemeData(primarySwatch: Colors.green, colorScheme: ColorScheme.dark(primary: Colors.green[700]!, secondary: Colors.greenAccent)),
       themeMode: settings.getThemeMode(),
       locale: settings.getLocale(),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
