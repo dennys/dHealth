@@ -1,10 +1,39 @@
-# dsteps
+# dHealth
 
-[![Flutter CI](https://github.com/dennys/dsteps/actions/workflows/github_action.yaml/badge.svg)](https://github.com/dennys/dHealth/actions/workflows/github_action.yaml)
+[![Build](https://github.com/dennys/dsteps/actions/workflows/github_action.yaml/badge.svg)](https://github.com/dennys/dHealth/actions/workflows/github_action.yaml)
 [![codecov](https://codecov.io/gh/dennys/dHealth/graph/badge.svg?token=IGNEDCQ0g2)](https://codecov.io/gh/dennys/dHealth)
 ![GitHub Repo stars](https://img.shields.io/github/stars/:dennys/:dstep)
 
-A new Flutter project.
+Commit:
+![GitHub last commit](https://img.shields.io/github/last-commit/dennys/hMoney)
+![GitHub commit activity](https://img.shields.io/github/commit-activity/w/dennys/hMoney)
+![GitHub commit activity](https://img.shields.io/github/commit-activity/m/dennys/hMoney)
+![GitHub commit activity](https://img.shields.io/github/commit-activity/y/dennys/hMoney)
+
+GitHub (Size):
+![Lines of code](https://img.shields.io/tokei/lines/github/dennys/hMoney)
+![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/dennys/hMoney)
+![GitHub repo size](https://img.shields.io/github/repo-size/dennys/hMoney)
+![GitHub repo file count](https://img.shields.io/github/directory-file-count/dennys/hMoney)
+
+Code scan:
+[![Maintainability](https://api.codeclimate.com/v1/badges/9263841b69330e2a91d5/maintainability)](https://codeclimate.com/github/dennys/hMoney/maintainability)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/9654ae0d5f024ba7b49233e72b4b0685)](https://app.codacy.com/gh/dennys/hMoney?utm_source=github.com&utm_medium=referral&utm_content=dennys/hMoney&utm_campaign=Badge_Grade_Settings)
+[![CodeQL](https://github.com/dennys/hMoney/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/dennys/hMoney/actions/workflows/codeql-analysis.yml)
+
+Android:
+![Android](https://img.shields.io/badge/Android-API%2033-green?logo=android)
+![Flutter](https://img.shields.io/badge/Flutter-3.29.0-blue?logo=flutter)
+![Material UI](https://img.shields.io/badge/UI-Material%20Design-blueviolet?logo=material-design)
+
+iOS: ![No iOS](https://img.shields.io/badge/iOS-Not%20Supported%20Yet-lightgrey?logo=apple)
+
+Features: 
+![Step Tracker](https://img.shields.io/badge/Feature-Step%20Tracking-brightgreen?logo=walkman)
+![Fitness App](https://img.shields.io/badge/Fitness-Step%20Counter-orange?logo=google-fit)
+
+
+# A Health Project.
 
 # Requirement
 
