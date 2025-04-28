@@ -46,6 +46,7 @@ void main() async {
 
   await NotificationService.initialize();
   await BackgroundService.init();
+  await BackgroundService.executeTask();
 
   runApp(ChangeNotifierProvider(create: (_) => SettingsModel(), child: const HealthApp()));
 }
@@ -223,6 +224,8 @@ class HealthAppState extends State<HealthApp> {
         debugPrint("Exception in authorize: $error");
       }
     }
+
+    authorized = await health.requestHealthDataInBackgroundAuthorization();
 
     setState(() => _state = (authorized) ? AppState.AUTHORIZED : AppState.AUTH_NOT_GRANTED);
   }
@@ -678,7 +681,7 @@ class HealthAppState extends State<HealthApp> {
     }
     if (p.value is NutritionHealthValue) {
       return ListTile(
-        title: Text("${p.typeString} ${(p.value as NutritionHealthValue).mealType}: ${(p.value as NutritionHealthValue).name}"),
+        title: Text("${p.typeString} ${(p.value as NutritionHealthValue).meal_type}: ${(p.value as NutritionHealthValue).name}"),
         trailing: Text('${(p.value as NutritionHealthValue).calories} kcal'),
         subtitle: Text('${p.dateFrom} - ${p.dateTo}\n${p.recordingMethod}'),
       );

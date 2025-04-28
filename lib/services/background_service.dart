@@ -6,6 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:workmanager/workmanager.dart';
 import 'dart:io' show Platform;
 import 'notification_service.dart';
+import 'package:flutter/services.dart';
 
 // Define the task key
 const String stepTrackerTask = "com.example.step_tracker";
@@ -14,9 +15,10 @@ const String stepTrackerTask = "com.example.step_tracker";
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
     try {
+      await NotificationService.showErrorNotification("This is callbackdispatcher, task is $stepTrackerTask, stepTrackerTask is $stepTrackerTask");
       switch (task) {
         case stepTrackerTask:
-          await BackgroundService._executeTask();
+          await BackgroundService.executeTask();
           break;
       }
       return Future.value(true);
@@ -58,7 +60,7 @@ class BackgroundService {
       stepTrackerTask,
       stepTrackerTask,
       frequency: Duration(minutes: 15),
-      initialDelay: Duration(seconds: 10),
+      initialDelay: Duration(seconds: 30),
       existingWorkPolicy: ExistingWorkPolicy.replace,
       constraints: Constraints(
         networkType: NetworkType.not_required,
@@ -135,10 +137,12 @@ class BackgroundService {
     await scheduleTask();
   }
 
-  static Future<void> _executeTask() async {
+  static Future<void> executeTask() async {
     try {
-      final prefs = SharedPreferencesAsync();
-      final dailyStepGoal = await prefs.getInt('dailyStepGoal') ?? 10000;
+      // final prefs = SharedPreferencesAsync();
+      final prefs = await SharedPreferences.getInstance();
+
+      final dailyStepGoal = prefs.getInt('dailyStepGoal') ?? 300;
 
       final steps = await _fetchTodaySteps();
       debugPrint("Workmanager task fetched steps: $steps");
@@ -148,13 +152,28 @@ class BackgroundService {
       } else if (dailyStepGoal - steps < 1000) {
         await NotificationService.showAlmostThereNotification(steps, dailyStepGoal);
       } else {
-        await NotificationService.showErrorNotification("Not fit any criteria");
+        await NotificationService.showErrorNotification("Not fit any criteria. $steps $dailyStepGoal");
       }
     } catch (e) {
       debugPrint("Task execution error: $e");
       await NotificationService.showErrorNotification("😢 Error: ${e.toString()}");
     }
   }
+
+  // static Future<int> _fetchTodaySteps() async {
+  //   try {
+  //     final client = await HealthConnectClient.getOrCreate();
+  //     final now = DateTime.now();
+  //     final midnight = DateTime(now.year, now.month, now.day);
+  //     final steps = await client.readRecords<StepCountRecord>(startTime: midnight, endTime: now);
+  //     int totalSteps = steps.fold(0, (sum, record) => sum + record.count);
+  //     debugPrint("Fetched steps: $totalSteps");
+  //     return totalSteps;
+  //   } catch (e) {
+  //     debugPrint("Error fetching steps: $e");
+  //     return 0;
+  //   }
+  // }
 
   static Future<int> _fetchTodaySteps() async {
     try {
@@ -173,16 +192,10 @@ class BackgroundService {
 
   static Future<int> _fetchAndroidSteps(DateTime start, DateTime end) async {
     try {
-      final types = [HealthDataType.STEPS];
-      final permissions = [HealthDataAccess.READ];
+      // bool authorized = await health.requestAuthorization(types, permissions: permissions);
+      // if (!authorized) return 0;
 
-      bool authorized = await health.requestAuthorization(types, permissions: permissions);
-      if (!authorized) return 0;
-
-      List<HealthDataPoint> healthData = await health.getHealthDataFromTypes(types: types, startTime: start, endTime: end);
-
-      int steps = healthData.fold<int>(0, (sum, data) => sum + (data.value as NumericHealthValue).numericValue.toInt());
-
+      int steps = await getQ1(start, end);
       if (steps == 0) {
         steps = await _getAggregatedSteps(start, end);
       }
@@ -192,6 +205,58 @@ class BackgroundService {
       debugPrint("Error fetching Android steps: $e");
       return await _getAggregatedSteps(start, end);
     }
+  }
+
+  /// Define a platform channel for communication with native code
+  static const MethodChannel platform = MethodChannel('com.example.health');
+
+  /// Fetches health data from Android Health Connect for given types and time range.
+  /// [types]: List of data types (e.g., ['steps', 'heart_rate']).
+  /// [startTime]: Start time as DateTime.
+  /// [endTime]: End time as DateTime.
+  /// Returns a Map with data type as key and list of values as value.
+  static Future<List<HealthDataPoint>> getHealthDataFromTypes({
+    required List<String> types,
+    required DateTime startTime,
+    required DateTime endTime,
+  }) async {
+    try {
+      // Convert DateTime to ISO 8601 string for platform channel
+      final result = await platform.invokeMethod('getHealthData', {
+        'types': types,
+        'startTime': startTime.toIso8601String(),
+        'endTime': endTime.toIso8601String(),
+      });
+
+      // Parse the result as a List<Map> and convert to List<HealthDataPoint>
+      final List<dynamic> dataList = result as List<dynamic>;
+      return dataList.map((item) => HealthDataPoint.fromJson(item as Map<String, dynamic>)).toList();
+    } on PlatformException catch (e) {
+      throw Exception('Failed to get health data: ${e.message}');
+    }
+  }
+
+  static Future<int> getQ1(DateTime start, DateTime end) async {
+    final types = [HealthDataType.STEPS];
+    final permissions = [HealthDataAccess.READ];
+
+    bool? hasPermission = await health.hasPermissions(types, permissions: permissions);
+    if (!hasPermission!) {
+      debugPrint("No permission for health data in background");
+      await NotificationService.showErrorNotification("No privilege");
+      return 999;
+    }
+
+    List<HealthDataPoint> healthData = await getHealthDataFromTypes(
+      types: ['steps'], // Add more types like 'heart_rate' if needed
+      startTime: start,
+      endTime: end,
+    );
+
+    // List<HealthDataPoint> healthData = await health.getHealthDataFromTypes(types: types, startTime: start, endTime: end);
+    int steps = healthData.fold<int>(0, (sum, data) => sum + (data.value as NumericHealthValue).numericValue.toInt());
+    await NotificationService.showErrorNotification("debug for steps: $steps");
+    return steps;
   }
 
   static Future<int> _fetchAppleHealthSteps(DateTime start, DateTime end) async {
