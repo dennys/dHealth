@@ -15,7 +15,8 @@ const String stepTrackerTask = "com.example.step_tracker";
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
     try {
-      await NotificationService.showErrorNotification("This is callbackdispatcher, task is $stepTrackerTask, stepTrackerTask is $stepTrackerTask");
+      // This is for debug
+      // await NotificationService.showErrorNotification("This is callbackdispatcher, task is $stepTrackerTask, stepTrackerTask is $stepTrackerTask");
       switch (task) {
         case stepTrackerTask:
           await BackgroundService.executeTask();
@@ -147,12 +148,16 @@ class BackgroundService {
       final steps = await _fetchTodaySteps();
       debugPrint("Workmanager task fetched steps: $steps");
 
-      if (steps >= dailyStepGoal) {
-        await NotificationService.showGoalReachedNotification(steps, dailyStepGoal);
-      } else if (dailyStepGoal - steps < 1000) {
-        await NotificationService.showAlmostThereNotification(steps, dailyStepGoal);
-      } else {
-        await NotificationService.showErrorNotification("Not fit any criteria. $steps $dailyStepGoal");
+      PermissionStatus status = await Permission.notification.status;
+
+      if (status.isGranted) {
+        if (steps >= dailyStepGoal) {
+          await NotificationService.showGoalReachedNotification(steps, dailyStepGoal);
+        } else if (dailyStepGoal - steps < 1000) {
+          await NotificationService.showAlmostThereNotification(steps, dailyStepGoal);
+        } else {
+          await NotificationService.showErrorNotification("Not fit any criteria. $steps $dailyStepGoal");
+        }
       }
     } catch (e) {
       debugPrint("Task execution error: $e");
