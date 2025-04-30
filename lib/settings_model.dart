@@ -1,3 +1,4 @@
+import 'package:dsteps/services/background_service.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -207,20 +208,25 @@ class SettingsModel extends ChangeNotifier {
   Future<void> setDailyStepGoal(int dailyStepGoal) async {
     _dailyStepGoal = dailyStepGoal;
     await _prefs.setInt('dailyStepGoal', dailyStepGoal);
-    SharedPreferences prefsOld = await SharedPreferences.getInstance();
-    await prefsOld.setInt('dailyStepGoal', dailyStepGoal);
+    // SharedPreferences prefsOld = await SharedPreferences.getInstance();
+    // await prefsOld.setInt('dailyStepGoal', dailyStepGoal);
+    BackgroundService.init(); // No need to await
     notifyListeners();
   }
 
   Future<void> setNotificationsEnabled(bool value) async {
     _notificationsEnabled = value;
     await _prefs.setBool('${_prefix}enabled', value);
+    if (value) {
+      BackgroundService.init(); // No need to await
+    }
     notifyListeners();
   }
 
   Future<void> setNotificationFrequency(int value) async {
     _notificationFrequency = value;
     await _prefs.setInt('${_prefix}frequency', value);
+    BackgroundService.init(); // No need to await
     notifyListeners();
   }
 

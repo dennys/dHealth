@@ -43,7 +43,12 @@ class StepDatabase extends _$StepDatabase {
           ..limit(1);
     // final results = await query.get(); // Fetch all matching rows
     final result = await query.getSingleOrNull();
-    return DateTime.parse(result!.date); // Convert string to DateTime
+
+    // If there is no data (new device), get 7 days data
+    if (result == null) {
+      return DateTime.now().subtract(Duration(days: 7));
+    }
+    return DateTime.parse(result.date); // Convert string to DateTime
   }
 
   // Insert or update a daily step entry
