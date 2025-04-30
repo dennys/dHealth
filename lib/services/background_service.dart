@@ -2,10 +2,10 @@ import 'package:flutter/foundation.dart';
 import 'package:health/health.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:get_it/get_it.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:workmanager/workmanager.dart';
 import 'dart:io' show Platform;
 import 'notification_service.dart';
+import 'package:flutter/services.dart';
 
 // Define the task key
 const String stepTrackerTask = "com.example.step_tracker";
@@ -14,9 +14,11 @@ const String stepTrackerTask = "com.example.step_tracker";
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
     try {
+      // This is for debug
+      // await NotificationService.showErrorNotification("This is callbackdispatcher, task is $stepTrackerTask, stepTrackerTask is $stepTrackerTask");
       switch (task) {
         case stepTrackerTask:
-          await BackgroundService._executeTask();
+          await BackgroundService.executeTask(inputData);
           break;
       }
       return Future.value(true);
@@ -30,25 +32,25 @@ void callbackDispatcher() {
 class BackgroundService {
   static final GetIt getIt = GetIt.instance;
   static final Health health = Health();
-  static const String HEALTH_AUTH_KEY = "health_auth_token";
-  static const String SYNC_FREQUENCY_KEY = "health_sync_frequency";
+  static const String _syncFrequencyKey = "health_sync_frequency";
 
   static Future<void> init() async {
     // Initialize Workmanager
     await Workmanager().initialize(callbackDispatcher, isInDebugMode: kDebugMode);
-
-    // // Request permissions
-    // await _requestPermissions();
-
-    // // Initialize health access
-    // await _initializeHealthAccess();
 
     // Schedule periodic task
     await scheduleTask();
   }
 
   static Future<void> scheduleTask() async {
-    final interval = await _getInterval();
+    // final prefs = await SharedPreferences.getInstance();
+    final prefs = SharedPreferencesAsync(); //WorkManager 裡面不能用 Async, 會讀不到
+    final int interval = await prefs.getInt(_syncFrequencyKey) ?? 15;
+    final int dailyStepGoal = await prefs.getInt('dailyStepGoal') ?? 300;
+    final bool notificationEnabled = await prefs.getBool('notification_enabled') ?? true;
+
+    // final steps = await _fetchTodaySteps();
+    // debugPrint("Workmanager task fetched steps: $steps");
 
     // Cancel any existing tasks
     await Workmanager().cancelByUniqueName(stepTrackerTask);
@@ -57,8 +59,8 @@ class BackgroundService {
     await Workmanager().registerPeriodicTask(
       stepTrackerTask,
       stepTrackerTask,
-      frequency: Duration(minutes: 15),
-      initialDelay: Duration(seconds: 10),
+      frequency: Duration(minutes: interval),
+      initialDelay: Duration(seconds: 30),
       existingWorkPolicy: ExistingWorkPolicy.replace,
       constraints: Constraints(
         networkType: NetworkType.not_required,
@@ -67,88 +69,31 @@ class BackgroundService {
         requiresDeviceIdle: false,
         requiresStorageNotLow: false,
       ),
+      inputData: <String, dynamic>{'dailyStepGoal': dailyStepGoal, 'notificationEnabled': notificationEnabled},
     );
 
     debugPrint("Scheduled Workmanager task with interval: $interval minutes");
   }
 
-  static Future<void> _initializeHealthAccess() async {
+  static Future<void> executeTask(final Map<String, dynamic>? inputData) async {
     try {
-      final types = [HealthDataType.STEPS];
-      final permissions = [HealthDataAccess.READ];
-
-      bool authorized = await health.requestAuthorization(types, permissions: permissions);
-      debugPrint("Health authorization status: $authorized");
-
-      if (authorized) {
-        final prefs = SharedPreferencesAsync();
-        await prefs.setBool(HEALTH_AUTH_KEY, true);
-
-        final now = DateTime.now();
-        final midnight = DateTime(now.year, now.month, now.day);
-        await health.getHealthDataFromTypes(types: types, startTime: midnight, endTime: now);
-      }
-    } catch (e) {
-      debugPrint("Error initializing health access: $e");
-    }
-  }
-
-  static Future<void> _requestPermissions() async {
-    if (Platform.isAndroid) {
-      await [Permission.activityRecognition, Permission.notification].request();
-    } else {
-      await Permission.notification.request();
-    }
-  }
-
-  static Future<int> _getInterval() async {
-    final prefs = SharedPreferencesAsync();
-    return await prefs.getInt(SYNC_FREQUENCY_KEY) ?? 15;
-  }
-
-  // Method to save user-selected interval
-  static Future<void> saveSyncInterval(String interval) async {
-    final prefs = SharedPreferencesAsync();
-    int minutes;
-
-    switch (interval) {
-      case '15m':
-        minutes = 15;
-        break;
-      case '30m':
-        minutes = 30;
-        break;
-      case '1hr':
-        minutes = 60;
-        break;
-      default:
-        // Handle custom interval
-        if (interval.startsWith('custom-')) {
-          minutes = int.parse(interval.replaceFirst('custom-', ''));
-        } else {
-          minutes = 15; // Default fallback
-        }
-    }
-
-    await prefs.setInt(SYNC_FREQUENCY_KEY, minutes);
-    // Reschedule task with new interval
-    await scheduleTask();
-  }
-
-  static Future<void> _executeTask() async {
-    try {
-      final prefs = SharedPreferencesAsync();
-      final dailyStepGoal = await prefs.getInt('dailyStepGoal') ?? 10000;
+      final int dailyStepGoal = inputData?['dailyStepGoal'] ?? 327;
+      final bool notificationEnabled = inputData?['notificationEnabled'] ?? true;
+      // final prefs = await SharedPreferences.getInstance();  // WorkManager 裡面不能用 Async, 會讀不到
+      // final dailyStepGoal = prefs.getInt('dailyStepGoal') ?? 300;
+      // final bool notificationEnabled = prefs.getBool('notification_enabled') ?? true;
 
       final steps = await _fetchTodaySteps();
       debugPrint("Workmanager task fetched steps: $steps");
 
-      if (steps >= dailyStepGoal) {
-        await NotificationService.showGoalReachedNotification(steps, dailyStepGoal);
-      } else if (dailyStepGoal - steps < 1000) {
-        await NotificationService.showAlmostThereNotification(steps, dailyStepGoal);
-      } else {
-        await NotificationService.showErrorNotification("Not fit any criteria");
+      if (notificationEnabled) {
+        if (steps >= dailyStepGoal) {
+          await NotificationService.showGoalReachedNotification(steps, dailyStepGoal);
+        } else if (dailyStepGoal - steps < 1000) {
+          await NotificationService.showAlmostThereNotification(steps, dailyStepGoal);
+        } else {
+          await NotificationService.showErrorNotification("Not fit any criteria. $steps $dailyStepGoal");
+        }
       }
     } catch (e) {
       debugPrint("Task execution error: $e");
@@ -173,16 +118,10 @@ class BackgroundService {
 
   static Future<int> _fetchAndroidSteps(DateTime start, DateTime end) async {
     try {
-      final types = [HealthDataType.STEPS];
-      final permissions = [HealthDataAccess.READ];
+      // bool authorized = await health.requestAuthorization(types, permissions: permissions);
+      // if (!authorized) return 0;
 
-      bool authorized = await health.requestAuthorization(types, permissions: permissions);
-      if (!authorized) return 0;
-
-      List<HealthDataPoint> healthData = await health.getHealthDataFromTypes(types: types, startTime: start, endTime: end);
-
-      int steps = healthData.fold<int>(0, (sum, data) => sum + (data.value as NumericHealthValue).numericValue.toInt());
-
+      int steps = await getQ1(start, end);
       if (steps == 0) {
         steps = await _getAggregatedSteps(start, end);
       }
@@ -194,10 +133,62 @@ class BackgroundService {
     }
   }
 
+  /// Define a platform channel for communication with native code
+  static const MethodChannel platform = MethodChannel('com.example.health');
+
+  /// Fetches health data from Android Health Connect for given types and time range.
+  /// [types]: List of data types (e.g., ['steps', 'heart_rate']).
+  /// [startTime]: Start time as DateTime.
+  /// [endTime]: End time as DateTime.
+  /// Returns a Map with data type as key and list of values as value.
+  static Future<List<HealthDataPoint>> getHealthDataFromTypes({
+    required List<String> types,
+    required DateTime startTime,
+    required DateTime endTime,
+  }) async {
+    try {
+      // Convert DateTime to ISO 8601 string for platform channel
+      final result = await platform.invokeMethod('getHealthData', {
+        'types': types,
+        'startTime': startTime.toIso8601String(),
+        'endTime': endTime.toIso8601String(),
+      });
+
+      // Parse the result as a List<Map> and convert to List<HealthDataPoint>
+      final List<dynamic> dataList = result as List<dynamic>;
+      return dataList.map((item) => HealthDataPoint.fromJson(item as Map<String, dynamic>)).toList();
+    } on PlatformException catch (e) {
+      throw Exception('Failed to get health data: ${e.message}');
+    }
+  }
+
+  static Future<int> getQ1(DateTime start, DateTime end) async {
+    final types = [HealthDataType.STEPS];
+    final permissions = [HealthDataAccess.READ];
+
+    bool? hasPermission = await health.hasPermissions(types, permissions: permissions);
+    if (!hasPermission!) {
+      debugPrint("No permission for health data in background");
+      await NotificationService.showErrorNotification("No privilege");
+      return 999;
+    }
+
+    List<HealthDataPoint> healthData = await getHealthDataFromTypes(
+      types: ['steps'], // Add more types like 'heart_rate' if needed
+      startTime: start,
+      endTime: end,
+    );
+
+    // List<HealthDataPoint> healthData = await health.getHealthDataFromTypes(types: types, startTime: start, endTime: end);
+    int steps = healthData.fold<int>(0, (sum, data) => sum + (data.value as NumericHealthValue).numericValue.toInt());
+    await NotificationService.showErrorNotification("debug for steps: $steps");
+    return steps;
+  }
+
   static Future<int> _fetchAppleHealthSteps(DateTime start, DateTime end) async {
     try {
       final types = [HealthDataType.STEPS];
-      final permissions = [HealthDataAccess.READ];
+      // final permissions = [HealthDataAccess.READ];
 
       // bool authorized = await health.requestAuthorization types, permissions: permissions);
       // if (!authorized) return 0;

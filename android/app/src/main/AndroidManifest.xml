@@ -10,6 +10,7 @@
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" /> <!-- Android 13+ -->
     <uses-permission android:name="android.permission.WAKE_LOCK" /> <!-- wakeUpScreen: true-->
+    <uses-permission android:name="android.permission.health.READ_HEALTH_DATA_IN_BACKGROUND" />/>
     <!-- Permissions: https://developer.android.com/reference/android/health/connect/HealthPermissions -->
     <application
         android:label="dsteps"

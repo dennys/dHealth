@@ -2,12 +2,15 @@
 import 'package:dsteps/utils/weekday_utils.dart'; // Adjust import path
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 
 void main() {
   group('WeekdayUtils', () {
     setUp(() {
       // Mock SharedPreferences
       SharedPreferences.setMockInitialValues({});
+      SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
     });
 
     test('Weekday enum values are correct', () {
@@ -24,7 +27,7 @@ void main() {
 
     test('getWeekStartDay returns stored value when set', () async {
       // Set mock value
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = SharedPreferencesAsync();
       await prefs.setInt('week_start_day', Weekday.wednesday.value);
 
       final result = await WeekdayUtils.getWeekStartDay();
@@ -32,7 +35,7 @@ void main() {
     });
 
     test('getWeekStartDay returns default when no stored value', () async {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = SharedPreferencesAsync();
       await prefs.clear();
 
       final result = await WeekdayUtils.getWeekStartDay();
@@ -42,8 +45,8 @@ void main() {
 
     test('setWeekStartDay stores value correctly', () async {
       await WeekdayUtils.setWeekStartDay(Weekday.friday);
-      final prefs = await SharedPreferences.getInstance();
-      expect(prefs.getInt('week_start_day'), Weekday.friday.value);
+      final prefs = SharedPreferencesAsync();
+      expect(await prefs.getInt('week_start_day'), Weekday.friday.value);
     });
   });
 }

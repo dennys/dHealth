@@ -6,6 +6,7 @@ import 'package:dsteps/generated/l10n/app_localizations.dart';
 import 'package:dsteps/services/background_service.dart';
 import 'package:dsteps/services/data_service.dart';
 import 'package:dsteps/services/notification_service.dart';
+import 'package:dsteps/services/permission_service.dart';
 import 'package:dsteps/widgets/about.dart';
 import 'package:dsteps/widgets/import_export.dart';
 import 'package:dsteps/widgets/notification_setup.dart';
@@ -44,8 +45,15 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await setupDependencies();
 
+  await PermissionService.authorize();
   await NotificationService.initialize();
   await BackgroundService.init();
+
+  final prefs = SharedPreferencesAsync();
+  final int dailyStepGoal = await prefs.getInt('dailyStepGoal') ?? 300;
+  final bool notificationEnabled = await prefs.getBool('notification_enabled') ?? true;
+  Map<String, dynamic> inputData = {'dailyStepGoal': dailyStepGoal, 'notificationEnabled': notificationEnabled};
+  await BackgroundService.executeTask(inputData);
 
   runApp(ChangeNotifierProvider(create: (_) => SettingsModel(), child: const HealthApp()));
 }
@@ -175,13 +183,13 @@ class HealthAppState extends State<HealthApp> {
     await fetchData();
 
     // 调用授权方法
-    final authorized = await _healthService.authorize();
-    setState(() {
-      _isAuthorized = authorized;
-      if (!authorized) {
-        _errorMessage = "Authorization failed. Please grant the required permissions.";
-      }
-    });
+    // final authorized = await _healthService.authorize();
+    // setState(() {
+    //   _isAuthorized = authorized;
+    //   if (!authorized) {
+    //     _errorMessage = "Authorization failed. Please grant the required permissions.";
+    //   }
+    // });
 
     // 如果授权成功，自动获取数据
     // if (authorized) {
@@ -223,6 +231,8 @@ class HealthAppState extends State<HealthApp> {
         debugPrint("Exception in authorize: $error");
       }
     }
+
+    authorized = await health.requestHealthDataInBackgroundAuthorization();
 
     setState(() => _state = (authorized) ? AppState.AUTHORIZED : AppState.AUTH_NOT_GRANTED);
   }
@@ -378,8 +388,16 @@ class HealthAppState extends State<HealthApp> {
     final health = GetIt.I<Health>();
     final SettingsModel settings = Provider.of<SettingsModel>(context);
     return MaterialApp(
-      theme: ThemeData.light(),
-      darkTheme: ThemeData.dark(),
+      // theme: ThemeData.light(),
+      theme: ThemeData(
+        primarySwatch: Colors.green,
+        colorScheme: ColorScheme.fromSwatch(primarySwatch: Colors.green, accentColor: Colors.greenAccent),
+        drawerTheme: DrawerThemeData(
+          backgroundColor: Colors.green[50], // 淺綠色背景
+        ),
+      ),
+      // darkTheme: ThemeData.dark(),
+      darkTheme: ThemeData(primarySwatch: Colors.green, colorScheme: ColorScheme.dark(primary: Colors.green[700]!, secondary: Colors.greenAccent)),
       themeMode: settings.getThemeMode(),
       locale: settings.getLocale(),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -670,7 +688,7 @@ class HealthAppState extends State<HealthApp> {
     }
     if (p.value is NutritionHealthValue) {
       return ListTile(
-        title: Text("${p.typeString} ${(p.value as NutritionHealthValue).mealType}: ${(p.value as NutritionHealthValue).name}"),
+        title: Text("${p.typeString} ${(p.value as NutritionHealthValue).meal_type}: ${(p.value as NutritionHealthValue).name}"),
         trailing: Text('${(p.value as NutritionHealthValue).calories} kcal'),
         subtitle: Text('${p.dateFrom} - ${p.dateTo}\n${p.recordingMethod}'),
       );
