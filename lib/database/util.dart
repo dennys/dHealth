@@ -18,7 +18,9 @@ Future<StepDatabase> openDatabase() async {
   return StepDatabase(NativeDatabase(dbFile));
 }
 
-Future<String?> exportToCSV() async {}
+Future<String?> exportToCSV() async {
+  return null;
+}
 
 // Function to copy the database file to Downloads directory
 Future<String?> copyDatabaseToDownloads(String exportedPath) async {

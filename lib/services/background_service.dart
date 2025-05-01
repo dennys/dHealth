@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 
 // Define the task key
 const String stepTrackerTask = "com.example.step_tracker";
+const bool enableWorkManagerDebugMode = false;
 
 @pragma('vm:entry-point')
 void callbackDispatcher() {
@@ -36,15 +37,14 @@ class BackgroundService {
 
   static Future<void> init() async {
     // Initialize Workmanager
-    await Workmanager().initialize(callbackDispatcher, isInDebugMode: kDebugMode);
+    await Workmanager().initialize(callbackDispatcher, isInDebugMode: enableWorkManagerDebugMode);
 
     // Schedule periodic task
     await scheduleTask();
   }
 
   static Future<void> scheduleTask() async {
-    // final prefs = await SharedPreferences.getInstance();
-    final prefs = SharedPreferencesAsync(); //WorkManager 裡面不能用 Async, 會讀不到
+    final prefs = SharedPreferencesAsync();
     final int interval = await prefs.getInt(_syncFrequencyKey) ?? 15;
     final int dailyStepGoal = await prefs.getInt('dailyStepGoal') ?? 300;
     final bool notificationEnabled = await prefs.getBool('notification_enabled') ?? true;
@@ -79,9 +79,6 @@ class BackgroundService {
     try {
       final int dailyStepGoal = inputData?['dailyStepGoal'] ?? 327;
       final bool notificationEnabled = inputData?['notificationEnabled'] ?? true;
-      // final prefs = await SharedPreferences.getInstance();  // WorkManager 裡面不能用 Async, 會讀不到
-      // final dailyStepGoal = prefs.getInt('dailyStepGoal') ?? 300;
-      // final bool notificationEnabled = prefs.getBool('notification_enabled') ?? true;
 
       final steps = await _fetchTodaySteps();
       debugPrint("Workmanager task fetched steps: $steps");

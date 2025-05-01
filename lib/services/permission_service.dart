@@ -21,12 +21,12 @@ List<HealthDataType> get types =>
 // List<HealthDataAccess> get permissions =>
 //     types.map((e) => HealthDataAccess.READ).toList();
 
-// Or both READ and WRITE
+// Read and write permissions with special handling for iOS-specific types
 List<HealthDataAccess> get permissions =>
     types
         .map(
           (type) =>
-              // can only request READ permissions to the following list of types on iOS
+              // iOS only allows READ permissions for certain health data types
               [
                     HealthDataType.WALKING_HEART_RATE,
                     HealthDataType.ELECTROCARDIOGRAM,
@@ -40,7 +40,11 @@ List<HealthDataAccess> get permissions =>
         )
         .toList();
 
+/// Service class for handling all permission-related functionality
 class PermissionService {
+  /// Requests and verifies all necessary permissions for the app
+  ///
+  /// Returns true if all critical permissions are granted, false otherwise
   static Future<bool> authorize() async {
     final health = GetIt.I<Health>();
     final SharedPreferencesAsync prefs = SharedPreferencesAsync();
@@ -67,7 +71,7 @@ class PermissionService {
         // return false;
       }
 
-      // Request to access activityRecognition data, iOS doesn't need this permission
+      // Request permission for activityRecognition data (Android only)
       if (Platform.isAndroid) {
         if (!await Permission.activityRecognition.request().isGranted) {
           if (await Permission.activityRecognition.isPermanentlyDenied) {
@@ -78,7 +82,7 @@ class PermissionService {
         }
       }
 
-      // Request notification privilege
+      // Request notification permission if enabled in preferences
       final bool notificationEnabled = await prefs.getBool('notification_enabled') ?? true;
       if (notificationEnabled) {
         if (!await Permission.notification.request().isGranted) {
@@ -90,7 +94,7 @@ class PermissionService {
         }
       }
 
-      // Request access health data
+      // Request permission for health data
       List<HealthDataType> types = [HealthDataType.STEPS];
       List<HealthDataAccess> permissions = [HealthDataAccess.READ];
       bool? hasPermissions = await health.hasPermissions(types, permissions: permissions);
@@ -102,7 +106,7 @@ class PermissionService {
         }
       }
 
-      // request access to read health historic data more than 30 days
+      // Request permission for health data history (more than 30 days)
       final bool isHealthDataHistoryAuthorized = await health.isHealthDataHistoryAuthorized();
       if (!isHealthDataHistoryAuthorized) {
         bool authorized = await health.requestHealthDataHistoryAuthorization();
@@ -112,7 +116,7 @@ class PermissionService {
         }
       }
 
-      // request to access data in backgroud (after health v12.x)
+      // Request permission for background health data access (health v12.x+)
       final bool isHealthDataInBackgroundAuthorized = await health.isHealthDataInBackgroundAuthorized();
       if (!isHealthDataInBackgroundAuthorized) {
         bool authorized = await health.requestHealthDataInBackgroundAuthorization();
@@ -129,6 +133,9 @@ class PermissionService {
     }
   }
 
+  /// Requests permission to access device storage
+  ///
+  /// Primarily needed for Android devices
   static Future<bool> requestStoragePermission() async {
     // For Android 10 and above, we need WRITE_EXTERNAL_STORAGE permission
     if (Platform.isAndroid) {
