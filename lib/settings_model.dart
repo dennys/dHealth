@@ -208,8 +208,6 @@ class SettingsModel extends ChangeNotifier {
   Future<void> setDailyStepGoal(int dailyStepGoal) async {
     _dailyStepGoal = dailyStepGoal;
     await _prefs.setInt('dailyStepGoal', dailyStepGoal);
-    // SharedPreferences prefsOld = await SharedPreferences.getInstance();
-    // await prefsOld.setInt('dailyStepGoal', dailyStepGoal);
     BackgroundService.init(); // No need to await
     notifyListeners();
   }

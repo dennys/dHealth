@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/apk/res/android"
+    tools:keep="@drawable/res_ic_stat_accessibility_new" />

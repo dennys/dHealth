@@ -8,8 +8,10 @@ class NotificationService {
 
   static Future<void> initialize() async {
     await AwesomeNotifications().initialize(
-      null, // Use default icon
+      // null, // Use default icon
       // 'resource://drawable/res_app_icon',
+      // 'resource://drawable/ic_stat_accessibility_new',
+      'resource://drawable/ic_stat_notification',
       [
         NotificationChannel(
           channelKey: _defaultChannel,
@@ -18,6 +20,8 @@ class NotificationService {
           // defaultColor: const Color(0xFF9D50BB),
           defaultColor: Colors.green,
           ledColor: Colors.white,
+          // importance: NotificationImportance.High,
+          // playSound: true,
         ),
       ],
     );
@@ -28,9 +32,6 @@ class NotificationService {
 
     final SharedPreferencesAsync prefs = SharedPreferencesAsync();
     final bool notificationEnabled = await prefs.getBool('notification_enabled') ?? true;
-
-    // final prefs = await SharedPreferences.getInstance();
-    // final bool notification_enabled = prefs.getBool('notification_enabled') ?? true;
 
     if (notificationEnabled && status.isGranted) {
       await AwesomeNotifications().createNotification(

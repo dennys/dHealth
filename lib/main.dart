@@ -11,7 +11,6 @@ import 'package:dsteps/widgets/about.dart';
 import 'package:dsteps/widgets/import_export.dart';
 import 'package:dsteps/widgets/notification_setup.dart';
 import 'package:dsteps/widgets/setup.dart';
-// import 'package:dsteps/widgets/step_counter_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:health/health.dart';
@@ -67,12 +66,8 @@ class HealthApp extends StatefulWidget {
 
 class HealthAppState extends State<HealthApp> {
   // late StepCounterManager _stepCounterManager;
-  String _language = 'system';
-  String _theme = 'system';
   List<HealthDataPoint> _healthDataList = [];
   AppState _state = AppState.DATA_NOT_FETCHED;
-  bool _isAuthorized = false;
-  String? _errorMessage;
 
   late HealthService _healthService;
   int _nofSteps = 0;
@@ -127,7 +122,6 @@ class HealthAppState extends State<HealthApp> {
   @override
   void initState() {
     super.initState();
-    // _loadPreferences();
     // Listen to settings changes and rebuild the widget tree
     Provider.of<SettingsModel>(context, listen: false).addListener(() {
       if (mounted) {
@@ -142,21 +136,7 @@ class HealthAppState extends State<HealthApp> {
 
     _healthService = HealthService(types: [HealthDataType.STEPS], permissions: [HealthDataAccess.READ]);
 
-    final settings = Provider.of<SettingsModel>(context, listen: false);
-    // _stepCounterManager = StepCounterManager(
-    //   settings: settings,
-    //   onPermissionDenied: () {
-    //     if (mounted) {
-    //       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Please grant Health Connect permissions')));
-    //     }
-    //   },
-    //   onNavigateToMain: () {
-    //     if (mounted) {
-    //       Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HealthApp()));
-    //     }
-    //   },
-    // );
-    // _stepCounterManager.initialize();
+    // final settings = Provider.of<SettingsModel>(context, listen: false);
 
     // 在 Widgets 渲染完成后调用 authorize，避免在 initState 中直接使用 async
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -166,17 +146,8 @@ class HealthAppState extends State<HealthApp> {
 
   @override
   void dispose() {
-    // _stepCounterManager.dispose(); // 清理計時器
     super.dispose();
   }
-
-  // Future<void> _loadPreferences() async {
-  //   final prefs = await SharedPreferences.getInstance();
-  //   setState(() {
-  //     _language = prefs.getString('language') ?? 'system';
-  //     _theme = prefs.getString('theme') ?? 'system';
-  //   });
-  // }
 
   /// 初始化方法，确保 authorize 和 fetchData 只调用一次
   Future<void> _initialize() async {
@@ -850,27 +821,3 @@ class WidgetsScreen extends StatelessWidget {
     );
   }
 }
-
-// class ImportExportScreen extends StatelessWidget {
-//   const ImportExportScreen({super.key});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(title: Text(AppLocalizations.of(context)?.importExport ?? 'Import/Export')),
-//       body: const Center(child: Text('Import/Export Screen Content')),
-//     );
-//   }
-// }
-
-// class AboutScreen extends StatelessWidget {
-//   const AboutScreen({super.key});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(title: Text(AppLocalizations.of(context)?.about ?? 'About')),
-//       body: const Center(child: Text('About Screen Content')),
-//     );
-//   }
-// }
