@@ -7,17 +7,17 @@ import 'util.dart';
 
 // TODO 和 main.dart 重複
 // All types available depending on platform (iOS ot Android).
-List<HealthDataType> get types =>
-    (Platform.isAndroid)
-        ? dataTypesAndroid
-        : (Platform.isIOS)
-        ? dataTypesIOS
-        : [];
+// List<HealthDataType> get types =>
+//     (Platform.isAndroid)
+//         ? dataTypesAndroid
+//         : (Platform.isIOS)
+//         ? dataTypesIOS
+//         : [];
 
 /// Add some random health data.
 /// Note that you should ensure that you have permissions to add the
 /// following data types.
-Future<void> addData(Health health) async {
+Future<bool> addData(Health health) async {
   final now = DateTime.now();
   final earlier = now.subtract(const Duration(minutes: 20));
 
@@ -178,15 +178,16 @@ Future<void> addData(Health health) async {
   // setState(() {
   //   _state = success ? AppState.DATA_ADDED : AppState.DATA_NOT_ADDED;
   // });
+  return success;
 }
 
 /// Delete some random health data.
-Future<void> deleteData(Health health) async {
+Future<bool> deleteData(Health health, List<HealthDataType> typesToProcess) async {
   final now = DateTime.now();
   final earlier = now.subtract(const Duration(hours: 24));
 
   bool success = true;
-  for (HealthDataType type in types) {
+  for (HealthDataType type in typesToProcess) {
     success &= await health.delete(type: type, startTime: earlier, endTime: now);
   }
 
@@ -194,4 +195,5 @@ Future<void> deleteData(Health health) async {
   // setState(() {
   //   _state = success ? AppState.DATA_DELETED : AppState.DATA_NOT_DELETED;
   // });
+  return success;
 }

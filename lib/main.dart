@@ -486,14 +486,26 @@ class HealthAppState extends State<HealthApp> {
                             child: const Text("Fetch Data", style: TextStyle(color: Colors.white)),
                           ),
                           TextButton(
-                            // onPressed: addData,
-                            onPressed: () => addData(health),
+                            onPressed: () async {
+                              bool success = await addData(health);
+                              if (mounted) {
+                                setState(() {
+                                  _state = success ? AppState.DATA_ADDED : AppState.DATA_NOT_ADDED;
+                                });
+                              }
+                            },
                             style: const ButtonStyle(backgroundColor: WidgetStatePropertyAll(Colors.blue)),
                             child: const Text("Add Data", style: TextStyle(color: Colors.white)),
                           ),
                           TextButton(
-                            // onPressed: deleteData,
-                            onPressed: () => deleteData(health),
+                            onPressed: () async {
+                              bool success = await deleteData(health, types);
+                              if (mounted) {
+                                setState(() {
+                                  _state = success ? AppState.DATA_DELETED : AppState.DATA_NOT_DELETED;
+                                });
+                              }
+                            },
                             style: const ButtonStyle(backgroundColor: WidgetStatePropertyAll(Colors.blue)),
                             child: const Text("Delete Data", style: TextStyle(color: Colors.white)),
                           ),
