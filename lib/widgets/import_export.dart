@@ -1,8 +1,8 @@
 import 'dart:io';
 
-import 'package:dsteps/database/util.dart';
-import 'package:dsteps/generated/l10n/app_localizations.dart';
-import 'package:dsteps/services/data_service.dart';
+import 'package:dhealth/database/util.dart';
+import 'package:dhealth/generated/l10n/app_localizations.dart';
+import 'package:dhealth/services/data_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -130,9 +130,11 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
 
   Future<void> _importFromFile() async {
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.any, allowMultiple: false);
+      // file_picker 13: FilePicker.platform / FilePickerResult 已移除，
+      // 單檔選取改用靜態 FilePicker.pickFile()（回傳 PlatformFile?，取消為 null）
+      final PlatformFile? file = await FilePicker.pickFile(type: FileType.any);
 
-      if (result != null) {
+      if (file != null) {
         // TODO: Implement SQLite file import logic here
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -166,7 +168,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
       //   allowedExtensions: ['sqlite'],
       // );
 
-      String? result = await FilePicker.platform.getDirectoryPath(dialogTitle: 'Select Export Directory');
+      String? result = await FilePicker.getDirectoryPath(dialogTitle: 'Select Export Directory');
       if (result != null) {
         // setState(() {
         //   selectedDirectory = result;
@@ -252,7 +254,10 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
         return;
       }
 
-      final result = await Share.shareXFiles([XFile(dbFilePath)], text: 'Sharing steps database');
+      // share_plus 13: Share.shareXFiles 已廢除，改走 SharePlus.instance.share(ShareParams(...))
+      final result = await SharePlus.instance.share(
+        ShareParams(files: [XFile(dbFilePath)], text: 'Sharing steps database'),
+      );
 
       if (result.status == ShareResultStatus.success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -323,90 +328,89 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
   }
 
   Widget _buildImportOptions(BuildContext context) {
-    return Column(
-      children: [
-        RadioListTile<ImportMode>(
-          title: Row(
-            children: [
-              Text('${AppLocalizations.of(context)?.import ?? 'Import'}  '),
-              SizedBox(
-                width: 60,
-                child: TextFormField(
-                  initialValue: _pastDays.toString(),
-                  keyboardType: TextInputType.number,
-                  maxLength: 4,
-                  textAlign: TextAlign.center,
-                  decoration: InputDecoration(
-                    counterText: '',
-                    contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+    // RadioListTile 的 groupValue/onChanged 自 3.32 棄用，改由 RadioGroup 統一管理
+    return RadioGroup<ImportMode>(
+      groupValue: _selectedMode,
+      onChanged: (value) => setState(() => _selectedMode = value!),
+      child: Column(
+        children: [
+          RadioListTile<ImportMode>(
+            title: Row(
+              children: [
+                Text('${AppLocalizations.of(context)?.import ?? 'Import'}  '),
+                SizedBox(
+                  width: 60,
+                  child: TextFormField(
+                    initialValue: _pastDays.toString(),
+                    keyboardType: TextInputType.number,
+                    maxLength: 4,
+                    textAlign: TextAlign.center,
+                    decoration: InputDecoration(
+                      counterText: '',
+                      contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    onChanged: (value) {
+                      final days = int.tryParse(value) ?? 30;
+                      setState(() => _pastDays = days);
+                    },
                   ),
-                  onChanged: (value) {
-                    final days = int.tryParse(value) ?? 30;
-                    setState(() => _pastDays = days);
-                  },
                 ),
-              ),
-              Text('  ${AppLocalizations.of(context)?.days ?? 'days'}'),
-            ],
+                Text('  ${AppLocalizations.of(context)?.days ?? 'days'}'),
+              ],
+            ),
+            value: ImportMode.pastDays,
+            contentPadding: EdgeInsets.zero,
           ),
-          value: ImportMode.pastDays,
-          groupValue: _selectedMode,
-          onChanged: (value) => setState(() => _selectedMode = value!),
-          contentPadding: EdgeInsets.zero,
-        ),
-        RadioListTile<ImportMode>(
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(AppLocalizations.of(context)?.dateRange ?? 'Date Range'),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      icon: const Icon(Icons.calendar_today, size: 16),
-                      label: Text(DateFormat('yyyy/MM/dd').format(_startDate)),
-                      onPressed: () => _selectDate(context, true),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          RadioListTile<ImportMode>(
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(AppLocalizations.of(context)?.dateRange ?? 'Date Range'),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.calendar_today, size: 16),
+                        label: Text(DateFormat('yyyy/MM/dd').format(_startDate)),
+                        onPressed: () => _selectDate(context, true),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
                       ),
                     ),
-                  ),
-                  const Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Text('to', style: TextStyle(color: Colors.grey))),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      icon: const Icon(Icons.calendar_today, size: 16),
-                      label: Text(DateFormat('yyyy/MM/dd').format(_endDate)),
-                      onPressed: () => _selectDate(context, false),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    const Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Text('to', style: TextStyle(color: Colors.grey))),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.calendar_today, size: 16),
+                        label: Text(DateFormat('yyyy/MM/dd').format(_endDate)),
+                        onPressed: () => _selectDate(context, false),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
+            value: ImportMode.dateRange,
+            contentPadding: EdgeInsets.zero,
           ),
-          value: ImportMode.dateRange,
-          groupValue: _selectedMode,
-          onChanged: (value) => setState(() => _selectedMode = value!),
-          contentPadding: EdgeInsets.zero,
-        ),
-        RadioListTile<ImportMode>(
-          title: Text(AppLocalizations.of(context)?.importIncremental ?? 'Import incremental'),
-          subtitle: Text(
-            AppLocalizations.of(context)?.importIncrementalDesc ?? 'Only import new data since last import',
-            style: Theme.of(context).textTheme.bodySmall,
+          RadioListTile<ImportMode>(
+            title: Text(AppLocalizations.of(context)?.importIncremental ?? 'Import incremental'),
+            subtitle: Text(
+              AppLocalizations.of(context)?.importIncrementalDesc ?? 'Only import new data since last import',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            value: ImportMode.incremental,
+            contentPadding: EdgeInsets.zero,
           ),
-          value: ImportMode.incremental,
-          groupValue: _selectedMode,
-          onChanged: (value) => setState(() => _selectedMode = value!),
-          contentPadding: EdgeInsets.zero,
-        ),
-      ],
+        ],
+      ),
     );
   }
 

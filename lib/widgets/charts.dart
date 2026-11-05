@@ -1,10 +1,10 @@
 import 'dart:async';
 
-import 'package:dsteps/database/database.dart';
-import 'package:dsteps/generated/l10n/app_localizations.dart';
-import 'package:dsteps/settings_model.dart';
-import 'package:dsteps/utils/step_calculator.dart';
-import 'package:dsteps/utils/weekday_utils.dart';
+import 'package:dhealth/database/database.dart';
+import 'package:dhealth/generated/l10n/app_localizations.dart';
+import 'package:dhealth/settings_model.dart';
+import 'package:dhealth/utils/step_calculator.dart';
+import 'package:dhealth/utils/weekday_utils.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:health/health.dart';
@@ -404,56 +404,6 @@ Widget _buildStepChart({
       },
     ),
   );
-}
-
-// Data Fetching with Error Handling
-Future<ChartData> _fetchChartData({
-  required StepDatabase database,
-  required int n,
-  required ChartType dataType,
-  required String rangeKey,
-  required int defaultRange,
-  DateTime? endDate,
-}) async {
-  try {
-    final now = endDate ?? DateTime.now();
-    late DateTime startDate;
-
-    switch (dataType) {
-      case ChartType.daily:
-        startDate = now.subtract(Duration(days: n));
-        break;
-      case ChartType.weekly:
-        final weekStart = await WeekdayUtils.getWeekStartDay();
-        final daysToSubtract = (weekStart == Weekday.sunday ? 7 : 6) * (n - 1);
-        startDate = now.subtract(Duration(days: daysToSubtract));
-        break;
-      case ChartType.monthly:
-        startDate = DateTime(now.year, now.month - (n - 1), 1);
-        break;
-    }
-
-    late List<dynamic> dataset;
-    switch (dataType) {
-      case ChartType.daily:
-        dataset = await database.getAllDailySteps().timeout(Duration(seconds: 10));
-        break;
-      case ChartType.weekly:
-        dataset = await database.getAllWeeklySteps(startDate, now).timeout(Duration(seconds: 10));
-        break;
-      case ChartType.monthly:
-        dataset = await database.getAllMonthlySteps(startDate, now).timeout(Duration(seconds: 10));
-        break;
-    }
-
-    final average = await database.getDailyAverageSteps(startDate, now).timeout(Duration(seconds: 10));
-    final prefs = SharedPreferencesAsync();
-    final displayRange = await prefs.getInt(rangeKey) ?? defaultRange;
-
-    return ChartData(dataset, average, displayRange);
-  } on Exception catch (e) {
-    throw Exception('Unexpected error: $e');
-  }
 }
 
 // Daily Chart Implementation
@@ -954,7 +904,7 @@ Widget buildHourlyHistogram(BuildContext context, List<HealthDataPoint> healthDa
                                   settings.setShowCumulative(value);
                                 },
                                 activeTrackColor: Colors.grey.withValues(alpha: 0.5),
-                                activeColor: Colors.grey[600],
+                                activeThumbColor: Colors.grey[600],
                                 inactiveThumbColor: Colors.grey[400],
                                 inactiveTrackColor: Colors.grey[200],
                               ),
@@ -977,7 +927,7 @@ Widget buildHourlyHistogram(BuildContext context, List<HealthDataPoint> healthDa
                                   settings.setShowDailyStepGoal(value);
                                 },
                                 activeTrackColor: Colors.grey.withValues(alpha: 0.5),
-                                activeColor: Colors.grey[600],
+                                activeThumbColor: Colors.grey[600],
                                 inactiveThumbColor: Colors.grey[400],
                                 inactiveTrackColor: Colors.grey[200],
                               ),

@@ -1,4 +1,4 @@
-import 'package:dsteps/database/database.dart';
+import 'package:dhealth/database/database.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:health/health.dart';

@@ -1,5 +1,5 @@
 // utils/step_calculator.dart
-import 'package:dsteps/database/database.dart';
+import 'package:dhealth/database/database.dart';
 import 'package:intl/intl.dart';
 
 class StepCalculator {

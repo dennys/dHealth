@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -39,13 +40,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get about => 'About';
 
   @override
-  String get aboutDescription => 'dHealth is an app to track and manage your health data with support for importing and exporting SQLite databases.';
+  String get aboutDescription =>
+      'dHealth is an app to track and manage your health data with support for importing and exporting SQLite databases.';
 
   @override
   String get platformSupportDesc => 'Works with Health Connect (Android).';
 
   @override
-  String get platformSupportDesc_xxx => 'Works with Health Connect (Android) and HealthKit (iOS).';
+  String get platformSupportDesc_xxx =>
+      'Works with Health Connect (Android) and HealthKit (iOS).';
 
   @override
   String get features => 'Features';
@@ -54,10 +57,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get healthTracking => 'Health Data Tracking';
 
   @override
-  String get healthTrackingDesc => 'Monitor your steps and other health metrics.';
+  String get healthTrackingDesc =>
+      'Monitor your steps and other health metrics.';
 
   @override
-  String get importExportDesc => 'Backup or restore your data using SQLite files.';
+  String get importExportDesc =>
+      'Backup or restore your data using SQLite files.';
 
   @override
   String get platformSupport => 'Platform Support';
@@ -69,7 +74,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get contact => 'Contact';
 
   @override
-  String get contactDesc => 'For support or feedback, email us at: support@example.com';
+  String get contactDesc =>
+      'For support or feedback, email us at: support@example.com';
 
   @override
   String get oooooSetup => '';
@@ -114,7 +120,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get healthDataSync => 'Health Data Sync';
 
   @override
-  String get healthDataSyncDesc => 'Configure how to sync health data from your phone.';
+  String get healthDataSyncDesc =>
+      'Configure how to sync health data from your phone.';
 
   @override
   String get enableBackgroundSync => 'Enable Background Sync';
@@ -156,7 +163,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get persistentSync => 'Persistent Sync';
 
   @override
-  String get persistentSyncReminder => 'Note: Sync will continue even if you force-stop the app.';
+  String get persistentSyncReminder =>
+      'Note: Sync will continue even if you force-stop the app.';
 
   @override
   String get hourly => 'Hourly';
@@ -198,7 +206,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notificationFrequency => 'Notification Frequency';
 
   @override
-  String get notificationFrequencyDescription => 'How often to receive notifications.';
+  String get notificationFrequencyDescription =>
+      'How often to receive notifications.';
 
   @override
   String get notificationTypes => 'Notification Types';
@@ -207,7 +216,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reachGoalNotification => 'Goal Reached';
 
   @override
-  String get reachGoalNotificationDescription => 'Notify when a goal is achieved.';
+  String get reachGoalNotificationDescription =>
+      'Notify when a goal is achieved.';
 
   @override
   String get motivationNotification => 'Motivation (Almost There)';
@@ -219,19 +229,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get motivationTimeLimit => 'Motivation Frequency Limit';
 
   @override
-  String get motivationTimeLimitDescription => 'Minimum time between motivation notifications.';
+  String get motivationTimeLimitDescription =>
+      'Minimum time between motivation notifications.';
 
   @override
   String get exceptionNotification => 'Exceptions';
 
   @override
-  String get exceptionNotificationDescription => 'Notify about exceptions or errors.';
+  String get exceptionNotificationDescription =>
+      'Notify about exceptions or errors.';
 
   @override
   String get newAccomplishmentNotification => 'New Accomplishments';
 
   @override
-  String get newAccomplishmentNotificationDescription => 'Notify about new achievements.';
+  String get newAccomplishmentNotificationDescription =>
+      'Notify about new achievements.';
 
   @override
   String get customFrequency => 'Custom Frequency';
@@ -265,19 +278,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notificationSound => 'Notification Sound';
 
   @override
-  String get notificationSoundDescription => 'Play a sound when notifications are received.';
+  String get notificationSoundDescription =>
+      'Play a sound when notifications are received.';
 
   @override
   String get notificationVibration => 'Vibration';
 
   @override
-  String get notificationVibrationDescription => 'Vibrate when notifications are received.';
+  String get notificationVibrationDescription =>
+      'Vibrate when notifications are received.';
 
   @override
   String get notificationPriority => 'Notification Priority';
 
   @override
-  String get notificationPriorityDescription => 'Set the importance of notifications.';
+  String get notificationPriorityDescription =>
+      'Set the importance of notifications.';
 
   @override
   String get lowPriority => 'Low';
@@ -447,8 +463,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chartHelpTitle => 'Chart Help';
 
   @override
-  String get hourlyStepsChartExplanation => 'This chart shows your hourly step count.\n\n - \'Cumulative\' switch: Toggle to see total steps accumulated over the day.\n - \'Goal\' switch: Toggle to display your daily step goal as a horizontal line.\n Adjust these settings to customize your view!';
+  String get hourlyStepsChartExplanation =>
+      'This chart shows your hourly step count.\n\n - \'Cumulative\' switch: Toggle to see total steps accumulated over the day.\n - \'Goal\' switch: Toggle to display your daily step goal as a horizontal line.\n Adjust these settings to customize your view!';
 
   @override
-  String get chartHelpContent => 'This chart shows your step count over the selected period. The bars represent daily/weekly/monthly/yearly steps, and the dotted line shows the average steps.';
+  String get chartHelpContent =>
+      'This chart shows your step count over the selected period. The bars represent daily/weekly/monthly/yearly steps, and the dotted line shows the average steps.';
 }

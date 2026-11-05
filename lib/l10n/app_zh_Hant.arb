@@ -187,5 +187,8 @@
   "past": "過去",
   "chartHelpTitle": "圖表說明",
   "hourlyStepsChartExplanation": "此圖表顯示您的每小時步數。\n\n - 「累積」開關：切換以查看當天累積的總步數。\n - 「目標」開關：切換以顯示您的每日步數目標為一條水平線。\n 調整這些設定來自訂您的視圖！",
-  "chartHelpContent": "此圖表顯示您在所選期間的步數。柱狀圖表示每日/每週/每月/每年的步數，虛線表示平均步數。"
+  "chartHelpContent": "此圖表顯示您在所選期間的步數。柱狀圖表示每日/每週/每月/每年的步數，虛線表示平均步數。",
+  "selectStartTime": "選擇開始時間",
+  "selectEndTime": "選擇結束時間",
+  "endTimeError": "結束時間必須晚於開始時間"
 }

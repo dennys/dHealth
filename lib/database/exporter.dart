@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:dsteps/database/database.dart';
-import 'package:dsteps/database/util.dart';
+import 'package:dhealth/database/database.dart';
+import 'package:dhealth/database/util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;

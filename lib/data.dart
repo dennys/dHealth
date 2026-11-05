@@ -25,18 +25,16 @@ Future<void> addData(Health health) async {
   // NOTE: These are only the ones supported on Androids new API Health Connect.
   // Both Android's Health Connect and iOS' HealthKit have more types that we support in the enum list [HealthDataType]
   // Add more - like AUDIOGRAM, HEADACHE_SEVERE etc. to try them.
-  bool success = true;
-
   // misc. health data examples using the writeHealthData() method
-  success &= await health.writeHealthData(
+  await health.writeHealthData(
     value: 1.925,
     type: HealthDataType.HEIGHT,
     startTime: earlier,
     endTime: now,
     recordingMethod: RecordingMethod.manual,
   );
-  success &= await health.writeHealthData(value: 90, type: HealthDataType.WEIGHT, startTime: now, recordingMethod: RecordingMethod.manual);
-  success &= await health.writeHealthData(
+  await health.writeHealthData(value: 90, type: HealthDataType.WEIGHT, startTime: now, recordingMethod: RecordingMethod.manual);
+  await health.writeHealthData(
     value: 90,
     type: HealthDataType.HEART_RATE,
     startTime: earlier,
@@ -52,34 +50,34 @@ Future<void> addData(Health health) async {
   final startTime = now.subtract(Duration(days: randomDaysAgo, hours: random.nextInt(24), minutes: random.nextInt(60)));
   final endTime = startTime.add(Duration(minutes: random.nextInt(30) + 1)); // Ensuring duration is 1~29 minutes
 
-  success &= await health.writeHealthData(
+  await health.writeHealthData(
     value: randomStep,
     type: HealthDataType.STEPS,
     startTime: startTime,
     endTime: endTime,
     recordingMethod: RecordingMethod.manual,
   );
-  success &= await health.writeHealthData(value: 200, type: HealthDataType.ACTIVE_ENERGY_BURNED, startTime: earlier, endTime: now);
-  success &= await health.writeHealthData(value: 70, type: HealthDataType.HEART_RATE, startTime: earlier, endTime: now);
+  await health.writeHealthData(value: 200, type: HealthDataType.ACTIVE_ENERGY_BURNED, startTime: earlier, endTime: now);
+  await health.writeHealthData(value: 70, type: HealthDataType.HEART_RATE, startTime: earlier, endTime: now);
   if (Platform.isIOS) {
-    success &= await health.writeHealthData(value: 30, type: HealthDataType.HEART_RATE_VARIABILITY_SDNN, startTime: earlier, endTime: now);
+    await health.writeHealthData(value: 30, type: HealthDataType.HEART_RATE_VARIABILITY_SDNN, startTime: earlier, endTime: now);
   } else {
-    success &= await health.writeHealthData(value: 30, type: HealthDataType.HEART_RATE_VARIABILITY_RMSSD, startTime: earlier, endTime: now);
+    await health.writeHealthData(value: 30, type: HealthDataType.HEART_RATE_VARIABILITY_RMSSD, startTime: earlier, endTime: now);
   }
-  success &= await health.writeHealthData(value: 37, type: HealthDataType.BODY_TEMPERATURE, startTime: earlier, endTime: now);
-  success &= await health.writeHealthData(value: 105, type: HealthDataType.BLOOD_GLUCOSE, startTime: earlier, endTime: now);
-  success &= await health.writeHealthData(value: 1.8, type: HealthDataType.WATER, startTime: earlier, endTime: now);
+  await health.writeHealthData(value: 37, type: HealthDataType.BODY_TEMPERATURE, startTime: earlier, endTime: now);
+  await health.writeHealthData(value: 105, type: HealthDataType.BLOOD_GLUCOSE, startTime: earlier, endTime: now);
+  await health.writeHealthData(value: 1.8, type: HealthDataType.WATER, startTime: earlier, endTime: now);
 
   // different types of sleep
-  success &= await health.writeHealthData(value: 0.0, type: HealthDataType.SLEEP_REM, startTime: earlier, endTime: now);
-  success &= await health.writeHealthData(value: 0.0, type: HealthDataType.SLEEP_ASLEEP, startTime: earlier, endTime: now);
-  success &= await health.writeHealthData(value: 0.0, type: HealthDataType.SLEEP_AWAKE, startTime: earlier, endTime: now);
-  success &= await health.writeHealthData(value: 0.0, type: HealthDataType.SLEEP_DEEP, startTime: earlier, endTime: now);
-  success &= await health.writeHealthData(value: 22, type: HealthDataType.LEAN_BODY_MASS, startTime: earlier, endTime: now);
+  await health.writeHealthData(value: 0.0, type: HealthDataType.SLEEP_REM, startTime: earlier, endTime: now);
+  await health.writeHealthData(value: 0.0, type: HealthDataType.SLEEP_ASLEEP, startTime: earlier, endTime: now);
+  await health.writeHealthData(value: 0.0, type: HealthDataType.SLEEP_AWAKE, startTime: earlier, endTime: now);
+  await health.writeHealthData(value: 0.0, type: HealthDataType.SLEEP_DEEP, startTime: earlier, endTime: now);
+  await health.writeHealthData(value: 22, type: HealthDataType.LEAN_BODY_MASS, startTime: earlier, endTime: now);
 
   // specialized write methods
-  success &= await health.writeBloodOxygen(saturation: 98, startTime: earlier, endTime: now);
-  success &= await health.writeWorkoutData(
+  await health.writeBloodOxygen(saturation: 98, startTime: earlier, endTime: now);
+  await health.writeWorkoutData(
     activityType: HealthWorkoutActivityType.AMERICAN_FOOTBALL,
     title: "Random workout name that shows up in Health Connect",
     start: now.subtract(const Duration(minutes: 15)),
@@ -87,8 +85,8 @@ Future<void> addData(Health health) async {
     totalDistance: 2430,
     totalEnergyBurned: 400,
   );
-  success &= await health.writeBloodPressure(systolic: 90, diastolic: 80, startTime: now);
-  success &= await health.writeMeal(
+  await health.writeBloodPressure(systolic: 90, diastolic: 80, startTime: now);
+  await health.writeMeal(
     mealType: MealType.SNACK,
     startTime: earlier,
     endTime: now,
@@ -153,11 +151,11 @@ Future<void> addData(Health health) async {
   //   },
   // );
 
-  success &= await health.writeMenstruationFlow(flow: MenstrualFlow.medium, isStartOfCycle: true, startTime: earlier, endTime: now);
+  await health.writeMenstruationFlow(flow: MenstrualFlow.medium, isStartOfCycle: true, startTime: earlier, endTime: now);
 
   // Available on iOS 16.0+ only
   if (Platform.isIOS) {
-    success &= await health.writeHealthData(
+    await health.writeHealthData(
       value: 22,
       type: HealthDataType.WATER_TEMPERATURE,
       startTime: earlier,
@@ -165,7 +163,7 @@ Future<void> addData(Health health) async {
       recordingMethod: RecordingMethod.manual,
     );
 
-    success &= await health.writeHealthData(
+    await health.writeHealthData(
       value: 55,
       type: HealthDataType.UNDERWATER_DEPTH,
       startTime: earlier,
@@ -185,9 +183,8 @@ Future<void> deleteData(Health health) async {
   final now = DateTime.now();
   final earlier = now.subtract(const Duration(hours: 24));
 
-  bool success = true;
   for (HealthDataType type in types) {
-    success &= await health.delete(type: type, startTime: earlier, endTime: now);
+    await health.delete(type: type, startTime: earlier, endTime: now);
   }
 
   // TODO 以下暫時 mark

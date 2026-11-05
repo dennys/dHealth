@@ -1,16 +1,17 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:drift/native.dart';
-import 'package:dsteps/generated/l10n/app_localizations.dart';
-import 'package:dsteps/services/background_service.dart';
-import 'package:dsteps/services/data_service.dart';
-import 'package:dsteps/services/notification_service.dart';
-import 'package:dsteps/services/permission_service.dart';
-import 'package:dsteps/widgets/about.dart';
-import 'package:dsteps/widgets/import_export.dart';
-import 'package:dsteps/widgets/notification_setup.dart';
-import 'package:dsteps/widgets/setup.dart';
+import 'package:dhealth/generated/l10n/app_localizations.dart';
+import 'package:dhealth/services/background_service.dart';
+import 'package:dhealth/services/data_service.dart';
+import 'package:dhealth/services/notification_service.dart';
+import 'package:dhealth/services/permission_service.dart';
+import 'package:dhealth/widgets/about.dart';
+import 'package:dhealth/widgets/import_export.dart';
+import 'package:dhealth/widgets/notification_setup.dart';
+import 'package:dhealth/widgets/setup.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:health/health.dart';
@@ -42,6 +43,8 @@ Future<void> setupDependencies() async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // release 版不該把步數、DB 路徑這類 debugPrint（lib 下 48 處）喷到 logcat
+  if (kReleaseMode) debugPrint = (String? message, {int? wrapWidth}) {};
   await setupDependencies();
 
   await PermissionService.authorize();
@@ -372,7 +375,7 @@ class HealthAppState extends State<HealthApp> {
       themeMode: settings.getThemeMode(),
       locale: settings.getLocale(),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: const [Locale('en', ''), Locale('zh', 'Hant'), Locale('zh', 'Hans')],
+      supportedLocales: AppLocalizations.supportedLocales,
       home: Builder(
         // Add Builder here to ensure Scaffold gets a localized context
         builder: (BuildContext scaffoldContext) {
@@ -659,7 +662,7 @@ class HealthAppState extends State<HealthApp> {
     }
     if (p.value is NutritionHealthValue) {
       return ListTile(
-        title: Text("${p.typeString} ${(p.value as NutritionHealthValue).meal_type}: ${(p.value as NutritionHealthValue).name}"),
+        title: Text("${p.typeString} ${(p.value as NutritionHealthValue).mealType}: ${(p.value as NutritionHealthValue).name}"),
         trailing: Text('${(p.value as NutritionHealthValue).calories} kcal'),
         subtitle: Text('${p.dateFrom} - ${p.dateTo}\n${p.recordingMethod}'),
       );

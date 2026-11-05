@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:dsteps/generated/l10n/app_localizations.dart';
+import 'package:dhealth/generated/l10n/app_localizations.dart';
 import 'package:package_info_plus/package_info_plus.dart'; // For app version
 
 class AboutScreen extends StatefulWidget {

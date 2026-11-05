@@ -3,44 +3,50 @@ name: dHealth
 on:
   push:
     branches: ["*"]
-    # tags: ["v*"] # Trigger on version tags
+    # tags: ["v*"] # 要發正式版再打開（搭配下面的 release job）
   pull_request:
     branches:
       - "*"
-      #- main
   workflow_dispatch:
 
-# Define reusable flutter setup to avoid duplication
+# 同一個分支只留最新一次跑；PR 再推就直接掐掉還在跑的舊的
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # 與開發機 /home/v5/flutter 同版；日後升版只改這行
+  FLUTTER_VERSION: "3.47.9"
+  JAVA_VERSION: "21"
+
 jobs:
-  flutter_setup:
-    name: Setup Environment
+  # 以前這裡有個「Setup Environment」job，只做 pub get 再吐一個寫死的版本字串，
+  # 後面的 job 又重 checkout + 重 pub get → 等於白花一分鐘與一次快取寫入。
+  # 全部收進同一個 job：環境只裝一次，而且現在會真的 build APK
+  # （以前 CI 完全沒驗 Android build，本地踩過的 aapt2/AOT/strip 類問題 CI 一張網都抓不到）。
+  ci:
+    name: analyze / test / build APK
     runs-on: ubuntu-latest
-    outputs:
-      flutter-version: "3.29.0"
     steps:
-      # Checkout the repository code
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Set up Java (required for Android builds)
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
-          java-version: "17"
+          java-version: ${{ env.JAVA_VERSION }}
           distribution: "temurin"
-          cache: "gradle" # Cache Gradle dependencies
+          cache: "gradle"
 
-      # Set up Flutter
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.29.0"
-          channel: "stable"
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
           cache: true
           cache-key: flutter-${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
 
-      # Cache Flutter dependencies to speed up builds
-      - name: Cache dependencies
+      - name: Cache pub and gradle dependencies
         uses: actions/cache@v4
         with:
           path: |
@@ -50,66 +56,24 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-deps-
 
-      # Install dependencies once here to save time in later jobs
       - name: Install dependencies
         run: flutter pub get
 
-  test:
-    name: Run Tests
-    needs: flutter_setup
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ needs.flutter_setup.outputs.flutter-version }}
-          cache: true
-          cache-key: flutter-${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
-
-      # Get Flutter dependencies
-      - name: Install dependencies
-        run: flutter pub get
-
-      # Run Flutter analyze to check for lint issues
+      # 有 issue 就要讓 CI 紅（flutter analyze 的 --fatal-warnings / --fatal-infos 預設皆 on）
       - name: Analyze code
-        run: flutter analyze || true # Continues even if warnings are found
+        run: flutter analyze
 
-      # Use a more efficient approach for lcov installation
-      - name: Cache apt packages
-        id: apt-cache
-        uses: actions/cache@v4
-        with:
-          path: /var/lib/apt/lists/ # Ubuntu package index cache location
-          key: ${{ runner.os }}-apt-lcov-${{ hashFiles('**/pubspec.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-apt-lcov-
-
-      # - name: Cache apt packages
-      #   uses: actions/cache@v3
-      #   with:
-      #     path: /var/cache/apt/archives
-      #     key: ${{ runner.os }}-apt-${{ hashFiles('**/lockfiles') }}
-      #     restore-keys: ${{ runner.os }}-apt-
-
-      - name: Install SQLite
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libsqlite3-dev
-
-      - name: Install lcov
-        if: steps.apt-cache.outputs.cache-hit != 'true'
+      # libsqlite3-dev：drift 的 host 端測試要用 sqlite3 FFI
+      # lcov：跑覆蓋率
+      - name: Install system packages
         run: |
           sudo apt-get update -q -y
-          sudo apt-get install -q -y --no-install-recommends lcov
+          sudo apt-get install -q -y --no-install-recommends libsqlite3-dev lcov
 
       - name: Run tests with coverage
         run: |
           flutter test --coverage
           lcov --ignore-errors unused --remove coverage/lcov.info '**/*.g.dart' '**/app_localizations*.dart' '**/database.g.dart' -o coverage/lcov.info
-          # Generate HTML report (optional)
           genhtml coverage/lcov.info -o coverage/html --ignore-errors source
 
       - name: Upload coverage to Codecov
@@ -119,82 +83,27 @@ jobs:
           flags: flutter
           name: flutter-coverage
           fail_ci_if_error: false
-          # No need for token because the permission is grant (https://github.com/apps/codecov)
-          token: ${{ secrets.CODECOV_TOKEN }} # Make sure to add this to your GitHub secrets
+          token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: coverage/html
-          retention-days: 7 # Limit retention to save space
+          retention-days: 7
 
+      # arm64 就夠（真機都是 arm64），也省一半時間
+      - name: Build debug APK
+        run: flutter build apk --debug --target-platform android-arm64
 
-  # build:
-  #   name: Build APK
-  #   needs: [flutter_setup, test]
-  #   runs-on: ubuntu-latest
-  #   # Only build if push or workflow_dispatch, not PR
-  #   if: github.event_name != 'pull_request'
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v4
+      # --no-tree-shake-icons：沿用原本註解掉的 build job 的意圖，避免動態引用的 Material icon
+      # 被 tree-shake 掉變成豆腐
+      - name: Build release APK
+        run: flutter build apk --release --target-platform android-arm64 --no-tree-shake-icons
 
-  #     - name: Set up Flutter
-  #       uses: subosito/flutter-action@v2
-  #       with:
-  #         flutter-version: ${{ needs.flutter_setup.outputs.flutter-version }}
-  #         cache: true
-  #         cache-key: flutter-${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
-
-  #     - name: Install dependencies
-  #       run: flutter pub get
-
-  #     - name: Build debug APK
-  #       run: flutter build apk --debug --no-tree-shake-icons
-
-  #     - name: Upload debug APK
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: app-debug
-  #         path: build/app/outputs/flutter-apk/app-debug.apk
-  #         retention-days: 7 # Limit retention to save space
-
-  # release:
-  #   name: Create Release
-  #   needs: [flutter_setup, build]
-  #   if: startsWith(github.ref, 'refs/tags/v')
-  #   runs-on: ubuntu-latest
-  #   permissions:
-  #     contents: write
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v4
-
-  #     - name: Set up Flutter
-  #       uses: subosito/flutter-action@v2
-  #       with:
-  #         flutter-version: ${{ needs.flutter_setup.outputs.flutter-version }}
-  #         cache: true
-  #         cache-key: flutter-${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
-
-  #     - name: Install dependencies
-  #       run: flutter pub get
-
-  #     - name: Build release APK
-  #       run: |
-  #         flutter build apk --release --split-per-abi
-  #         mv build/app/outputs/flutter-apk/app-*-release.apk .
-
-  #     - name: Create GitHub Release
-  #       uses: softprops/action-gh-release@v1
-  #       with:
-  #         files: |
-  #           app-*-release.apk
-  #         tag_name: ${{ github.ref_name }}
-  #         name: Release ${{ github.ref_name }}
-  #         draft: false
-  #         prerelease: false
-  #         generate_release_notes: true
-  #       env:
-  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: apks
+          path: build/app/outputs/flutter-apk/*.apk
+          retention-days: 14

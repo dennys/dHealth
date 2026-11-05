@@ -1,5 +1,5 @@
-import 'package:dsteps/database/database.dart';
-import 'package:dsteps/utils/step_calculator.dart';
+import 'package:dhealth/database/database.dart';
+import 'package:dhealth/utils/step_calculator.dart';
 import 'package:test/test.dart';
 
 void main() {

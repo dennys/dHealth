@@ -9,7 +9,6 @@ import 'package:flutter/services.dart';
 
 // Define the task key
 const String stepTrackerTask = "com.example.step_tracker";
-const bool enableWorkManagerDebugMode = false;
 
 @pragma('vm:entry-point')
 void callbackDispatcher() {
@@ -22,10 +21,10 @@ void callbackDispatcher() {
           await BackgroundService.executeTask(inputData);
           break;
       }
-      return Future.value(true);
+      return true;
     } catch (e) {
       debugPrint("Workmanager task error: $e");
-      return Future.value(false);
+      return false;
     }
   });
 }
@@ -37,7 +36,8 @@ class BackgroundService {
 
   static Future<void> init() async {
     // Initialize Workmanager
-    await Workmanager().initialize(callbackDispatcher, isInDebugMode: enableWorkManagerDebugMode);
+    // (workmanager 0.10: isInDebugMode 已廢除且無作用，改用 WorkmanagerDebug handlers)
+    await Workmanager().initialize(callbackDispatcher);
 
     // Schedule periodic task
     await scheduleTask();
@@ -61,9 +61,9 @@ class BackgroundService {
       stepTrackerTask,
       frequency: Duration(minutes: interval),
       initialDelay: Duration(seconds: 30),
-      existingWorkPolicy: ExistingWorkPolicy.replace,
+      existingWorkPolicy: ExistingPeriodicWorkPolicy.replace,
       constraints: Constraints(
-        networkType: NetworkType.not_required,
+        networkType: NetworkType.notRequired,
         requiresBatteryNotLow: false,
         requiresCharging: false,
         requiresDeviceIdle: false,
@@ -75,7 +75,7 @@ class BackgroundService {
     debugPrint("Scheduled Workmanager task with interval: $interval minutes");
   }
 
-  static Future<void> executeTask(final Map<String, dynamic>? inputData) async {
+  static Future<void> executeTask(Map<String, dynamic>? inputData) async {
     try {
       final int dailyStepGoal = inputData?['dailyStepGoal'] ?? 327;
       final bool notificationEnabled = inputData?['notificationEnabled'] ?? true;

@@ -1,5 +1,5 @@
-import 'package:dsteps/database/database.dart';
-import 'package:dsteps/services/data_service.dart';
+import 'package:dhealth/database/database.dart';
+import 'package:dhealth/services/data_service.dart';
 import 'package:get_it/get_it.dart';
 import 'package:health/health.dart';
 import 'package:mockito/annotations.dart';

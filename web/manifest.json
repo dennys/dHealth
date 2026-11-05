@@ -1,6 +1,6 @@
 {
-    "name": "dsteps",
-    "short_name": "dsteps",
+    "name": "dHealth",
+    "short_name": "dHealth",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -39,13 +40,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get about => '關於';
 
   @override
-  String get aboutDescription => 'dHealth 是一款用於追蹤和管理您的健康數據的應用程式，支持導入和導出 SQLite 數據庫。';
+  String get aboutDescription =>
+      'dHealth 是一款用於追蹤和管理您的健康數據的應用程式，支持導入和導出 SQLite 數據庫。';
 
   @override
   String get platformSupportDesc => '支援 Health Connect（安卓）。';
 
   @override
-  String get platformSupportDesc_xxx => '支援 Health Connect（安卓）和 HealthKit（iOS）。';
+  String get platformSupportDesc_xxx =>
+      '支援 Health Connect（安卓）和 HealthKit（iOS）。';
 
   @override
   String get features => '功能';
@@ -135,13 +138,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get every1Hour => '每小時';
 
   @override
-  String get selectStartTime => 'Select Start Time';
+  String get selectStartTime => '選擇開始時間';
 
   @override
-  String get selectEndTime => 'Select End Time';
+  String get selectEndTime => '選擇結束時間';
 
   @override
-  String get endTimeError => 'End time must be after start time';
+  String get endTimeError => '結束時間必須晚於開始時間';
 
   @override
   String get activeHours => '活動時間';
@@ -447,7 +450,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get chartHelpTitle => '圖表說明';
 
   @override
-  String get hourlyStepsChartExplanation => '此圖表顯示您的每小時步數。\n\n - 「累積」開關：切換以查看當天累積的總步數。\n - 「目標」開關：切換以顯示您的每日步數目標為一條水平線。\n 調整這些設定來自訂您的視圖！';
+  String get hourlyStepsChartExplanation =>
+      '此圖表顯示您的每小時步數。\n\n - 「累積」開關：切換以查看當天累積的總步數。\n - 「目標」開關：切換以顯示您的每日步數目標為一條水平線。\n 調整這些設定來自訂您的視圖！';
 
   @override
   String get chartHelpContent => '此圖表顯示您在所選期間的步數。柱狀圖表示每日/每週/每月/每年的步數，虛線表示平均步數。';
@@ -455,7 +459,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
 class AppLocalizationsZhHans extends AppLocalizationsZh {
-  AppLocalizationsZhHans(): super('zh_Hans');
+  AppLocalizationsZhHans() : super('zh_Hans');
 
   @override
   String get oooooCommon => '';
@@ -488,13 +492,15 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get about => '关于';
 
   @override
-  String get aboutDescription => 'dHealth 是一款用于追踪和管理您的健康数据的应用程式，支持导入和导出 SQLite 数据库。';
+  String get aboutDescription =>
+      'dHealth 是一款用于追踪和管理您的健康数据的应用程式，支持导入和导出 SQLite 数据库。';
 
   @override
   String get platformSupportDesc => '支援 Health Connect（安卓）。';
 
   @override
-  String get platformSupportDesc_xxx => '支援 Health Connect（安卓）和 HealthKit（iOS）。';
+  String get platformSupportDesc_xxx =>
+      '支援 Health Connect（安卓）和 HealthKit（iOS）。';
 
   @override
   String get features => '功能';
@@ -582,6 +588,15 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get every1Hour => '每小时';
+
+  @override
+  String get selectStartTime => '选择开始时间';
+
+  @override
+  String get selectEndTime => '选择结束时间';
+
+  @override
+  String get endTimeError => '结束时间必须晚于开始时间';
 
   @override
   String get activeHours => '活动时间';
@@ -887,7 +902,8 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get chartHelpTitle => '图表说明';
 
   @override
-  String get hourlyStepsChartExplanation => '此图表显示您的每小时步数。\n\n - 「累积」开关：切换以查看当天累积的总步数。\n - 「目标」开关：切换以显示您的每日步数目标为一条水平线。\n 调整这些设定来自订您的视图！';
+  String get hourlyStepsChartExplanation =>
+      '此图表显示您的每小时步数。\n\n - 「累积」开关：切换以查看当天累积的总步数。\n - 「目标」开关：切换以显示您的每日步数目标为一条水平线。\n 调整这些设定来自订您的视图！';
 
   @override
   String get chartHelpContent => '此图表显示您在所选期间的步数。柱状图表示每日/每周/每月/每年的步数，虚线表示平均步数。';
@@ -895,7 +911,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
 class AppLocalizationsZhHant extends AppLocalizationsZh {
-  AppLocalizationsZhHant(): super('zh_Hant');
+  AppLocalizationsZhHant() : super('zh_Hant');
 
   @override
   String get oooooCommon => '';
@@ -928,13 +944,15 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get about => '關於';
 
   @override
-  String get aboutDescription => 'dHealth 是一款用於追蹤和管理您的健康數據的應用程式，支持導入和導出 SQLite 數據庫。';
+  String get aboutDescription =>
+      'dHealth 是一款用於追蹤和管理您的健康數據的應用程式，支持導入和導出 SQLite 數據庫。';
 
   @override
   String get platformSupportDesc => '支援 Health Connect（安卓）。';
 
   @override
-  String get platformSupportDesc_xxx => '支援 Health Connect（安卓）和 HealthKit（iOS）。';
+  String get platformSupportDesc_xxx =>
+      '支援 Health Connect（安卓）和 HealthKit（iOS）。';
 
   @override
   String get features => '功能';
@@ -1022,6 +1040,15 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get every1Hour => '每小時';
+
+  @override
+  String get selectStartTime => '選擇開始時間';
+
+  @override
+  String get selectEndTime => '選擇結束時間';
+
+  @override
+  String get endTimeError => '結束時間必須晚於開始時間';
 
   @override
   String get activeHours => '活動時間';
@@ -1327,7 +1354,8 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get chartHelpTitle => '圖表說明';
 
   @override
-  String get hourlyStepsChartExplanation => '此圖表顯示您的每小時步數。\n\n - 「累積」開關：切換以查看當天累積的總步數。\n - 「目標」開關：切換以顯示您的每日步數目標為一條水平線。\n 調整這些設定來自訂您的視圖！';
+  String get hourlyStepsChartExplanation =>
+      '此圖表顯示您的每小時步數。\n\n - 「累積」開關：切換以查看當天累積的總步數。\n - 「目標」開關：切換以顯示您的每日步數目標為一條水平線。\n 調整這些設定來自訂您的視圖！';
 
   @override
   String get chartHelpContent => '此圖表顯示您在所選期間的步數。柱狀圖表示每日/每週/每月/每年的步數，虛線表示平均步數。';

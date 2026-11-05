@@ -116,26 +116,22 @@ class $DailyStepsTable extends DailySteps
   DailyStep map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return DailyStep(
-      date:
-          attachedDatabase.typeMapping.read(
-            DriftSqlType.string,
-            data['${effectivePrefix}date'],
-          )!,
-      stepCount:
-          attachedDatabase.typeMapping.read(
-            DriftSqlType.int,
-            data['${effectivePrefix}step_count'],
-          )!,
-      lastUpdated:
-          attachedDatabase.typeMapping.read(
-            DriftSqlType.dateTime,
-            data['${effectivePrefix}last_updated'],
-          )!,
-      isComplete:
-          attachedDatabase.typeMapping.read(
-            DriftSqlType.bool,
-            data['${effectivePrefix}is_complete'],
-          )!,
+      date: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}date'],
+      )!,
+      stepCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}step_count'],
+      )!,
+      lastUpdated: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_updated'],
+      )!,
+      isComplete: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_complete'],
+      )!,
     );
   }
 
@@ -213,10 +209,12 @@ class DailyStep extends DataClass implements Insertable<DailyStep> {
     return DailyStep(
       date: data.date.present ? data.date.value : this.date,
       stepCount: data.stepCount.present ? data.stepCount.value : this.stepCount,
-      lastUpdated:
-          data.lastUpdated.present ? data.lastUpdated.value : this.lastUpdated,
-      isComplete:
-          data.isComplete.present ? data.isComplete.value : this.isComplete,
+      lastUpdated: data.lastUpdated.present
+          ? data.lastUpdated.value
+          : this.lastUpdated,
+      isComplete: data.isComplete.present
+          ? data.isComplete.value
+          : this.isComplete,
     );
   }
 
@@ -342,22 +340,20 @@ abstract class _$StepDatabase extends GeneratedDatabase {
   List<DatabaseSchemaEntity> get allSchemaEntities => [dailySteps];
 }
 
-typedef $$DailyStepsTableCreateCompanionBuilder =
-    DailyStepsCompanion Function({
-      required String date,
-      required int stepCount,
-      required DateTime lastUpdated,
-      Value<bool> isComplete,
-      Value<int> rowid,
-    });
-typedef $$DailyStepsTableUpdateCompanionBuilder =
-    DailyStepsCompanion Function({
-      Value<String> date,
-      Value<int> stepCount,
-      Value<DateTime> lastUpdated,
-      Value<bool> isComplete,
-      Value<int> rowid,
-    });
+typedef $$DailyStepsTableCreateCompanionBuilder = DailyStepsCompanion Function({
+  required String date,
+  required int stepCount,
+  required DateTime lastUpdated,
+  Value<bool> isComplete,
+  Value<int> rowid,
+});
+typedef $$DailyStepsTableUpdateCompanionBuilder = DailyStepsCompanion Function({
+  Value<String> date,
+  Value<int> stepCount,
+  Value<DateTime> lastUpdated,
+  Value<bool> isComplete,
+  Value<int> rowid,
+});
 
 class $$DailyStepsTableFilterComposer
     extends Composer<_$StepDatabase, $DailyStepsTable> {
@@ -468,12 +464,12 @@ class $$DailyStepsTableTableManager
         TableManagerState(
           db: db,
           table: table,
-          createFilteringComposer:
-              () => $$DailyStepsTableFilterComposer($db: db, $table: table),
-          createOrderingComposer:
-              () => $$DailyStepsTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer:
-              () => $$DailyStepsTableAnnotationComposer($db: db, $table: table),
+          createFilteringComposer: () =>
+              $$DailyStepsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$DailyStepsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$DailyStepsTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
                 Value<String> date = const Value.absent(),
@@ -502,16 +498,18 @@ class $$DailyStepsTableTableManager
                 isComplete: isComplete,
                 rowid: rowid,
               ),
-          withReferenceMapper:
-              (p0) =>
-                  p0
-                      .map(
-                        (e) => (
-                          e.readTable(table),
-                          BaseReferences(db, table, e),
-                        ),
-                      )
-                      .toList(),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$DailyStepsTable, DailyStep>(table),
+                  BaseReferences<_$StepDatabase, $DailyStepsTable, DailyStep>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
           prefetchHooksCallback: null,
         ),
       );

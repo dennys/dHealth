@@ -1,5 +1,5 @@
-import 'package:dsteps/generated/l10n/app_localizations.dart';
-import 'package:dsteps/settings_model.dart';
+import 'package:dhealth/generated/l10n/app_localizations.dart';
+import 'package:dhealth/settings_model.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -145,15 +145,12 @@ class _SetupScreenState extends State<SetupScreen> {
                       width: 150, // Adjust this value based on your layout
                       child: DropdownButton<int>(
                         isExpanded: true,
+                        // syncFrequency 非 nullable，只需檢查是否落在預設清單內（不在時才顯示 hint）
                         value:
-                            settings.syncFrequency != null && settings.predefinedSyncFrequency.contains(settings.syncFrequency)
+                            settings.predefinedSyncFrequency.contains(settings.syncFrequency)
                                 ? settings.syncFrequency
                                 : null,
-                        hint: Text(
-                          settings.syncFrequency != null
-                              ? '$settings.syncFrequency ${localizations?.minutesUnit ?? 'minutes'}'
-                              : 'Select an interval',
-                        ),
+                        hint: Text('${settings.syncFrequency} ${localizations?.minutesUnit ?? 'minutes'}'),
                         items:
                             settings.predefinedSyncFrequency
                                 .map(

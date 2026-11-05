@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:dsteps/generated/l10n/app_localizations.dart';
+import 'package:dhealth/generated/l10n/app_localizations.dart';
 import '../settings_model.dart'; // Import your SettingsModel
 
 // notification_enabled: Boolean, default true (Enable Notifications).

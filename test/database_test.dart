@@ -1,5 +1,5 @@
 import 'package:drift/native.dart';
-import 'package:dsteps/database/database.dart';
+import 'package:dhealth/database/database.dart';
 import 'package:test/test.dart';
 
 void main() {
