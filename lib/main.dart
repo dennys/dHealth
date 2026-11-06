@@ -362,16 +362,17 @@ class HealthAppState extends State<HealthApp> {
     final health = GetIt.I<Health>();
     final SettingsModel settings = Provider.of<SettingsModel>(context);
     return MaterialApp(
-      // theme: ThemeData.light(),
+      // 與 dNeko 用同一顆 seed（Colors.green）+ 同一個 ColorScheme.fromSeed 做法，
+      // 兩案看起來才是一家人；accentColor 已 deprecated，不再手調。
       theme: ThemeData(
-        primarySwatch: Colors.green,
-        colorScheme: ColorScheme.fromSwatch(primarySwatch: Colors.green, accentColor: Colors.greenAccent),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
         drawerTheme: DrawerThemeData(
           backgroundColor: Colors.green[50], // 淺綠色背景
         ),
       ),
-      // darkTheme: ThemeData.dark(),
-      darkTheme: ThemeData(primarySwatch: Colors.green, colorScheme: ColorScheme.dark(primary: Colors.green[700]!, secondary: Colors.greenAccent)),
+      darkTheme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green, brightness: Brightness.dark),
+      ),
       themeMode: settings.getThemeMode(),
       locale: settings.getLocale(),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -446,27 +447,24 @@ class HealthAppState extends State<HealthApp> {
                   spacing: 10,
                   children: [
                     if (Platform.isAndroid)
-                      TextButton(
+                      FilledButton(
                         onPressed: getHealthConnectSdkStatus,
-                        style: const ButtonStyle(backgroundColor: WidgetStatePropertyAll(Colors.blue)),
-                        child: const Text("Check Health Connect Status", style: TextStyle(color: Colors.white)),
+                        child: const Text("Check Health Connect Status"),
                       ),
                     if (Platform.isAndroid && health.healthConnectSdkStatus != HealthConnectSdkStatus.sdkAvailable)
-                      TextButton(
+                      FilledButton(
                         onPressed: installHealthConnect,
-                        style: const ButtonStyle(backgroundColor: WidgetStatePropertyAll(Colors.blue)),
-                        child: const Text("Install Health Connect", style: TextStyle(color: Colors.white)),
+                        child: const Text("Install Health Connect"),
                       ),
                     if (Platform.isIOS || Platform.isAndroid && health.healthConnectSdkStatus == HealthConnectSdkStatus.sdkAvailable)
                       Wrap(
                         spacing: 10,
                         children: [
-                          TextButton(
+                          FilledButton(
                             onPressed: authorize,
-                            style: const ButtonStyle(backgroundColor: WidgetStatePropertyAll(Colors.blue)),
-                            child: const Text("Authenticate", style: TextStyle(color: Colors.white)),
+                            child: const Text("Authenticate"),
                           ),
-                          TextButton(
+                          FilledButton(
                             // onPressed: fetchData,
                             onPressed: () async {
                               // Call fetchData and wait for the result
@@ -484,31 +482,25 @@ class HealthAppState extends State<HealthApp> {
                               //   );
                               // }
                             },
-
-                            style: const ButtonStyle(backgroundColor: WidgetStatePropertyAll(Colors.blue)),
-                            child: const Text("Fetch Data", style: TextStyle(color: Colors.white)),
+                            child: const Text("Fetch Data"),
                           ),
-                          TextButton(
+                          FilledButton(
                             // onPressed: addData,
                             onPressed: () => addData(health),
-                            style: const ButtonStyle(backgroundColor: WidgetStatePropertyAll(Colors.blue)),
-                            child: const Text("Add Data", style: TextStyle(color: Colors.white)),
+                            child: const Text("Add Data"),
                           ),
-                          TextButton(
+                          FilledButton(
                             // onPressed: deleteData,
                             onPressed: () => deleteData(health),
-                            style: const ButtonStyle(backgroundColor: WidgetStatePropertyAll(Colors.blue)),
-                            child: const Text("Delete Data", style: TextStyle(color: Colors.white)),
+                            child: const Text("Delete Data"),
                           ),
-                          TextButton(
+                          FilledButton(
                             onPressed: fetchStepData,
-                            style: const ButtonStyle(backgroundColor: WidgetStatePropertyAll(Colors.blue)),
-                            child: const Text("Fetch Step Data", style: TextStyle(color: Colors.white)),
+                            child: const Text("Fetch Step Data"),
                           ),
-                          TextButton(
+                          FilledButton(
                             onPressed: revokeAccess,
-                            style: const ButtonStyle(backgroundColor: WidgetStatePropertyAll(Colors.blue)),
-                            child: const Text("Revoke Access", style: TextStyle(color: Colors.white)),
+                            child: const Text("Revoke Access"),
                           ),
                         ],
                       ),
