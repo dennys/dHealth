@@ -46,7 +46,7 @@ class DatabaseExporter {
       return "Export failed: $e";
     } finally {
       // Re-open the database connection
-      await openDatabase();
+      await openStepDatabase();
     }
   }
 
