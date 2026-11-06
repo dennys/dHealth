@@ -169,7 +169,7 @@ class SettingsModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setActiveEndHour(int activeEndtHour) async {
+  Future<void> setActiveEndHour(int activeEndHour) async {
     _activeEndHour = activeEndHour;
     await _prefs.setInt('health_sync_active_end_hour', activeEndHour);
     notifyListeners();
@@ -182,7 +182,7 @@ class SettingsModel extends ChangeNotifier {
   }
 
   Future<void> setStopOnTerminate(bool stopOnTerminate) async {
-    _startOnBoot = stopOnTerminate;
+    _stopOnTerminate = stopOnTerminate;
     await _prefs.setBool('health_sync_stop_on_terminate', stopOnTerminate);
     notifyListeners();
   }
@@ -200,7 +200,7 @@ class SettingsModel extends ChangeNotifier {
   }
 
   Future<void> setShowDailyStepGoal(bool showDailyStepGoal) async {
-    _showDailyStepGoal = showCumulative;
+    _showDailyStepGoal = showDailyStepGoal;
     await _prefs.setBool('showDailyStepGoal', showDailyStepGoal);
     notifyListeners();
   }

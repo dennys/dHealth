@@ -42,6 +42,9 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  # 測 SharedPreferencesAsync 要用官方 in-memory 實作；SharedPreferences.setMockInitialValues
+  # 只覆蓋舊的 SharedPreferences API，Async 版會直接噴 instance must be set。
+  shared_preferences_platform_interface: ^2.4.1
   # test 1.33.0 需要 test_api 0.7.15，但 Flutter 3.47.9 的 flutter_test 死鎖 test_api 0.7.12
   # （= test 1.31.1），所以這裡只能寫 ^1.31.1；Flutter 升版後 pub 會自動給更高版。
   test: ^1.31.1
