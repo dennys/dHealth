@@ -1,5 +1,4 @@
 import 'package:dhealth/settings_model.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
@@ -10,9 +9,7 @@ void main() {
 
   Future<SettingsModel> loadedModel() async {
     SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
-    final model = SettingsModel();
-    await pumpEventQueue(); // ctor 裡的 _loadPreferences() 沒被 await
-    return model;
+    return SettingsModel.load(); // 載入完成才交回：不會再出現「setter 被載入蓋掉」
   }
 
   // 全部 setter 用同一張表掃過：設定的 bug 幾乎都是同一類 copy-paste
@@ -27,9 +24,8 @@ void main() {
     ('syncFrequency', (m) => m.setSyncFrequency(30), (m) => m.syncFrequency, 30),
     ('activeStartHour', (m) => m.setActiveStartHour(6), (m) => m.activeStartHour, 6),
     ('activeEndHour', (m) => m.setActiveEndHour(22), (m) => m.activeEndHour, 22),
-    ('startOnBoot', (m) => m.setStartOnBoot(false), (m) => m.startOnBoot, false),
-    ('stopOnTerminate', (m) => m.setStopOnTerminate(true), (m) => m.stopOnTerminate, true),
-    ('persistentSync', (m) => m.setPersistentSync(true), (m) => m.persistentSync, true),
+    // startOnBoot / stopOnTerminate / persistentSync / accomplishment 這四個設定已整組刪除：
+    // 它們只寫進 prefs、全案 0 個讀取者（會騙人的開關比沒有開關更糟）。
     ('showCumulative', (m) => m.setShowCumulative(false), (m) => m.showCumulative, false),
     ('showDailyStepGoal', (m) => m.setShowDailyStepGoal(true), (m) => m.showDailyStepGoal, true),
     ('priority', (m) => m.setPriority('high'), (m) => m.priority, 'high'),
@@ -38,13 +34,10 @@ void main() {
     ('reachGoal', (m) => m.setReachGoal(false), (m) => m.reachGoal, false),
     ('motivation', (m) => m.setMotivation(false), (m) => m.motivation, false),
     ('exception', (m) => m.setException(false), (m) => m.exception, false),
-    ('accomplishment', (m) => m.setAccomplishment(false), (m) => m.accomplishment, false),
     ('soundEnabled', (m) => m.setSoundEnabled(false), (m) => m.soundEnabled, false),
     ('vibrationEnabled', (m) => m.setVibrationEnabled(false), (m) => m.vibrationEnabled, false),
-    ('startTime', (m) => m.setStartTime(const TimeOfDay(hour: 9, minute: 30)), (m) => m.startTime,
-        const TimeOfDay(hour: 9, minute: 30)),
-    ('endTime', (m) => m.setEndTime(const TimeOfDay(hour: 23, minute: 15)), (m) => m.endTime,
-        const TimeOfDay(hour: 23, minute: 15)),
+    // startTime/endTime 這兩個 key 已連同 notification_setup 的裝飾品選譯器一起刪除
+    // （通知時段的唯一來源是 setup.dart 的 activeStartHour/activeEndHour）。
   ];
 
   group('SettingsModel：setter 要寫進自己對應的欄位', () {
@@ -62,8 +55,7 @@ void main() {
   group('SettingsModel：帶背景排程副作用的 setter', () {
     test('dailyStepGoal / notificationsEnabled / notificationFrequency 存進 SharedPreferences', () async {
       SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
-      final model = SettingsModel();
-      await pumpEventQueue();
+      final model = await SettingsModel.load();
 
       await model.setDailyStepGoal(8000);
       await model.setNotificationsEnabled(false);
@@ -73,6 +65,37 @@ void main() {
       expect(await prefs.getInt('dailyStepGoal'), 8000);
       expect(await prefs.getBool('notification_enabled'), false);
       expect(await prefs.getInt('notification_frequency'), 45);
+    });
+  });
+
+  // setter 不能把髒值放進去：WorkManager 對 < 15 分鐘的 periodic 間隔會直接丟例外，
+  // 目標 0 步則会让「達標」通知每 15 分鐘響一次。
+  group('SettingsModel：範圍驗證', () {
+    test('範圍外的值被夾住而不是照收', () async {
+      SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
+      final model = await SettingsModel.load();
+
+      await model.setSyncFrequency(1);
+      expect(model.syncFrequency, 15);
+
+      await model.setDailyStepGoal(0);
+      expect(model.dailyStepGoal, greaterThan(0));
+
+      await model.setDailyStepGoal(99999999);
+      expect(model.dailyStepGoal, lessThanOrEqualTo(200000));
+
+      await model.setActiveEndHour(99);
+      expect(model.activeEndHour, 23);
+
+      await model.setMotivationTimeLimit(-5);
+      expect(model.motivationTimeLimit, 0);
+    });
+
+    test('通知類 setter 不再重建整個 WorkManager（只重排）', () async {
+      SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
+      final model = await SettingsModel.load();
+      await model.setNotificationsEnabled(false);
+      expect(await SharedPreferencesAsync().getBool('notification_enabled'), isFalse);
     });
   });
 }

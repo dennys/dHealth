@@ -1,5 +1,6 @@
 import 'package:dhealth/database/database.dart';
 import 'package:dhealth/utils/step_calculator.dart';
+import 'package:health/health.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -47,6 +48,52 @@ void main() {
       ];
       expect(StepCalculator.calculateAverageSteps(steps), 1500.0);
       expect(StepCalculator.calculateAverageSteps([]), 0);
+    });
+  });
+
+  group('hourlyDistribution', () {
+    final today = DateTime(2025, 3, 10);
+
+    HealthDataPoint point(DateTime from, DateTime to, int steps, {HealthDataType type = HealthDataType.STEPS}) => HealthDataPoint(
+      uuid: '\$from-\$steps',
+      value: NumericHealthValue(numericValue: steps),
+      type: type,
+      unit: HealthDataUnit.COUNT,
+      dateFrom: from,
+      dateTo: to,
+      sourcePlatform: HealthPlatformType.googleHealthConnect,
+      sourceDeviceId: 'd',
+      sourceId: 's',
+      sourceName: 'app',
+      recordingMethod: RecordingMethod.automatic,
+      workoutSummary: null,
+    );
+
+    test('同一小時內直接計入', () {
+      final result = StepCalculator.hourlyDistribution([point(DateTime(2025, 3, 10, 8, 5), DateTime(2025, 3, 10, 8, 40), 120)], today);
+      expect(result[8], 120);
+      expect(result.values.where((v) => v > 0).length, 1);
+    });
+
+    test('跨小時按秒數比例分配（2 小時走 300 步 → 每小時 150）', () {
+      final result = StepCalculator.hourlyDistribution([point(DateTime(2025, 3, 10, 8, 0), DateTime(2025, 3, 10, 10, 0), 300)], today);
+      expect(result[8], 150);
+      expect(result[9], 150);
+      expect(result.values.fold(0, (a, b) => a + b), 300);
+    });
+
+    test('今天以前的資料點不計、非 STEPS 類型不計', () {
+      final result = StepCalculator.hourlyDistribution([
+        point(DateTime(2025, 3, 9, 8), DateTime(2025, 3, 9, 9), 999),
+        point(DateTime(2025, 3, 10, 7), DateTime(2025, 3, 10, 7, 30), 50, type: HealthDataType.HEART_RATE),
+      ], today);
+      expect(result.values.every((v) => v == 0), isTrue);
+    });
+
+    test('零長度的資料點不會炸掉（除以 0）', () {
+      final at = DateTime(2025, 3, 10, 12);
+      final result = StepCalculator.hourlyDistribution([point(at, at, 42)], today);
+      expect(result[12], 42);
     });
   });
 }

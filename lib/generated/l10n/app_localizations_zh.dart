@@ -41,10 +41,11 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get aboutDescription =>
-      'dHealth 是一款用於追蹤和管理您的健康數據的應用程式，支持導入和導出 SQLite 數據庫。';
+      'dHealth 只從 Health Connect 讀你的每日步數，並依小時、天、週、月呈現。資料留在這台裝置上。';
 
   @override
-  String get platformSupportDesc => '支援 Health Connect（安卓）。';
+  String get platformSupportDesc =>
+      'Android 13 以上，需 Health Connect 與 Google Play services。iOS 尚未支援。';
 
   @override
   String get platformSupportDesc_xxx =>
@@ -54,10 +55,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get features => '功能';
 
   @override
-  String get healthTracking => '健康數據追蹤';
+  String get healthTracking => '每日步數';
 
   @override
-  String get healthTrackingDesc => '監控您的步數和其他健康指標。';
+  String get healthTrackingDesc => '取自 Health Connect 的步數，含小時／每日／每週／每月圖表。';
 
   @override
   String get importExportDesc => '使用 SQLite 文件備份或還原您的數據。';
@@ -72,7 +73,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get contact => '聯繫';
 
   @override
-  String get contactDesc => '如需支援或反饋，請發送電子郵件至：support@example.com';
+  String contactDesc(String email) {
+    return '如需支援或想回報問題，請写信給：$email';
+  }
 
   @override
   String get oooooSetup => '';
@@ -144,22 +147,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get selectEndTime => '選擇結束時間';
 
   @override
-  String get endTimeError => '結束時間必須晚於開始時間';
-
-  @override
   String get activeHours => '活動時間';
-
-  @override
-  String get startOnBoot => '開機時啟動';
-
-  @override
-  String get stopOnTerminate => '終止時停止';
-
-  @override
-  String get persistentSync => '持續同步';
-
-  @override
-  String get persistentSyncReminder => '注意：即使您強制停止應用程式，同步也會繼續。';
 
   @override
   String get hourly => '每小時';
@@ -229,12 +217,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get exceptionNotificationDescription => '通知異常或錯誤。';
-
-  @override
-  String get newAccomplishmentNotification => '新成就';
-
-  @override
-  String get newAccomplishmentNotificationDescription => '通知新的成就。';
 
   @override
   String get customFrequency => '自訂頻率';
@@ -394,8 +376,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get motivationTitle => '就差一點！';
 
   @override
-  String motivationBody(int goal) {
-    return '你離 $goal 步的目標只差 1000 步了！';
+  String motivationBody(int gap, int goal) {
+    return '距離 $goal 步的目標還差 $gap 步！';
   }
 
   @override
@@ -455,6 +437,144 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get chartHelpContent => '此圖表顯示您在所選期間的步數。柱狀圖表示每日/每週/每月/每年的步數，虛線表示平均步數。';
+
+  @override
+  String get syncNow => '立即同步';
+
+  @override
+  String get syncSuccess => '已同步';
+
+  @override
+  String get syncFailed => '同步失敗';
+
+  @override
+  String get retry => '重試';
+
+  @override
+  String get permissionActivityRecognitionMissing => '未授予「身體活動」權限，步數會一直是 0。';
+
+  @override
+  String get permissionHealthReadMissing => 'Health Connect 未允許讀取你的步數。';
+
+  @override
+  String get healthConnectUnavailable => '這條裝置上沒有 Health Connect。';
+
+  @override
+  String get healthConnectUnavailableDesc => '請從 Play Store 安裝，才能讀取步數資料。';
+
+  @override
+  String get installHealthConnect => '安裝 Health Connect';
+
+  @override
+  String chartError(String error) {
+    return '圖表錯誤：$error';
+  }
+
+  @override
+  String get cumulativeShort => '累計';
+
+  @override
+  String get goalShort => '目標';
+
+  @override
+  String hourSteps(int hour, int steps) {
+    return '$hour:00\n$steps 步';
+  }
+
+  @override
+  String get percentOfAverage => '日均占比';
+
+  @override
+  String get importing => '正在匯入資料…';
+
+  @override
+  String percentComplete(String percent) {
+    return '$percent% 完成';
+  }
+
+  @override
+  String get dateRangeTo => '至';
+
+  @override
+  String get noDirectorySelected => '未選擇資料夾';
+
+  @override
+  String exportedTo(String path) {
+    return '已匯出到 $path';
+  }
+
+  @override
+  String importedDays(int days) {
+    return '已匯入 $days 天的資料';
+  }
+
+  @override
+  String get databaseNotFound => '找不到資料庫檔案';
+
+  @override
+  String get shareSuccess => '資料庫已分享';
+
+  @override
+  String get shareCancelled => '已取消分享';
+
+  @override
+  String get shareFailed => '分享失敗';
+
+  @override
+  String get notificationChannelName => '步數追蹤';
+
+  @override
+  String get notificationChannelDescription => '步數目標與鼓勵提醒';
+
+  @override
+  String get errorNotificationTitle => '步數追蹤有問題';
+
+  @override
+  String errorNotificationBody(String message) {
+    return '$message';
+  }
+
+  @override
+  String get hourlyDataUnavailable => '讀不到今天的步數（Health Connect）';
+
+  @override
+  String get importClearDataWarning => '注意：這會先刪除 app 裡現有的全部資料。';
+
+  @override
+  String get notificationTimeWindowHint => '通知只會在「設定 → 活動時間」設定的時間內發送。';
+
+  @override
+  String get oneHour => '1 小時';
+
+  @override
+  String activeHoursRange(int from, int to) {
+    return '從 $from:00 到 $to:00';
+  }
+
+  @override
+  String get activeHoursSameHourError => '開始與結束是同一小時，請選一個不同的結束時間';
+
+  @override
+  String get syncReasonPermissionDenied => 'Health Connect 沒有給本 app 讀取步數的授權';
+
+  @override
+  String get syncReasonUnavailable =>
+      '讀不到 Health Connect（未安裝，或這台裝置沒有 Google Play services）';
+
+  @override
+  String get syncReasonInvalidRange => '結束日期早於開始日期';
+
+  @override
+  String get importReasonFileNotFound => '選定的檔案不存在';
+
+  @override
+  String get importReasonNoData => '這個檔案裡沒有步數資料';
+
+  @override
+  String get importReasonReadFailed => '檔案讀不起來（不是 dHealth 的匯出檔？）';
+
+  @override
+  String get dailyStepGoalRange => '每日目標要介於 1000 與 20000 步之間';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -493,10 +613,11 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get aboutDescription =>
-      'dHealth 是一款用于追踪和管理您的健康数据的应用程式，支持导入和导出 SQLite 数据库。';
+      'dHealth 只从 Health Connect 读你的每日步数，并按小时、天、周、月呈现。资料留在这台设备上。';
 
   @override
-  String get platformSupportDesc => '支援 Health Connect（安卓）。';
+  String get platformSupportDesc =>
+      'Android 13 以上，需 Health Connect 与 Google Play services。iOS 尚未支持。';
 
   @override
   String get platformSupportDesc_xxx =>
@@ -506,16 +627,16 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get features => '功能';
 
   @override
-  String get healthTracking => '健康数据追踪';
+  String get healthTracking => '每日步数';
 
   @override
-  String get healthTrackingDesc => '监控您的步数和其他健康指标。';
+  String get healthTrackingDesc => '取自 Health Connect 的步数，含小时／每日／每周／每月图表。';
 
   @override
   String get importExportDesc => '使用 SQLite 文件备份或还原您的数据。';
 
   @override
-  String get platformSupport => '平台支援';
+  String get platformSupport => '平台支持';
 
   @override
   String get version => '版本';
@@ -524,7 +645,9 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get contact => '联系';
 
   @override
-  String get contactDesc => '如需支援或反馈，请发送电子邮件至：support@example.com';
+  String contactDesc(String email) {
+    return '如需支援或想反馈问题，请写信给：$email';
+  }
 
   @override
   String get oooooSetup => '';
@@ -596,22 +719,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get selectEndTime => '选择结束时间';
 
   @override
-  String get endTimeError => '结束时间必须晚于开始时间';
-
-  @override
   String get activeHours => '活动时间';
-
-  @override
-  String get startOnBoot => '开机时启动';
-
-  @override
-  String get stopOnTerminate => '终止时停止';
-
-  @override
-  String get persistentSync => '持续同步';
-
-  @override
-  String get persistentSyncReminder => '注意：即使您强制停止应用程式，同步也会继续。';
 
   @override
   String get hourly => '每小时';
@@ -681,12 +789,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get exceptionNotificationDescription => '通知异常或错误。';
-
-  @override
-  String get newAccomplishmentNotification => '新成就';
-
-  @override
-  String get newAccomplishmentNotificationDescription => '通知新的成就。';
 
   @override
   String get customFrequency => '自订频率';
@@ -846,8 +948,8 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get motivationTitle => '就差一点！';
 
   @override
-  String motivationBody(int goal) {
-    return '你离 $goal 步的目标只差 1000 步了！';
+  String motivationBody(int gap, int goal) {
+    return '距离 $goal 步的目标还差 $gap 步！';
   }
 
   @override
@@ -907,6 +1009,144 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get chartHelpContent => '此图表显示您在所选期间的步数。柱状图表示每日/每周/每月/每年的步数，虚线表示平均步数。';
+
+  @override
+  String get syncNow => '立即同步';
+
+  @override
+  String get syncSuccess => '已同步';
+
+  @override
+  String get syncFailed => '同步失敗';
+
+  @override
+  String get retry => '重試';
+
+  @override
+  String get permissionActivityRecognitionMissing => '未授予“身体活动”权限，步数会一直为 0。';
+
+  @override
+  String get permissionHealthReadMissing => 'Health Connect 未允许读取你的步数。';
+
+  @override
+  String get healthConnectUnavailable => '此设备上沒有 Health Connect。';
+
+  @override
+  String get healthConnectUnavailableDesc => '请从 Play Store 安装，才能读取步数资料。';
+
+  @override
+  String get installHealthConnect => '安装 Health Connect';
+
+  @override
+  String chartError(String error) {
+    return '图表错误：$error';
+  }
+
+  @override
+  String get cumulativeShort => '累计';
+
+  @override
+  String get goalShort => '目标';
+
+  @override
+  String hourSteps(int hour, int steps) {
+    return '$hour:00\n$steps 步';
+  }
+
+  @override
+  String get percentOfAverage => '日均占比';
+
+  @override
+  String get importing => '正在导入资料…';
+
+  @override
+  String percentComplete(String percent) {
+    return '$percent% 完成';
+  }
+
+  @override
+  String get dateRangeTo => '至';
+
+  @override
+  String get noDirectorySelected => '未选择文件夹';
+
+  @override
+  String exportedTo(String path) {
+    return '已导出到 $path';
+  }
+
+  @override
+  String importedDays(int days) {
+    return '已导入 $days 天的资料';
+  }
+
+  @override
+  String get databaseNotFound => '找不到数据库文件';
+
+  @override
+  String get shareSuccess => '数据库已分享';
+
+  @override
+  String get shareCancelled => '已取消分享';
+
+  @override
+  String get shareFailed => '分享失败';
+
+  @override
+  String get notificationChannelName => '步数追踪';
+
+  @override
+  String get notificationChannelDescription => '步数目标与鼓励提醒';
+
+  @override
+  String get errorNotificationTitle => '步数跟踪有问题';
+
+  @override
+  String errorNotificationBody(String message) {
+    return '$message';
+  }
+
+  @override
+  String get hourlyDataUnavailable => '读不到今天的步数（Health Connect）';
+
+  @override
+  String get importClearDataWarning => '注意：这会先删除 app 里现有的全部资料。';
+
+  @override
+  String get notificationTimeWindowHint => '通知只会在「设置 → 活动时间」设定的时间内发送。';
+
+  @override
+  String get oneHour => '1 小时';
+
+  @override
+  String activeHoursRange(int from, int to) {
+    return '从 $from:00 到 $to:00';
+  }
+
+  @override
+  String get activeHoursSameHourError => '开始与结束是同一小时，请选一个不同的结束时间';
+
+  @override
+  String get syncReasonPermissionDenied => 'Health Connect 没有给本 app 读取步数的授权';
+
+  @override
+  String get syncReasonUnavailable =>
+      '读不到 Health Connect（未安装，或这台设备没有 Google Play services）';
+
+  @override
+  String get syncReasonInvalidRange => '结束日期早于开始日期';
+
+  @override
+  String get importReasonFileNotFound => '选定的文件不存在';
+
+  @override
+  String get importReasonNoData => '这个文件里没有步数资料';
+
+  @override
+  String get importReasonReadFailed => '文件读不起来（不是 dHealth 的导出文件？）';
+
+  @override
+  String get dailyStepGoalRange => '每日目标要介于 1000 与 20000 步之间';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -945,10 +1185,11 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get aboutDescription =>
-      'dHealth 是一款用於追蹤和管理您的健康數據的應用程式，支持導入和導出 SQLite 數據庫。';
+      'dHealth 只從 Health Connect 讀你的每日步數，並依小時、天、週、月呈現。資料留在這台裝置上。';
 
   @override
-  String get platformSupportDesc => '支援 Health Connect（安卓）。';
+  String get platformSupportDesc =>
+      'Android 13 以上，需 Health Connect 與 Google Play services。iOS 尚未支援。';
 
   @override
   String get platformSupportDesc_xxx =>
@@ -958,10 +1199,10 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get features => '功能';
 
   @override
-  String get healthTracking => '健康數據追蹤';
+  String get healthTracking => '每日步數';
 
   @override
-  String get healthTrackingDesc => '監控您的步數和其他健康指標。';
+  String get healthTrackingDesc => '取自 Health Connect 的步數，含小時／每日／每週／每月圖表。';
 
   @override
   String get importExportDesc => '使用 SQLite 文件備份或還原您的數據。';
@@ -976,7 +1217,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get contact => '聯繫';
 
   @override
-  String get contactDesc => '如需支援或反饋，請發送電子郵件至：support@example.com';
+  String contactDesc(String email) {
+    return '如需支援或想回報問題，請寫信給：$email';
+  }
 
   @override
   String get oooooSetup => '';
@@ -1048,22 +1291,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get selectEndTime => '選擇結束時間';
 
   @override
-  String get endTimeError => '結束時間必須晚於開始時間';
-
-  @override
   String get activeHours => '活動時間';
-
-  @override
-  String get startOnBoot => '開機時啟動';
-
-  @override
-  String get stopOnTerminate => '終止時停止';
-
-  @override
-  String get persistentSync => '持續同步';
-
-  @override
-  String get persistentSyncReminder => '注意：即使您強制停止應用程式，同步也會繼續。';
 
   @override
   String get hourly => '每小時';
@@ -1133,12 +1361,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get exceptionNotificationDescription => '通知異常或錯誤。';
-
-  @override
-  String get newAccomplishmentNotification => '新成就';
-
-  @override
-  String get newAccomplishmentNotificationDescription => '通知新的成就。';
 
   @override
   String get customFrequency => '自訂頻率';
@@ -1298,8 +1520,8 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get motivationTitle => '就差一點！';
 
   @override
-  String motivationBody(int goal) {
-    return '你離 $goal 步的目標只差 1000 步了！';
+  String motivationBody(int gap, int goal) {
+    return '距離 $goal 步的目標還差 $gap 步！';
   }
 
   @override
@@ -1359,4 +1581,142 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get chartHelpContent => '此圖表顯示您在所選期間的步數。柱狀圖表示每日/每週/每月/每年的步數，虛線表示平均步數。';
+
+  @override
+  String get syncNow => '立即同步';
+
+  @override
+  String get syncSuccess => '已同步';
+
+  @override
+  String get syncFailed => '同步失敗';
+
+  @override
+  String get retry => '重試';
+
+  @override
+  String get permissionActivityRecognitionMissing => '未授予「身體活動」權限，步數會一直是 0。';
+
+  @override
+  String get permissionHealthReadMissing => 'Health Connect 未允許讀取你的步數。';
+
+  @override
+  String get healthConnectUnavailable => '此裝置上沒有 Health Connect。';
+
+  @override
+  String get healthConnectUnavailableDesc => '請從 Play Store 安裝，才能讀取步數資料。';
+
+  @override
+  String get installHealthConnect => '安裝 Health Connect';
+
+  @override
+  String chartError(String error) {
+    return '圖表錯誤：$error';
+  }
+
+  @override
+  String get cumulativeShort => '累計';
+
+  @override
+  String get goalShort => '目標';
+
+  @override
+  String hourSteps(int hour, int steps) {
+    return '$hour:00\n$steps 步';
+  }
+
+  @override
+  String get percentOfAverage => '日均佔比';
+
+  @override
+  String get importing => '正在匯入資料…';
+
+  @override
+  String percentComplete(String percent) {
+    return '$percent% 完成';
+  }
+
+  @override
+  String get dateRangeTo => '至';
+
+  @override
+  String get noDirectorySelected => '未選擇資料夾';
+
+  @override
+  String exportedTo(String path) {
+    return '已匯出到 $path';
+  }
+
+  @override
+  String importedDays(int days) {
+    return '已匯入 $days 天的資料';
+  }
+
+  @override
+  String get databaseNotFound => '找不到資料庫檔案';
+
+  @override
+  String get shareSuccess => '資料庫已分享';
+
+  @override
+  String get shareCancelled => '已取消分享';
+
+  @override
+  String get shareFailed => '分享失敗';
+
+  @override
+  String get notificationChannelName => '步數追蹤';
+
+  @override
+  String get notificationChannelDescription => '步數目標與鼓勵提醒';
+
+  @override
+  String get errorNotificationTitle => '步數追蹤有問題';
+
+  @override
+  String errorNotificationBody(String message) {
+    return '$message';
+  }
+
+  @override
+  String get hourlyDataUnavailable => '讀不到今天的步數（Health Connect）';
+
+  @override
+  String get importClearDataWarning => '注意：這會先刪除 app 裡現有的全部資料。';
+
+  @override
+  String get notificationTimeWindowHint => '通知只會在「設定 → 活動時間」設定的時間內發送。';
+
+  @override
+  String get oneHour => '1 小時';
+
+  @override
+  String activeHoursRange(int from, int to) {
+    return '從 $from:00 到 $to:00';
+  }
+
+  @override
+  String get activeHoursSameHourError => '開始與結束是同一小時，請選一個不同的結束時間';
+
+  @override
+  String get syncReasonPermissionDenied => 'Health Connect 沒有給本 app 讀取步數的授權';
+
+  @override
+  String get syncReasonUnavailable =>
+      '讀不到 Health Connect（未安裝，或這台裝置沒有 Google Play services）';
+
+  @override
+  String get syncReasonInvalidRange => '結束日期早於開始日期';
+
+  @override
+  String get importReasonFileNotFound => '選定的檔案不存在';
+
+  @override
+  String get importReasonNoData => '這個檔案裡沒有步數資料';
+
+  @override
+  String get importReasonReadFailed => '檔案讀不起來（不是 dHealth 的匯出檔？）';
+
+  @override
+  String get dailyStepGoalRange => '每日目標要介於 1000 與 20000 步之間';
 }

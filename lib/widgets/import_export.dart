@@ -1,17 +1,24 @@
-import 'dart:io';
-
+import 'package:dhealth/database/database.dart';
 import 'package:dhealth/database/util.dart';
+import 'package:dhealth/di.dart';
 import 'package:dhealth/generated/l10n/app_localizations.dart';
 import 'package:dhealth/services/data_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+
+import '../utils/log.dart';
+import '../utils/sync_reason.dart';
 
 enum ImportMode { pastDays, dateRange, incremental }
 
+/// 備份與還原畫面。
+///
+/// manifest 是 `allowBackup="false"`（健康資料不進雲備份 —— 對的），所以這一頁是
+/// 使用者唯一的備份/還原路。之前這裡最危險的地方是「回報成功但其實什麼都沒做」：
+/// `exportToCSV()` 是 `return null;` 的空殼、匯入檔案那邊只有一句 TODO，
+/// 兩者卻都跳 "completed successfully"。現在每個動作都以實際結果說話。
 class ImportExportScreen extends StatefulWidget {
   const ImportExportScreen({super.key});
 
@@ -24,273 +31,178 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
   int _pastDays = 30;
   DateTime _startDate = DateTime.now().subtract(const Duration(days: 30));
   DateTime _endDate = DateTime.now();
-  bool _clearDataBeforeImport = false;
-  bool _isImporting = false;
-  double _importProgress = 0.0;
+  /// 兩個「匯入前清除」分開：以前是同一個 bool 同時控制「從手機匯入」與「從檔案還原」
+  /// 兩個卡片，動其中一個另一個也跟着變 —— 而兩個都會先刪掉既有資料。
+  bool _clearBeforePhoneImport = false;
+  bool _clearBeforeFileImport = false;
+  bool _isBusy = false;
+  double _progress = 0.0;
+
+  StepDataService get _stepService => getIt<StepDataService>();
+
+  void _toast(String message, {bool error = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: error ? Theme.of(context).colorScheme.error : null,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+  }
 
   Future<void> _selectDate(BuildContext context, bool isStart) async {
-    final DateTime? picked = await showDatePicker(
+    final picked = await showDatePicker(
       context: context,
       initialDate: isStart ? _startDate : _endDate,
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: Theme.of(context).colorScheme.primary,
-              onPrimary: Colors.white,
-              surface: Theme.of(context).colorScheme.surface,
-              onSurface: Theme.of(context).colorScheme.onSurface,
-            ),
-            dialogTheme: DialogThemeData(backgroundColor: Theme.of(context).colorScheme.surface),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: ColorScheme.light(
+            primary: Theme.of(context).colorScheme.primary,
+            onPrimary: Colors.white,
+            surface: Theme.of(context).colorScheme.surface,
+            onSurface: Theme.of(context).colorScheme.onSurface,
           ),
-          child: child!,
-        );
-      },
+          dialogTheme: DialogThemeData(backgroundColor: Theme.of(context).colorScheme.surface),
+        ),
+        child: child!,
+      ),
     );
-    if (picked != null) {
-      setState(() {
-        if (isStart) {
-          _startDate = picked;
-        } else {
-          _endDate = picked;
-        }
-      });
-    }
+    if (picked == null) return;
+    setState(() => isStart ? _startDate = picked : _endDate = picked);
   }
 
+  /// 從手機（Health Connect）匯入。三種模式：最近 N 天 / 指定日期區間 / 只補新的。
   Future<void> _importFromPhone() async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
-      _isImporting = true;
-      _importProgress = 0.0;
+      _isBusy = true;
+      _progress = 0.0;
     });
-    try {
-      DateTime startDate;
-      DateTime endDate = DateTime.now();
 
-      if (_selectedMode == ImportMode.pastDays) {
-        startDate = DateTime.now().subtract(Duration(days: _pastDays));
+    try {
+      final StepSyncResult result;
+      if (_selectedMode == ImportMode.incremental) {
+        result = await _stepService.syncNewData();
       } else {
-        startDate = _startDate;
-        endDate = _endDate;
-      }
-
-      final totalDays = endDate.difference(startDate).inDays;
-      final stepService = StepDataService();
-
-      const chunkSize = 30;
-      final totalChunks = (totalDays / chunkSize).ceil();
-
-      for (int i = 0; i < totalChunks; i++) {
-        final chunkStart = startDate.add(Duration(days: i * chunkSize));
-        final chunkEnd =
-            chunkStart.add(const Duration(days: chunkSize - 1)).isAfter(endDate) ? endDate : chunkStart.add(const Duration(days: chunkSize - 1));
-
-        await stepService.refreshDataRange(chunkStart, chunkEnd, clearData: _clearDataBeforeImport && i == 0);
-
-        if (mounted) {
-          setState(() {
-            _importProgress = (i + 1) / totalChunks;
-          });
-        }
-
-        await Future.delayed(const Duration(milliseconds: 500));
-      }
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)?.importSuccess ?? 'Import completed successfully'),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
+        final startDate = _selectedMode == ImportMode.pastDays ? DateTime.now().subtract(Duration(days: _pastDays)) : _startDate;
+        result = await _stepService.importFromPhone(
+          startDate: startDate,
+          endDate: _endDate,
+          clearAllFirst: _clearBeforePhoneImport,
+          onProgress: (p) => {if (mounted) setState(() => _progress = p)},
         );
+      }
+
+      if (result.status == StepSyncStatus.success) {
+        _toast(l10n.importSuccess);
+      } else {
+        // 讀不到資料時資料庫不會被動過，但要讓使用者知道這次什麼都沒進來。
+        _toast('${l10n.importFailed}: ${result.status.label(l10n)}', error: true);
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${AppLocalizations.of(context)?.importFailed ?? 'Import failed'}: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-        );
-      }
+      appError('從手機匯入失敗', e);
+      _toast(l10n.importFailed, error: true); // 例外內容進 log，不攤給使用者看
     } finally {
-      if (mounted) {
-        setState(() {
-          _isImporting = false;
-          _importProgress = 0.0;
-        });
-      }
+      if (mounted) setState(() => _isBusy = false);
     }
   }
 
+  /// 從之前匯出的 sqlite 檔還原。
   Future<void> _importFromFile() async {
+    final l10n = AppLocalizations.of(context)!;
     try {
-      // file_picker 13: FilePicker.platform / FilePickerResult 已移除，
-      // 單檔選取改用靜態 FilePicker.pickFile()（回傳 PlatformFile?，取消為 null）
-      final PlatformFile? file = await FilePicker.pickFile(type: FileType.any);
+      // file_picker 13: 單檔選取是靜態 FilePicker.pickFile()（取消回 null）
+      final file = await FilePicker.pickFile(type: FileType.any);
+      if (file?.path == null) return;
 
-      if (file != null) {
-        // TODO: Implement SQLite file import logic here
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(AppLocalizations.of(context)?.importSuccess ?? 'Import completed successfully'),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-          );
-        }
+      setState(() => _isBusy = true);
+      final result = await importStepsFromFile(file!.path!, replaceAll: _clearBeforeFileImport);
+
+      if (result.imported == null) {
+        // 只有「原因」給使用者看；例外內容（result.detail）進 log，不要拿一堆英文堆疊去糊面板。
+        _toast('${l10n.importFailed}: ${result.failure?.label(l10n) ?? l10n.importFailed}', error: true);
+      } else {
+        _toast(l10n.importedDays(result.imported!));
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${AppLocalizations.of(context)?.importFailed ?? 'Import failed'}: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-        );
-      }
+      appError('從檔案匯入失敗', e);
+      _toast(l10n.importFailed, error: true);
+    } finally {
+      if (mounted) setState(() => _isBusy = false);
     }
   }
+
+  Future<String?> _pickDirectory(String title) => FilePicker.getDirectoryPath(dialogTitle: title);
 
   Future<void> _exportToFile() async {
-    try {
-      // final String? savePath = await FilePicker.platform.saveFile(
-      //   dialogTitle: 'Export database',
-      //   fileName: 'dHealth.sqlite',
-      //   allowedExtensions: ['sqlite'],
-      // );
-
-      String? result = await FilePicker.getDirectoryPath(dialogTitle: 'Select Export Directory');
-      if (result != null) {
-        // setState(() {
-        //   selectedDirectory = result;
-        // });
-        // Pass the selected directory to your export function
-        await copyDatabaseToDownloads(result);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Export completed successfully')));
-        }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('No directory selected')));
-        }
-      }
-
-      // await copyDatabaseToDownloads(savePath);
-      // if (mounted) {
-      //   ScaffoldMessenger.of(context).showSnackBar(
-      //     SnackBar(
-      //       content: Text(AppLocalizations.of(context)?.exportSuccess ?? 'Export completed successfully'),
-      //       behavior: SnackBarBehavior.floating,
-      //       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      //     ),
-      //   );
-      // }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${AppLocalizations.of(context)?.exportFailed ?? 'Export failed'}: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-        );
-      }
+    final l10n = AppLocalizations.of(context)!;
+    final directory = await _pickDirectory(l10n.exportToFile);
+    if (directory == null) {
+      _toast(l10n.noDirectorySelected);
+      return;
+    }
+    final path = await copyDatabaseToDirectory(getIt<StepDatabase>(), directory);
+    if (path == null) {
+      _toast(l10n.exportFailed, error: true);
+    } else {
+      _toast(l10n.exportedTo(path));
     }
   }
 
-  Future<void> _exportToCSV() async {
-    try {
-      await exportToCSV();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)?.exportSuccess ?? 'Export completed successfully'),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${AppLocalizations.of(context)?.exportFailed ?? 'Export failed'}: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-        );
-      }
+  Future<void> _exportToCsv() async {
+    final l10n = AppLocalizations.of(context)!;
+    final directory = await _pickDirectory(l10n.exportToCSV);
+    if (directory == null) {
+      _toast(l10n.noDirectorySelected);
+      return;
+    }
+    final path = await exportStepsToCsv(getIt<StepDatabase>(), directory);
+    if (path == null) {
+      _toast(l10n.exportFailed, error: true);
+    } else {
+      _toast(l10n.exportedTo(path));
     }
   }
 
+  /// 分享資料庫快照。分享的是暫存快照而不是活著的 DB 檔，避免邊寫邊被讀到半套。
   Future<void> _share() async {
+    final l10n = AppLocalizations.of(context)!;
     try {
-      final appDir = await getApplicationDocumentsDirectory();
-      final dbFilePath = p.join(appDir.path, 'dHealth.sqlite');
-      final dbFile = File(dbFilePath);
-
-      if (!await dbFile.exists()) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Database file not found'),
-              backgroundColor: Theme.of(context).colorScheme.error,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-          );
-        }
+      final snapshot = await createDatabaseSnapshot(getIt<StepDatabase>(), 'dHealth_share.sqlite');
+      if (snapshot == null) {
+        _toast(l10n.databaseNotFound, error: true);
         return;
       }
 
-      // share_plus 13: Share.shareXFiles 已廢除，改走 SharePlus.instance.share(ShareParams(...))
-      final result = await SharePlus.instance.share(
-        ShareParams(files: [XFile(dbFilePath)], text: 'Sharing steps database'),
-      );
+      final result = await SharePlus.instance.share(ShareParams(files: [XFile(snapshot.path)], text: 'dHealth database'));
+      try {
+        await snapshot.delete();
+      } catch (e) {
+        appLog('清除分享暫存檔失敗：$e');
+      }
 
-      if (result.status == ShareResultStatus.success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Database shared successfully'),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-        );
-      } else if (result.status == ShareResultStatus.dismissed && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Sharing was cancelled'),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-        );
+      switch (result.status) {
+        case ShareResultStatus.success:
+          _toast(l10n.shareSuccess);
+        case ShareResultStatus.dismissed:
+          _toast(l10n.shareCancelled);
+        default:
+          _toast(l10n.shareFailed, error: true);
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to share database: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-        );
-      }
+      appError('分享資料庫失敗', e);
+      _toast(l10n.shareFailed, error: true);
     }
   }
 
   Widget _buildProgressDialog(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Dialog(
       backgroundColor: Colors.transparent,
       elevation: 0,
@@ -304,23 +216,19 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircularProgressIndicator(
-              value: _importProgress == 0 ? null : _importProgress,
-              color: Theme.of(context).colorScheme.primary,
-              strokeWidth: 4,
-            ),
+            CircularProgressIndicator(value: _progress == 0 ? null : _progress, color: Theme.of(context).colorScheme.primary, strokeWidth: 4),
             const SizedBox(height: 24),
-            Text('Importing Data...', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            Text(l10n.importing, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
             LinearProgressIndicator(
-              value: _importProgress,
+              value: _progress,
               minHeight: 8,
               borderRadius: BorderRadius.circular(4),
               backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
               valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
             ),
             const SizedBox(height: 16),
-            Text('${(_importProgress * 100).toStringAsFixed(0)}% Complete', style: Theme.of(context).textTheme.bodyMedium),
+            Text(l10n.percentComplete((_progress * 100).toStringAsFixed(0)), style: Theme.of(context).textTheme.bodyMedium),
           ],
         ),
       ),
@@ -328,6 +236,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
   }
 
   Widget _buildImportOptions(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     // RadioListTile 的 groupValue/onChanged 自 3.32 棄用，改由 RadioGroup 統一管理
     return RadioGroup<ImportMode>(
       groupValue: _selectedMode,
@@ -337,7 +246,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
           RadioListTile<ImportMode>(
             title: Row(
               children: [
-                Text('${AppLocalizations.of(context)?.import ?? 'Import'}  '),
+                Text('${l10n.import}  '),
                 SizedBox(
                   width: 60,
                   child: TextFormField(
@@ -345,18 +254,11 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
                     keyboardType: TextInputType.number,
                     maxLength: 4,
                     textAlign: TextAlign.center,
-                    decoration: InputDecoration(
-                      counterText: '',
-                      contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                    onChanged: (value) {
-                      final days = int.tryParse(value) ?? 30;
-                      setState(() => _pastDays = days);
-                    },
+                    decoration: InputDecoration(counterText: '', contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12), border: OutlineInputBorder(borderRadius: BorderRadius.circular(8))),
+                    onChanged: (value) => setState(() => _pastDays = int.tryParse(value) ?? 30),
                   ),
                 ),
-                Text('  ${AppLocalizations.of(context)?.days ?? 'days'}'),
+                Text('  ${l10n.days}'),
               ],
             ),
             value: ImportMode.pastDays,
@@ -366,7 +268,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
             title: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(AppLocalizations.of(context)?.dateRange ?? 'Date Range'),
+                Text(l10n.dateRange),
                 const SizedBox(height: 8),
                 Row(
                   children: [
@@ -381,7 +283,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
                         ),
                       ),
                     ),
-                    const Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Text('to', style: TextStyle(color: Colors.grey))),
+                    Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Text(l10n.dateRangeTo, style: const TextStyle(color: Colors.grey))),
                     Expanded(
                       child: OutlinedButton.icon(
                         icon: const Icon(Icons.calendar_today, size: 16),
@@ -401,11 +303,8 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
             contentPadding: EdgeInsets.zero,
           ),
           RadioListTile<ImportMode>(
-            title: Text(AppLocalizations.of(context)?.importIncremental ?? 'Import incremental'),
-            subtitle: Text(
-              AppLocalizations.of(context)?.importIncrementalDesc ?? 'Only import new data since last import',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
+            title: Text(l10n.importIncremental),
+            subtitle: Text(l10n.importIncrementalDesc, style: Theme.of(context).textTheme.bodySmall),
             value: ImportMode.incremental,
             contentPadding: EdgeInsets.zero,
           ),
@@ -415,6 +314,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
   }
 
   Widget _buildImportSection(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       elevation: 2,
       margin: const EdgeInsets.only(bottom: 16),
@@ -427,21 +327,16 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: Icon(Icons.phone_android, color: Theme.of(context).colorScheme.primary),
-              title: Text(
-                AppLocalizations.of(context)?.importFromPhone ?? 'Import from Phone',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              subtitle: Text(
-                AppLocalizations.of(context)?.importFromPhoneDesc ?? 'Import step data from your phone',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
+              title: Text(l10n.importFromPhone, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+              subtitle: Text(l10n.importFromPhoneDesc, style: Theme.of(context).textTheme.bodySmall),
             ),
             const SizedBox(height: 12),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: Text(AppLocalizations.of(context)?.importClearData ?? 'Clear current data before import'),
-              value: _clearDataBeforeImport,
-              onChanged: (value) => setState(() => _clearDataBeforeImport = value),
+              title: Text(l10n.importClearData),
+              subtitle: Text(l10n.importClearDataWarning),
+              value: _clearBeforePhoneImport,
+              onChanged: (value) => setState(() => _clearBeforePhoneImport = value),
             ),
             const SizedBox(height: 12),
             _buildImportOptions(context),
@@ -450,8 +345,8 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
               width: double.infinity,
               child: ElevatedButton.icon(
                 icon: const Icon(Icons.download),
-                label: Text(AppLocalizations.of(context)?.import ?? 'Import'),
-                onPressed: _isImporting ? null : _importFromPhone,
+                label: Text(l10n.import),
+                onPressed: _isBusy ? null : _importFromPhone,
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -465,6 +360,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
   }
 
   Widget _buildFileImportSection(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       elevation: 2,
       margin: const EdgeInsets.only(bottom: 16),
@@ -477,29 +373,24 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: Icon(Icons.file_upload, color: Theme.of(context).colorScheme.primary),
-              title: Text(
-                AppLocalizations.of(context)?.importFromFile ?? 'Import from file',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              subtitle: Text(
-                AppLocalizations.of(context)?.importFromFileDesc ?? 'Import from a previously exported file',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
+              title: Text(l10n.importFromFile, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+              subtitle: Text(l10n.importFromFileDesc, style: Theme.of(context).textTheme.bodySmall),
             ),
             const SizedBox(height: 12),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: Text(AppLocalizations.of(context)?.importClearData ?? 'Clear current data before import'),
-              value: _clearDataBeforeImport,
-              onChanged: (value) => setState(() => _clearDataBeforeImport = value),
+              title: Text(l10n.importClearData),
+              subtitle: Text(l10n.importClearDataWarning),
+              value: _clearBeforeFileImport,
+              onChanged: (value) => setState(() => _clearBeforeFileImport = value),
             ),
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
                 icon: const Icon(Icons.upload_file),
-                label: Text(AppLocalizations.of(context)?.import ?? 'Import'),
-                onPressed: _isImporting ? null : _importFromFile,
+                label: Text(l10n.import),
+                onPressed: _isBusy ? null : _importFromFile,
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -513,6 +404,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
   }
 
   Widget _buildExportSection(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -521,40 +413,16 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Text('Database Export', style: Theme.of(context).textTheme.titleMedium),
-            // _buildExportButton(context, icon: Icons.save, label: 'Export to file', onPressed: _exportDatabaseToFile),
-            // _buildExportButton(context, icon: Icons.share, label: 'Share database file', onPressed: _share),
-
-            // const Divider(),
-
-            // Text('CSV Export', style: Theme.of(context).textTheme.titleMedium),
-            // _buildExportButton(context, icon: Icons.insert_drive_file, label: 'Export CSV to file', onPressed: _exportToCSV),
-            // _buildExportButton(context, icon: Icons.share, label: 'Share CSV file', onPressed: _share), //TODO this share is for DB only now
             Text(
-              AppLocalizations.of(context)?.exportOptions ?? 'Export Options',
+              l10n.exportOptions,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary),
             ),
             const SizedBox(height: 16),
-            _buildExportButton(
-              context,
-              icon: Icons.save_alt,
-              label: AppLocalizations.of(context)?.exportToFile ?? 'Export to file',
-              onPressed: _exportToFile,
-            ),
+            _buildExportButton(context, icon: Icons.save_alt, label: l10n.exportToFile, onPressed: _exportToFile),
             const SizedBox(height: 8),
-            _buildExportButton(
-              context,
-              icon: Icons.table_chart,
-              label: AppLocalizations.of(context)?.exportToCSV ?? 'Export to CSV',
-              onPressed: _exportToCSV,
-            ),
+            _buildExportButton(context, icon: Icons.table_chart, label: l10n.exportToCSV, onPressed: _exportToCsv),
             const SizedBox(height: 8),
-            _buildExportButton(
-              context,
-              icon: Icons.share,
-              label: AppLocalizations.of(context)?.shareDatabaseFile ?? 'Share database',
-              onPressed: _share,
-            ),
+            _buildExportButton(context, icon: Icons.share, label: l10n.shareDatabaseFile, onPressed: _share),
           ],
         ),
       ),
@@ -565,7 +433,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
     return OutlinedButton.icon(
       icon: Icon(icon, size: 20),
       label: Text(label),
-      onPressed: _isImporting ? null : onPressed,
+      onPressed: _isBusy ? null : onPressed,
       style: OutlinedButton.styleFrom(
         minimumSize: const Size(double.infinity, 48),
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -577,15 +445,16 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: Text(AppLocalizations.of(context)?.importExport ?? 'Import/Export'), elevation: 0),
+      appBar: AppBar(title: Text(l10n.importExport), elevation: 0),
       body: Stack(
         children: [
           SingleChildScrollView(
             padding: const EdgeInsets.all(16.0),
             child: Column(children: [_buildImportSection(context), _buildFileImportSection(context), _buildExportSection(context)]),
           ),
-          if (_isImporting) _buildProgressDialog(context),
+          if (_isBusy) _buildProgressDialog(context),
         ],
       ),
     );

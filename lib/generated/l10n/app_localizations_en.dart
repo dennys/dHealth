@@ -41,10 +41,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutDescription =>
-      'dHealth is an app to track and manage your health data with support for importing and exporting SQLite databases.';
+      'dHealth reads your daily step count from Health Connect and shows it by hour, day, week and month. Your data stays on this device.';
 
   @override
-  String get platformSupportDesc => 'Works with Health Connect (Android).';
+  String get platformSupportDesc =>
+      'Android 13 or above with Health Connect and Google Play services. iOS is not supported yet.';
 
   @override
   String get platformSupportDesc_xxx =>
@@ -54,18 +55,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get features => 'Features';
 
   @override
-  String get healthTracking => 'Health Data Tracking';
+  String get healthTracking => 'Daily steps';
 
   @override
   String get healthTrackingDesc =>
-      'Monitor your steps and other health metrics.';
+      'Step counts from Health Connect, with hourly, daily, weekly and monthly charts.';
 
   @override
   String get importExportDesc =>
       'Backup or restore your data using SQLite files.';
 
   @override
-  String get platformSupport => 'Platform Support';
+  String get platformSupport => 'Platform support';
 
   @override
   String get version => 'Version';
@@ -74,8 +75,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get contact => 'Contact';
 
   @override
-  String get contactDesc =>
-      'For support or feedback, email us at: support@example.com';
+  String contactDesc(String email) {
+    return 'For support or feedback, email us at: $email';
+  }
 
   @override
   String get oooooSetup => '';
@@ -148,23 +150,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get selectEndTime => 'Select End Time';
 
   @override
-  String get endTimeError => 'End time must be after start time';
-
-  @override
   String get activeHours => 'Active Hours';
-
-  @override
-  String get startOnBoot => 'Start on Boot';
-
-  @override
-  String get stopOnTerminate => 'Stop on Terminate';
-
-  @override
-  String get persistentSync => 'Persistent Sync';
-
-  @override
-  String get persistentSyncReminder =>
-      'Note: Sync will continue even if you force-stop the app.';
 
   @override
   String get hourly => 'Hourly';
@@ -238,13 +224,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get exceptionNotificationDescription =>
       'Notify about exceptions or errors.';
-
-  @override
-  String get newAccomplishmentNotification => 'New Accomplishments';
-
-  @override
-  String get newAccomplishmentNotificationDescription =>
-      'Notify about new achievements.';
 
   @override
   String get customFrequency => 'Custom Frequency';
@@ -407,8 +386,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get motivationTitle => 'Almost There!';
 
   @override
-  String motivationBody(int goal) {
-    return 'You\'re just 1000 steps away from your goal of $goal steps!';
+  String motivationBody(int gap, int goal) {
+    return 'You\'re $gap steps away from your goal of $goal steps!';
   }
 
   @override
@@ -469,4 +448,155 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get chartHelpContent =>
       'This chart shows your step count over the selected period. The bars represent daily/weekly/monthly/yearly steps, and the dotted line shows the average steps.';
+
+  @override
+  String get syncNow => 'Sync now';
+
+  @override
+  String get syncSuccess => 'Synced';
+
+  @override
+  String get syncFailed => 'Sync failed';
+
+  @override
+  String get retry => 'Retry';
+
+  @override
+  String get permissionActivityRecognitionMissing =>
+      'Physical-activity permission is not granted, so the step count stays at 0.';
+
+  @override
+  String get permissionHealthReadMissing =>
+      'Health Connect is not allowed to read your steps.';
+
+  @override
+  String get healthConnectUnavailable =>
+      'Health Connect is not available on this device.';
+
+  @override
+  String get healthConnectUnavailableDesc =>
+      'Install it from the Play Store to read your step data.';
+
+  @override
+  String get installHealthConnect => 'Install Health Connect';
+
+  @override
+  String chartError(String error) {
+    return 'Chart error: $error';
+  }
+
+  @override
+  String get cumulativeShort => 'Cumul.';
+
+  @override
+  String get goalShort => 'Goal';
+
+  @override
+  String hourSteps(int hour, int steps) {
+    return '$hour:00\n$steps steps';
+  }
+
+  @override
+  String get percentOfAverage => 'of avg';
+
+  @override
+  String get importing => 'Importing data…';
+
+  @override
+  String percentComplete(String percent) {
+    return '$percent% complete';
+  }
+
+  @override
+  String get dateRangeTo => 'to';
+
+  @override
+  String get noDirectorySelected => 'No folder selected';
+
+  @override
+  String exportedTo(String path) {
+    return 'Exported to $path';
+  }
+
+  @override
+  String importedDays(int days) {
+    return 'Imported $days days of data';
+  }
+
+  @override
+  String get databaseNotFound => 'Database file not found';
+
+  @override
+  String get shareSuccess => 'Database shared';
+
+  @override
+  String get shareCancelled => 'Sharing was cancelled';
+
+  @override
+  String get shareFailed => 'Share failed';
+
+  @override
+  String get notificationChannelName => 'Step tracker';
+
+  @override
+  String get notificationChannelDescription =>
+      'Step goal and motivation reminders';
+
+  @override
+  String get errorNotificationTitle => 'Step tracking problem';
+
+  @override
+  String errorNotificationBody(String message) {
+    return '$message';
+  }
+
+  @override
+  String get hourlyDataUnavailable =>
+      'Today\'s steps could not be read from Health Connect';
+
+  @override
+  String get importClearDataWarning =>
+      'Warning: this deletes ALL data currently stored in the app first.';
+
+  @override
+  String get notificationTimeWindowHint =>
+      'Notifications are only sent during the active hours set in Setup → Active Hours.';
+
+  @override
+  String get oneHour => '1 hr';
+
+  @override
+  String activeHoursRange(int from, int to) {
+    return 'From $from:00 to $to:00';
+  }
+
+  @override
+  String get activeHoursSameHourError =>
+      'Start and end are the same hour - please pick a different end time';
+
+  @override
+  String get syncReasonPermissionDenied =>
+      'Health Connect did not grant permission to read steps';
+
+  @override
+  String get syncReasonUnavailable =>
+      'Could not read from Health Connect (not installed, or the device has no Google Play services)';
+
+  @override
+  String get syncReasonInvalidRange =>
+      'The end date is earlier than the start date';
+
+  @override
+  String get importReasonFileNotFound => 'The selected file does not exist';
+
+  @override
+  String get importReasonNoData => 'The file contains no step data';
+
+  @override
+  String get importReasonReadFailed =>
+      'The file could not be read (not a dHealth export?)';
+
+  @override
+  String get dailyStepGoalRange =>
+      'The daily step goal must be between 1000 and 20000';
 }

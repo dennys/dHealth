@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 12+ 的備份/移轉規則。
+
+  manifest 的 allowBackup="false" 只關掉舊的後端備份；在 Android 12 以上，
+  「搬到新手機」(device-transfer) 與雲端備份是由這個檔案另外管的 —— 沒有它，
+  步數資料庫（健康資料）會跟著 adb/新機移轉跑到別台裝置上。
+
+  本案的備份路徑是 App 自己的「匯出到檔案 / 分享」（Import & Export 頁），
+  所以兩邊都排除。要讓使用者用新機移轉直接帶走資料，就把 <device-transfer> 那組拿掉。
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="file" />
+        <exclude domain="external" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="file" />
+        <exclude domain="external" />
+    </device-transfer>
+</data-extraction-rules>

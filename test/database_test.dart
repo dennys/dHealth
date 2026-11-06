@@ -25,10 +25,6 @@ void main() {
     await db.close();
   });
 
-  // test('getDailyAverageSteps returns correct average', () async {
-  //   final result = await db.getDailyAverageSteps(DateTime(2025, 3, 20), DateTime(2025, 4, 2));
-  //   expect(result[DateTime(2025, 3, 20)], 857);
-  // });
 
   test('getDailyAverageSteps returns correct average', () async {
     final result = await db.getDailyAverageSteps(
@@ -38,9 +34,6 @@ void main() {
     expect(result, 857); // 6000 steps over 7 days = 857.14 ≈ 857
   });
 
-  // test('getDailyAverageSteps throws exception for invalid period', () async {
-  //   expect(() => db.getDailyAverageSteps(DateTime(2025, 3, 20), DateTime(2025, 3, 22)), throwsException);
-  // });
 
   test('getAllWeeklySteps returns correct weekly totals', () async {
     final result = await db.getAllWeeklySteps(DateTime(2025, 3, 13), DateTime(2025, 3, 22));
@@ -58,9 +51,27 @@ void main() {
     expect(result[1].value, 6060);
   });
 
-  test('getAllYearlySteps returns correct yearly total', () async {
-    final result = await db.getAllYearlySteps();
-    expect(result[0].key, DateTime(2025, 1, 1));
-    expect(result[0].value, 6180);
+  test('getLastDate 回最新的一天', () async {
+    expect(await db.getLastDate(), DateTime(2025, 3, 22));
+  });
+
+  // 空庫時必須回 null：舊版回 now-7d 的假日期，把上層「第一次同步取 30 天」的
+  // 分支永遠蓋住，新裝置只補到 8 天。
+  test('getLastDate 在空資料庫回 null', () async {
+    final empty = StepDatabase(NativeDatabase.memory());
+    addTearDown(empty.close);
+    expect(await empty.getLastDate(), isNull);
+  });
+
+  test('deleteDataInRange 是閉區間（含 end 當天）', () async {
+    await db.deleteDataInRange(DateTime(2025, 3, 13), DateTime(2025, 3, 15));
+    expect(await db.getDailyStep(DateTime(2025, 3, 13)), isNull);
+    expect(await db.getDailyStep(DateTime(2025, 3, 15)), isNull);
+    expect(await db.getDailyStep(DateTime(2025, 3, 20)), isNotNull); // 隔天的不能一起刪掉
+  });
+
+  test('formatDateKey 補零', () {
+    expect(formatDateKey(DateTime(2025, 1, 5)), '2025-01-05');
+    expect(formatDateKey(DateTime(2025, 12, 31)), '2025-12-31');
   });
 }

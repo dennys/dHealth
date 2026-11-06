@@ -1,44 +1,55 @@
+import 'dart:async';
+
 import 'package:dhealth/services/background_service.dart';
+import 'package:dhealth/settings_keys.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'utils/log.dart';
+
+/// 使用者設定。唯一寫 prefs 的地方；背景 isolate 只讀（見 BackgroundService）。
+///
+/// 建立方式一律用 [SettingsModel.load]，不要直接 new ——
+/// 舊版在 ctor 裡 unawaited 呼叫 `_loadPreferences()`，後果不只是「設定頁先跳一下」：
+/// 前幾幀的 setter 會被之後才完成的載入用**舊值**蓋掉。
 class SettingsModel extends ChangeNotifier {
-  late SharedPreferencesAsync _prefs;
+  final SharedPreferencesAsync _prefs;
+
+  SettingsModel._(this._prefs);
+
+  /// 載入完成才交回控制权：首幀就是正確的值，也不會有寫入被載入蓋掉的競態。
+  static Future<SettingsModel> load() async {
+    final model = SettingsModel._(SharedPreferencesAsync());
+    await model._loadPreferences();
+    return model;
+  }
 
   // Inferface
-  String _language = 'system';
-  String _theme = 'system';
+  String _language = PrefsDefaults.language;
+  String _theme = PrefsDefaults.theme;
 
   // Health Data Sync
-  bool _healthSyncEnabled = true;
-  int _syncFrequency = 15;
-  final List<int> _predefinedSyncFrequency = [15, 30, 60]; // 15m, 30m, 1hr in minutes
-  // String? _customSyncFrequency;
-  int _activeStartHour = 7;
-  int _activeEndHour = 23;
-  bool _startOnBoot = true;
-  bool _stopOnTerminate = false;
-  bool _headlessMode = true;
+  bool _healthSyncEnabled = PrefsDefaults.healthSyncEnabled;
+  int _syncFrequency = PrefsDefaults.syncFrequencyMinutes;
+  final List<int> _predefinedSyncFrequency = const [15, 30, 60]; // 15m, 30m, 1hr in minutes
+  int _activeStartHour = PrefsDefaults.activeStartHour;
+  int _activeEndHour = PrefsDefaults.activeEndHour;
 
   // Settings
-  bool _showCumulative = true;
-  bool _showDailyStepGoal = false;
-  int _dailyStepGoal = 6000;
+  bool _showCumulative = PrefsDefaults.showCumulative;
+  bool _showDailyStepGoal = PrefsDefaults.showDailyStepGoal;
+  int _dailyStepGoal = PrefsDefaults.dailyStepGoal;
 
   // Notification settings
-  static const String _prefix = 'notification_';
-  bool _notificationsEnabled = true;
-  int _notificationFrequency = 15; // in minutes
-  bool _reachGoal = true;
-  bool _motivation = true;
-  int _motivationTimeLimit = 1; // in hours
-  bool _exception = true;
-  bool _accomplishment = true;
-  bool _soundEnabled = true;
-  bool _vibrationEnabled = true;
-  String _priority = 'default'; // low, default, high
-  TimeOfDay _startTime = const TimeOfDay(hour: 8, minute: 0);
-  TimeOfDay _endTime = const TimeOfDay(hour: 22, minute: 0);
+  bool _notificationsEnabled = PrefsDefaults.notificationsEnabled;
+  int _notificationFrequency = PrefsDefaults.notificationFrequencyMinutes;
+  bool _reachGoal = PrefsDefaults.reachGoal;
+  bool _motivation = PrefsDefaults.motivation;
+  int _motivationTimeLimit = PrefsDefaults.motivationTimeLimitHours;
+  bool _exception = PrefsDefaults.exception;
+  bool _soundEnabled = PrefsDefaults.soundEnabled;
+  bool _vibrationEnabled = PrefsDefaults.vibrationEnabled;
+  String _priority = PrefsDefaults.priority; // low, default, high
 
   // Getters - Inferface
   String get language => _language;
@@ -48,12 +59,8 @@ class SettingsModel extends ChangeNotifier {
   bool get healthSyncEnabled => _healthSyncEnabled;
   int get syncFrequency => _syncFrequency;
   List<int> get predefinedSyncFrequency => _predefinedSyncFrequency;
-  // String? get customSyncFrequency => _customSyncFrequency;
   int get activeStartHour => _activeStartHour;
   int get activeEndHour => _activeEndHour;
-  bool get startOnBoot => _startOnBoot;
-  bool get stopOnTerminate => _stopOnTerminate;
-  bool get persistentSync => _headlessMode;
 
   // Getters - Settings
   bool get showCumulative => _showCumulative;
@@ -67,224 +74,161 @@ class SettingsModel extends ChangeNotifier {
   bool get motivation => _motivation;
   int get motivationTimeLimit => _motivationTimeLimit;
   bool get exception => _exception;
-  bool get accomplishment => _accomplishment;
   bool get soundEnabled => _soundEnabled;
   bool get vibrationEnabled => _vibrationEnabled;
   String get priority => _priority;
-  TimeOfDay get startTime => _startTime;
-  TimeOfDay get endTime => _endTime;
-
-  SettingsModel() {
-    _loadPreferences();
-  }
-
-  TimeOfDay? _timeFromString(String? time) {
-    if (time == null) return null;
-    final parts = time.split(':');
-    if (parts.length != 2) return null;
-    final hour = int.tryParse(parts[0]);
-    final minute = int.tryParse(parts[1]);
-    if (hour == null || minute == null) return null;
-    return TimeOfDay(hour: hour, minute: minute);
-  }
 
   Future<void> _loadPreferences() async {
-    _prefs = SharedPreferencesAsync();
-    _language = await _prefs.getString('language') ?? 'system';
-    _theme = await _prefs.getString('theme') ?? 'system';
+    _language = await _prefs.getString(Prefs.language) ?? PrefsDefaults.language;
+    _theme = await _prefs.getString(Prefs.theme) ?? PrefsDefaults.theme;
 
     // Health Data Sync
-    _healthSyncEnabled = await _prefs.getBool('health_sync_enabled') ?? true;
-    _syncFrequency = await _prefs.getInt('health_sync_frequency') ?? 15;
-    _activeStartHour = await _prefs.getInt('health_sync_active_start_hour') ?? 7;
-    _activeEndHour = await _prefs.getInt('health_sync_active_end_hour') ?? 23;
-    _startOnBoot = await _prefs.getBool('health_sync_start_on_boot') ?? true;
-    _stopOnTerminate = await _prefs.getBool('health_sync_stop_on_terminate') ?? false;
-    _headlessMode = await _prefs.getBool('health_sync_headless_mode') ?? false;
+    _healthSyncEnabled = await _prefs.getBool(Prefs.healthSyncEnabled) ?? PrefsDefaults.healthSyncEnabled;
+    _syncFrequency = _clampMinutes(await _prefs.getInt(Prefs.syncFrequency), PrefsDefaults.syncFrequencyMinutes);
+    _activeStartHour = _clampHour(await _prefs.getInt(Prefs.activeStartHour), PrefsDefaults.activeStartHour);
+    _activeEndHour = _clampHour(await _prefs.getInt(Prefs.activeEndHour), PrefsDefaults.activeEndHour);
 
     // Settings
-    _showCumulative = await _prefs.getBool('showCumulative') ?? true;
-    _showDailyStepGoal = await _prefs.getBool('showDailyStepGoal') ?? false;
-    _dailyStepGoal = await _prefs.getInt('dailyStepGoal') ?? 6000;
+    _showCumulative = await _prefs.getBool(Prefs.showCumulative) ?? PrefsDefaults.showCumulative;
+    _showDailyStepGoal = await _prefs.getBool(Prefs.showDailyStepGoal) ?? PrefsDefaults.showDailyStepGoal;
+    _dailyStepGoal = _clampGoal(await _prefs.getInt(Prefs.dailyStepGoal));
 
     // Notification
-    _notificationsEnabled = await _prefs.getBool('${_prefix}enabled') ?? true;
-    _notificationFrequency = await _prefs.getInt('${_prefix}frequency') ?? 15;
-    _reachGoal = await _prefs.getBool('${_prefix}reach_goal') ?? true;
-    _motivation = await _prefs.getBool('${_prefix}motivation') ?? true;
-    _motivationTimeLimit = await _prefs.getInt('${_prefix}motivation_time_limit') ?? 1;
-    _exception = await _prefs.getBool('${_prefix}exception') ?? true;
-    _accomplishment = await _prefs.getBool('${_prefix}accomplishment') ?? true;
-    _soundEnabled = await _prefs.getBool('${_prefix}sound_enabled') ?? true;
-    _vibrationEnabled = await _prefs.getBool('${_prefix}vibration_enabled') ?? true;
-    _priority = await _prefs.getString('${_prefix}priority') ?? 'default';
-    _startTime = _timeFromString(await _prefs.getString('${_prefix}start_time')) ?? const TimeOfDay(hour: 8, minute: 0);
-    _endTime = _timeFromString(await _prefs.getString('${_prefix}end_time')) ?? const TimeOfDay(hour: 22, minute: 0);
+    _notificationsEnabled = await _prefs.getBool(Prefs.notificationsEnabled) ?? PrefsDefaults.notificationsEnabled;
+    _notificationFrequency = _clampMinutes(await _prefs.getInt(Prefs.notificationFrequency), PrefsDefaults.notificationFrequencyMinutes);
+    _reachGoal = await _prefs.getBool(Prefs.reachGoal) ?? PrefsDefaults.reachGoal;
+    _motivation = await _prefs.getBool(Prefs.motivation) ?? PrefsDefaults.motivation;
+    _motivationTimeLimit = _clampRange(await _prefs.getInt(Prefs.motivationTimeLimit), PrefsDefaults.motivationTimeLimitHours, 0, 24);
+    _exception = await _prefs.getBool(Prefs.exception) ?? PrefsDefaults.exception;
+    _soundEnabled = await _prefs.getBool(Prefs.soundEnabled) ?? PrefsDefaults.soundEnabled;
+    _vibrationEnabled = await _prefs.getBool(Prefs.vibrationEnabled) ?? PrefsDefaults.vibrationEnabled;
+    _priority = await _prefs.getString(Prefs.priority) ?? PrefsDefaults.priority;
+  }
 
-    notifyListeners();
+  // 髒值（舊版寫入的、手工改過的、被備份還原回來的）不能直通 WorkManager 的排程間隔：
+  // WorkManager 對 < 15 分鐘的 periodic 間隔會直接丟例外，於是大半夜的排程整個不見。
+  // 一律夾到合法範圍，而不是讓它炸在背景。
+  static int _clampMinutes(int? value, int fallback) => _clampRange(value, fallback, 15, 24 * 60);
+  static int _clampHour(int? value, int fallback) => _clampRange(value, fallback, 0, 23);
+  static int _clampGoal(int? value) => _clampRange(value, PrefsDefaults.dailyStepGoal, 1, 200000);
+  static int _clampRange(int? value, int fallback, int min, int max) => (value ?? fallback).clamp(min, max);
+
+  /// 會動到 WorkManager 排程的三個 setter 共用：重排即可，不要重新 initialize。
+  void _rescheduleBackground() {
+    unawaited(BackgroundService.scheduleTask().catchError((Object e) => appError('重新排程背景同步失敗', e)));
   }
 
   // Setters
   Future<void> setLanguage(String language) async {
     _language = language;
-    await _prefs.setString('language', language);
+    await _prefs.setString(Prefs.language, language);
     notifyListeners();
   }
 
   Future<void> setTheme(String theme) async {
     _theme = theme;
-    await _prefs.setString('theme', theme);
+    await _prefs.setString(Prefs.theme, theme);
     notifyListeners();
   }
 
   Future<void> setHealthSyncEnabled(bool healthSyncEnabled) async {
     _healthSyncEnabled = healthSyncEnabled;
-    await _prefs.setBool('health_sync_enabled', healthSyncEnabled);
+    await _prefs.setBool(Prefs.healthSyncEnabled, healthSyncEnabled);
+    _rescheduleBackground();
     notifyListeners();
   }
 
   Future<void> setSyncFrequency(int frequency) async {
-    _syncFrequency = frequency;
-    await _prefs.setInt('health_sync_frequency', frequency);
+    _syncFrequency = _clampMinutes(frequency, PrefsDefaults.syncFrequencyMinutes);
+    await _prefs.setInt(Prefs.syncFrequency, _syncFrequency);
+    _rescheduleBackground();
     notifyListeners();
   }
 
-  // void setSyncFrequency(String value) {
-  //   _syncFrequency = value;
-  //   if (value != 'custom') {
-  //     _customSyncFrequency = null; // Clear custom value if a predefined option is selected
-  //   }
-  //   notifyListeners();
-  // }
-
-  // void setCustomSyncFrequency(String customValue) {
-  //   _syncFrequency = 'custom';
-  //   _customSyncFrequency = customValue;
-  //   notifyListeners();
-  // }
-
   Future<void> setActiveStartHour(int activeStartHour) async {
-    _activeStartHour = activeStartHour;
-    await _prefs.setInt('health_sync_active_start_hour', activeStartHour);
+    _activeStartHour = _clampHour(activeStartHour, PrefsDefaults.activeStartHour);
+    await _prefs.setInt(Prefs.activeStartHour, _activeStartHour);
     notifyListeners();
   }
 
   Future<void> setActiveEndHour(int activeEndHour) async {
-    _activeEndHour = activeEndHour;
-    await _prefs.setInt('health_sync_active_end_hour', activeEndHour);
-    notifyListeners();
-  }
-
-  Future<void> setStartOnBoot(bool startOnBoot) async {
-    _startOnBoot = startOnBoot;
-    await _prefs.setBool('health_sync_start_on_boot', startOnBoot);
-    notifyListeners();
-  }
-
-  Future<void> setStopOnTerminate(bool stopOnTerminate) async {
-    _stopOnTerminate = stopOnTerminate;
-    await _prefs.setBool('health_sync_stop_on_terminate', stopOnTerminate);
-    notifyListeners();
-  }
-
-  Future<void> setPersistentSync(bool headlessMode) async {
-    _headlessMode = headlessMode;
-    await _prefs.setBool('health_sync_headless_mode', headlessMode);
+    _activeEndHour = _clampHour(activeEndHour, PrefsDefaults.activeEndHour);
+    await _prefs.setInt(Prefs.activeEndHour, _activeEndHour);
     notifyListeners();
   }
 
   Future<void> setShowCumulative(bool showCumulative) async {
     _showCumulative = showCumulative;
-    await _prefs.setBool('showCumulative', showCumulative);
+    await _prefs.setBool(Prefs.showCumulative, showCumulative);
     notifyListeners();
   }
 
   Future<void> setShowDailyStepGoal(bool showDailyStepGoal) async {
     _showDailyStepGoal = showDailyStepGoal;
-    await _prefs.setBool('showDailyStepGoal', showDailyStepGoal);
+    await _prefs.setBool(Prefs.showDailyStepGoal, showDailyStepGoal);
     notifyListeners();
   }
 
   Future<void> setDailyStepGoal(int dailyStepGoal) async {
-    _dailyStepGoal = dailyStepGoal;
-    await _prefs.setInt('dailyStepGoal', dailyStepGoal);
-    BackgroundService.init(); // No need to await
+    _dailyStepGoal = _clampGoal(dailyStepGoal);
+    await _prefs.setInt(Prefs.dailyStepGoal, _dailyStepGoal);
+    _rescheduleBackground();
     notifyListeners();
   }
 
   Future<void> setNotificationsEnabled(bool value) async {
     _notificationsEnabled = value;
-    await _prefs.setBool('${_prefix}enabled', value);
-    if (value) {
-      BackgroundService.init(); // No need to await
-    }
+    await _prefs.setBool(Prefs.notificationsEnabled, value);
+    _rescheduleBackground();
     notifyListeners();
   }
 
   Future<void> setNotificationFrequency(int value) async {
-    _notificationFrequency = value;
-    await _prefs.setInt('${_prefix}frequency', value);
-    BackgroundService.init(); // No need to await
+    _notificationFrequency = _clampMinutes(value, PrefsDefaults.notificationFrequencyMinutes);
+    await _prefs.setInt(Prefs.notificationFrequency, _notificationFrequency);
+    _rescheduleBackground();
     notifyListeners();
   }
 
   Future<void> setReachGoal(bool value) async {
     _reachGoal = value;
-    await _prefs.setBool('${_prefix}reach_goal', value);
+    await _prefs.setBool(Prefs.reachGoal, value);
     notifyListeners();
   }
 
   Future<void> setMotivation(bool value) async {
     _motivation = value;
-    await _prefs.setBool('${_prefix}motivation', value);
+    await _prefs.setBool(Prefs.motivation, value);
     notifyListeners();
   }
 
   Future<void> setMotivationTimeLimit(int value) async {
-    _motivationTimeLimit = value;
-    await _prefs.setInt('${_prefix}motivation_time_limit', value);
+    _motivationTimeLimit = _clampRange(value, PrefsDefaults.motivationTimeLimitHours, 0, 24);
+    await _prefs.setInt(Prefs.motivationTimeLimit, _motivationTimeLimit);
     notifyListeners();
   }
 
   Future<void> setException(bool value) async {
     _exception = value;
-    await _prefs.setBool('${_prefix}exception', value);
-    notifyListeners();
-  }
-
-  Future<void> setAccomplishment(bool value) async {
-    _accomplishment = value;
-    await _prefs.setBool('${_prefix}accomplishment', value);
+    await _prefs.setBool(Prefs.exception, value);
     notifyListeners();
   }
 
   Future<void> setSoundEnabled(bool value) async {
     _soundEnabled = value;
-    await _prefs.setBool('${_prefix}sound_enabled', value);
+    await _prefs.setBool(Prefs.soundEnabled, value);
     notifyListeners();
   }
 
   Future<void> setVibrationEnabled(bool value) async {
     _vibrationEnabled = value;
-    await _prefs.setBool('${_prefix}vibration_enabled', value);
+    await _prefs.setBool(Prefs.vibrationEnabled, value);
     notifyListeners();
   }
 
   Future<void> setPriority(String value) async {
     _priority = value;
-    await _prefs.setString('${_prefix}priority', value);
-    notifyListeners();
-  }
-
-  Future<void> setStartTime(TimeOfDay value) async {
-    _startTime = value;
-    await _prefs.setString('${_prefix}start_time', '${value.hour}:${value.minute}');
-    notifyListeners();
-  }
-
-  Future<void> setEndTime(TimeOfDay value) async {
-    _endTime = value;
-    await _prefs.setString('${_prefix}end_time', '${value.hour}:${value.minute}');
+    await _prefs.setString(Prefs.priority, value);
     notifyListeners();
   }
 

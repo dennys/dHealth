@@ -11,17 +11,22 @@ Just another Health App.
 # Requirement
 
 - [Health Connect](https://play.google.com/store/apps/details?id=com.google.android.apps.healthdata): because I use [Health](https://pub.dev/packages/health) package and it's based on Health Connect
-- Android 9.0 (API 28) or above, because `Health Connect` only support Android 9.0 or above.
-- But if you use Anrdoid 14 (API Level 35, ), Health Connect app is build-in.
+- **Android 13 (API 33) or above** —— 這是 `minSdk`，也是目前唯一有真機可測的較舊版本。
+  Health Connect 本身的下限是 Android 9（API 28）+ Google Play services：Android 14 以上是
+  系統 framework module，13 與以下要從 Play Store 裝 Health Connect APK（主畫面的
+  「Install Health Connect」按鈕就是那條路）。要再往下調 `minSdk`，不能低於 28。
+- 沒有 Google Play services 的 ROM 讀不到步數，這是平台限制，不是 bug。
 
 # Permission (Android)
+
+0. 權限原則：**只宣告程式碼真的用到的**。本 app 只讀步數，所以是 READ 而不是 READ_WRITE，
+   也不要求 Location（計步不需要，Health Connect 也不拿它作條件）。
 
 1. In `AndroidManifest.xml`, these permission are required.
 
    ```xml
    <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
    <uses-permission android:name="android.permission.health.READ_STEPS" />
-   <uses-permission android:name="android.permission.health.WRITE_STEPS" />
    ```
 
 1. Because this app needs to access data more than 30 days, it needs this permission, reference: https://developer.android.com/reference/androidx/health/connect/client/permission/HealthPermission#PERMISSION_READ_HEALTH_DATA_HISTORY()
@@ -38,7 +43,8 @@ Just another Health App.
 
 # Platform
 
-- Android: I only enable `arm64-v8a`, if you need `armeabi-v7a`, please include it in build.gradle.kts.
+- Android: only `arm64-v8a`（minSdk 33 的裝置實質上是 arm64 世代）。需要 `armeabi-v7a` 請在
+  `android/app/build.gradle.kts` 的 `abiFilters` 加回去。
 - iOS: this app is built by Flutter, it works theoretically, but still need to implement iOS dependent code and test. For example, how to get health data and import/export data are platform dependent.
 
 # iOS
@@ -48,7 +54,7 @@ Notification
 
 # ToDo
 
-- data.dart 的 setState() 被 comment, 要再補回. 裡面也有重複的 code
+待辦都移到 [TODO.md](TODO.md)（慣例：一個待辦一段，寫清「檔案:行」與「為什麼现在是這樣」）。
 
 # For Developers
 

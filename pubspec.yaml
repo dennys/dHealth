@@ -32,11 +32,9 @@ dependencies:
 
   workmanager: ^0.10.10
 
-dependency_overrides:
-  # 本機 aarch64 沒有可用的 NDK/cmake（Google 無 linux-arm64 host），
-  # path_provider_android 2.3.x 改走 jni/jni_flutter 會觸發 CMake 原生編譯而失敗。
-  # 釘在最後一個不需要原生編譯的版本。
-  path_provider_android: 2.2.23
+# 沒有 dependency_overrides：本機（aarch64 沒有 linux-arm64 的 NDK/cmake）需要的
+# path_provider_android 釘版放在 pubspec_overrides.yaml（gitignore 內，只影響本機），
+# CI 與正式版一律用下面的乾淨依賴集。
 
 dev_dependencies:
   flutter_test:

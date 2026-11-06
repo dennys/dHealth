@@ -1,151 +1,92 @@
 import 'dart:io';
 
-import 'package:dhealth/util.dart';
-import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:health/health.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// All types available depending on platform (iOS ot Android).
-List<HealthDataType> get types =>
-    (Platform.isAndroid)
-        ? dataTypesAndroid
-        : (Platform.isIOS)
-        ? dataTypesIOS
-        : [];
+import '../settings_keys.dart';
+import '../utils/log.dart';
 
-// Set up corresponding permissions
+/// 本案只需要「讀步數」，所以授权範圍就固定在 STEPS / READ 這一組。
+///
+/// 之前是對 dataTypesAndroid 的 33 個類型全部要 READ_WRITE（心跳、血壓、血糖、經期…），
+/// 而 app 一個都沒讀：除了每次授權對話框要按到爽，上架審查也會被問「為什麼計步器要讀經期」。
+/// 同理不再要求 Location —— 計步不需要，Health Connect 也不拿它當作步數的條件。
+const List<HealthDataType> stepTypes = [HealthDataType.STEPS];
+const List<HealthDataAccess> stepPermissions = [HealthDataAccess.READ];
 
-// READ only
-// List<HealthDataAccess> get permissions =>
-//     types.map((e) => HealthDataAccess.READ).toList();
+/// 授權失敗的原因；由 UI 決定要顯示什麼文字（不在這裡塞字串）。
+enum PermissionFailure {
+  activityRecognition, // Android 上用 Sensor 數步數的權限，沒有就永遠 0 步
+  healthRead, // Health Connect 對 STEPS 的讀取授權
+}
 
-// Read and write permissions with special handling for iOS-specific types
-List<HealthDataAccess> get permissions =>
-    types
-        .map(
-          (type) =>
-              // iOS only allows READ permissions for certain health data types
-              [
-                    HealthDataType.WALKING_HEART_RATE,
-                    HealthDataType.ELECTROCARDIOGRAM,
-                    HealthDataType.HIGH_HEART_RATE_EVENT,
-                    HealthDataType.LOW_HEART_RATE_EVENT,
-                    HealthDataType.IRREGULAR_HEART_RATE_EVENT,
-                    HealthDataType.EXERCISE_TIME,
-                  ].contains(type)
-                  ? HealthDataAccess.READ
-                  : HealthDataAccess.READ_WRITE,
-        )
-        .toList();
-
-/// Service class for handling all permission-related functionality
+/// 所有權限相關的唯一入口。
 class PermissionService {
-  /// Requests and verifies all necessary permissions for the app
+  PermissionService._();
+
+  /// 取得讀步數所需的全部權限。
   ///
-  /// Returns true if all critical permissions are granted, false otherwise
-  static Future<bool> authorize() async {
+  /// 回傳 null 代表「可以開始讀步數」；回傳 [PermissionFailure] 代表關鍵權限拿不到，
+  /// 呼叫端必須讓使用者看得见（舊版把每個 return false 都註解掉，結果恆回 true，
+  /// 於是在使用者面前讀到 0 步看起來像「今天真的沒走路」而不是「沒權限」）。
+  ///
+  /// 通知、歷史資料（>30 天）、背景讀取这三項是**加分項**：拿不到就少個功能，
+  /// 不該讓整個 app 進不去，所以只在這裡記錄、不當成失敗。
+  static Future<PermissionFailure?> requestStepAccess({bool wantNotifications = true}) async {
     final health = GetIt.I<Health>();
-    final SharedPreferencesAsync prefs = SharedPreferencesAsync();
+
     try {
-      // Request activityRecognition and location
-      // List<Permission> permissionsList = [Permission.location, Permission.notification];
-      // if (Platform.isAndroid) {
-      //   permissionsList.add(Permission.activityRecognition); // iOS doesn't need this permission
-      // }
-
-      // for (Permission permission in permissionsList) {
-      //   if (!await permission.request().isGranted) {
-      //     debugPrint("${permission.toString()} is not granted");
-      //     return false;
-      //   }
-      // }
-
-      // Request location permission
-      if (!await Permission.location.request().isGranted) {
-        if (await Permission.location.isPermanentlyDenied) {
-          await openAppSettings();
-        }
-        // debugPrint("Location permission not granted");
-        // return false;
+      // 不在這裡 openAppSettings()：選單是「一次性的」，而這條是每次進場都會走的路徑，
+      // 一旦使用者選過「拒絕且不再詢問」，就會變成「一開 app 就被丟到系統設定頁」的迴圈。
+      // UI 有橫幅 + Retry 按鈕，要改權限由使用者自己按。
+      if (Platform.isAndroid && !await Permission.activityRecognition.request().isGranted) {
+        return PermissionFailure.activityRecognition;
       }
 
-      // Request permission for activityRecognition data (Android only)
-      if (Platform.isAndroid) {
-        if (!await Permission.activityRecognition.request().isGranted) {
-          if (await Permission.activityRecognition.isPermanentlyDenied) {
-            await openAppSettings();
-          }
-          // debugPrint("${Permission.activityRecognition.toString()} is not granted");
-          // return false;
-        }
+      final bool? hasRead = await health.hasPermissions(stepTypes, permissions: stepPermissions);
+      if (hasRead != true) {
+        final authorized = await health.requestAuthorization(stepTypes, permissions: stepPermissions);
+        if (!authorized) return PermissionFailure.healthRead;
       }
 
-      // Request notification permission if enabled in preferences
-      final bool notificationEnabled = await prefs.getBool('notification_enabled') ?? true;
-      if (notificationEnabled) {
-        if (!await Permission.notification.request().isGranted) {
-          if (await Permission.notification.isPermanentlyDenied) {
-            await openAppSettings();
-          }
-          // debugPrint("${Permission.notification.toString()} is not granted");
-          // return false;
-        }
-      }
-
-      // Request permission for health data
-      List<HealthDataType> types = [HealthDataType.STEPS];
-      List<HealthDataAccess> permissions = [HealthDataAccess.READ];
-      bool? hasPermissions = await health.hasPermissions(types, permissions: permissions);
-      if (hasPermissions == false) {
-        bool authorized = await health.requestAuthorization(types, permissions: permissions);
-        if (!authorized) {
-          debugPrint("Health data authorization failed");
-          // return false;
-        }
-      }
-
-      // Request permission for health data history (more than 30 days)
-      final bool isHealthDataHistoryAuthorized = await health.isHealthDataHistoryAuthorized();
-      if (!isHealthDataHistoryAuthorized) {
-        bool authorized = await health.requestHealthDataHistoryAuthorization();
-        if (!authorized) {
-          debugPrint("Health data history authorization failed");
-          // return false;
-        }
-      }
-
-      // Request permission for background health data access (health v12.x+)
-      final bool isHealthDataInBackgroundAuthorized = await health.isHealthDataInBackgroundAuthorized();
-      if (!isHealthDataInBackgroundAuthorized) {
-        bool authorized = await health.requestHealthDataInBackgroundAuthorization();
-        if (!authorized) {
-          debugPrint("Background health data authorization failed");
-          // return false;
-        }
-      }
-
-      return true;
+      // 以下三項非關鍵：失敗只記 log，不影響回傳值。
+      await _requestOptionalNotifications(wantNotifications);
+      await _requestOptional(
+        '健康資料歷史（>30 天）',
+        () => health.isHealthDataHistoryAuthorized(),
+        () => health.requestHealthDataHistoryAuthorization(),
+      );
+      await _requestOptional(
+        '背景健康資料讀取',
+        () => health.isHealthDataInBackgroundAuthorized(),
+        () => health.requestHealthDataInBackgroundAuthorization(),
+      );
+      return null;
     } catch (error, stackTrace) {
-      debugPrint("Exception in authorize: $error\n$stackTrace");
-      return false;
+      appError('requestStepAccess 異常', error, stackTrace);
+      return PermissionFailure.healthRead;
     }
   }
 
-  /// Requests permission to access device storage
-  ///
-  /// Primarily needed for Android devices
-  static Future<bool> requestStoragePermission() async {
-    // For Android 10 and above, we need WRITE_EXTERNAL_STORAGE permission
-    if (Platform.isAndroid) {
-      var status = await Permission.storage.status;
-      if (!status.isGranted) {
-        status = await Permission.storage.request();
-        return status.isGranted;
-      }
-      return true;
+  static Future<void> _requestOptionalNotifications(bool wantNotifications) async {
+    if (!wantNotifications) return;
+    final prefs = SharedPreferencesAsync();
+    if (!(await prefs.getBool(Prefs.notificationsEnabled) ?? PrefsDefaults.notificationsEnabled)) return;
+
+    // 同上：不自動跳系統設定頁，只記下來（通知是加分項，沒給就用不到通知而已）。
+    if (!await Permission.notification.request().isGranted) {
+      appLog('通知權限未取得（非關鍵）');
     }
-    return true;
+  }
+
+  static Future<void> _requestOptional(String label, Future<bool> Function() isGranted, Future<bool> Function() request) async {
+    try {
+      if (await isGranted()) return;
+      await request();
+    } catch (e) {
+      appLog('$label 未取得（非關鍵）：$e');
+    }
   }
 }

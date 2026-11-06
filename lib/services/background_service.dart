@@ -1,66 +1,86 @@
-import 'package:flutter/foundation.dart';
-import 'package:health/health.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:get_it/get_it.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
-import 'dart:io' show Platform;
+
+import '../di.dart';
+import '../settings_keys.dart';
+import '../utils/log.dart';
+import 'data_service.dart';
 import 'notification_service.dart';
-import 'package:flutter/services.dart';
 
-// Define the task key
-const String stepTrackerTask = "com.example.step_tracker";
+/// WorkManager 的任務識別碼；改名要記得已安裝的舊任務會留在系統裡（既有代碼用
+/// com.example.* 是範例殘留，本檔是本案自己的 task）。
+const String stepTrackerTask = 'com.dennys.dhealth.step_tracker';
 
+/// 背景 isolate 的進入點。這裡面每個 await 都要包好：拋出未處理例外時 WorkManager
+/// 只會把任務標記失敗，使用者什麼都看不到。
 @pragma('vm:entry-point')
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
+    if (task != stepTrackerTask) return true;
     try {
-      // This is for debug
-      // await NotificationService.showErrorNotification("This is callbackdispatcher, task is $stepTrackerTask, stepTrackerTask is $stepTrackerTask");
-      switch (task) {
-        case stepTrackerTask:
-          await BackgroundService.executeTask(inputData);
-          break;
-      }
+      // 背景 isolate 有自己的 GetIt，之前從沒 register 過（所以舊版從來沒把同步結果寫進 DB）。
+      await configureDependencies();
+      // 通知插件是 per-isolate 的：只在 UI 那側 initialize() 過，背景這條 isolate 沒過，
+      // createNotification 就永遠发不出去（而且被 catch 吃掉，看不出問題）。
+      await NotificationService.initialize();
+      await BackgroundService.executeTask();
       return true;
-    } catch (e) {
-      debugPrint("Workmanager task error: $e");
+    } catch (e, st) {
+      appError('Workmanager 任務異常', e, st);
       return false;
     }
   });
 }
 
+/// 這次同步讀到的步數。讀取失敗時是 null，**不是** 0，也不是任何魔術數字。
+///
+/// （舊版沒權限時回 999，而 999 會去和預設 300 的目標比較，於是使用者收到
+/// 「Goal Reached! 你走了 999 步，太棒了」這種憑空恭喜。）
+enum StepReading { ok, failed }
+
+/// 該發哪一種通知。**純函數**，不做 IO —— 這是本案最容易測、也最容易錯的一段。
+enum StepAlert { goalReached, almostThere, none }
+
+/// 依步數與設定決定通知種類（純函數）。
+///
+/// [steps] 為 null 代表讀不到步數：這才是真的「例外」，值得發錯誤通知（而且要在
+/// 使用者開了「例外」通知時才發）。之前是反過來的 —— 正常未達標也會發
+/// "Error Occurred: Not fit any criteria."，等於每 15 分鐘使用者就被叫一次「出錯了」。
+StepAlert decideStepAlert({required int? steps, required int dailyStepGoal, required int almostThereMargin}) {
+  if (steps == null) return StepAlert.none; // 錯誤由呼叫端走 _exception 那條路
+  if (dailyStepGoal <= 0) return StepAlert.none;
+  if (steps >= dailyStepGoal) return StepAlert.goalReached;
+  if (dailyStepGoal - steps <= almostThereMargin) return StepAlert.almostThere;
+  return StepAlert.none;
+}
+
 class BackgroundService {
-  static final GetIt getIt = GetIt.instance;
-  static final Health health = Health();
-  static const String _syncFrequencyKey = "health_sync_frequency";
+  BackgroundService._();
 
   static Future<void> init() async {
-    // Initialize Workmanager
-    // (workmanager 0.10: isInDebugMode 已廢除且無作用，改用 WorkmanagerDebug handlers)
     await Workmanager().initialize(callbackDispatcher);
-
-    // Schedule periodic task
     await scheduleTask();
   }
 
+  /// 依目前設定（重）排周期任務。設定頁改動後呼叫這個，不是 init()。
   static Future<void> scheduleTask() async {
     final prefs = SharedPreferencesAsync();
-    final int interval = await prefs.getInt(_syncFrequencyKey) ?? 15;
-    final int dailyStepGoal = await prefs.getInt('dailyStepGoal') ?? 300;
-    final bool notificationEnabled = await prefs.getBool('notification_enabled') ?? true;
+    final interval = await prefs.getInt(Prefs.syncFrequency) ?? PrefsDefaults.syncFrequencyMinutes;
+    final dailyStepGoal = await prefs.getInt(Prefs.dailyStepGoal) ?? PrefsDefaults.dailyStepGoal;
 
-    // final steps = await _fetchTodaySteps();
-    // debugPrint("Workmanager task fetched steps: $steps");
-
-    // Cancel any existing tasks
     await Workmanager().cancelByUniqueName(stepTrackerTask);
 
-    // Schedule new periodic task
+    if (!(await prefs.getBool(Prefs.healthSyncEnabled) ?? PrefsDefaults.healthSyncEnabled)) {
+      appLog('背景同步已停用，不排程');
+      return;
+    }
+
     await Workmanager().registerPeriodicTask(
       stepTrackerTask,
       stepTrackerTask,
-      frequency: Duration(minutes: interval),
-      initialDelay: Duration(seconds: 30),
+      frequency: Duration(minutes: interval.clamp(15, 24 * 60)),
+      initialDelay: const Duration(seconds: 30),
       existingWorkPolicy: ExistingPeriodicWorkPolicy.replace,
       constraints: Constraints(
         networkType: NetworkType.notRequired,
@@ -69,149 +89,130 @@ class BackgroundService {
         requiresDeviceIdle: false,
         requiresStorageNotLow: false,
       ),
-      inputData: <String, dynamic>{'dailyStepGoal': dailyStepGoal, 'notificationEnabled': notificationEnabled},
+      inputData: <String, dynamic>{'dailyStepGoal': dailyStepGoal},
     );
 
-    debugPrint("Scheduled Workmanager task with interval: $interval minutes");
+    appLog('已排定背景同步，每 $interval 分鐘');
   }
 
-  static Future<void> executeTask(Map<String, dynamic>? inputData) async {
-    try {
-      final int dailyStepGoal = inputData?['dailyStepGoal'] ?? 327;
-      final bool notificationEnabled = inputData?['notificationEnabled'] ?? true;
+  /// 一次背景同步：讀步數 → 寫 DB → （照設定）發通知。
+  ///
+  /// inputData 只當「排程當時的目標快照」用；真正比對前一律以 prefs 現值為準，
+  /// 否則使用者改了目標，還要等舊的排程資料被替換掉才生效。
+  static Future<void> executeTask([Map<String, dynamic>? inputData]) async {
+    final prefs = SharedPreferencesAsync();
+    // 一律以 prefs 現值為準：inputData 是「排程當時」的快照，拿它會讓使用者改了目標
+    // 之後還要等排程被替換才生效（本檔上方的註解講的就是這件事，之前的程式碼做反了）。
+    final dailyStepGoal = await prefs.getInt(Prefs.dailyStepGoal) ?? inputData?['dailyStepGoal'] as int? ?? PrefsDefaults.dailyStepGoal;
 
-      final steps = await _fetchTodaySteps();
-      debugPrint("Workmanager task fetched steps: $steps");
+    final result = await _service().syncNewData();
 
-      if (notificationEnabled) {
-        if (steps >= dailyStepGoal) {
-          await NotificationService.showGoalReachedNotification(steps, dailyStepGoal);
-        } else if (dailyStepGoal - steps < 1000) {
-          await NotificationService.showAlmostThereNotification(steps, dailyStepGoal);
-        } else {
-          await NotificationService.showErrorNotification("Not fit any criteria. $steps $dailyStepGoal");
+    switch (result.status) {
+      case StepSyncStatus.permissionDenied:
+      case StepSyncStatus.unavailable:
+      case StepSyncStatus.invalidRange:
+        // 文字由 NotificationService 那邊用 l10n 取（背景 isolate 沒有 context），
+        // 技術細節留在 result.detail 裡，我們這裡已經 appError 過。
+        appLog('背景同步未成功：${result.status.name}');
+        await _notifyException(result.status);
+        return;
+      case StepSyncStatus.success:
+        break;
+    }
+
+    // 只在同步成功的時候才讀今天的步數：失敗那次讀到的也是舊資料，照樣會被上面的
+    // 分支丟掉，白讀一趟 DB。
+    final int? steps = await _todayStepCount();
+
+    final settings = await _NotificationSettings.read(prefs);
+    if (!settings.enabled) return;
+
+    final alert = decideStepAlert(
+      steps: steps,
+      dailyStepGoal: dailyStepGoal,
+      almostThereMargin: PrefsDefaults.almostThereStepMargin,
+    );
+
+    switch (alert) {
+      case StepAlert.goalReached:
+        if (settings.reachGoal && await NotificationService.canSend(Prefs.reachGoal, settings.frequencyMinutes, settings.window)) {
+          if (await NotificationService.showGoalReached(steps!, dailyStepGoal)) {
+            await NotificationService.markSent(Prefs.reachGoal);
+          }
         }
-      }
-    } catch (e) {
-      debugPrint("Task execution error: $e");
-      await NotificationService.showErrorNotification("😢 Error: ${e.toString()}");
+      case StepAlert.almostThere:
+        final gap = dailyStepGoal - steps!;
+        if (settings.motivation && await NotificationService.canSend(Prefs.motivation, settings.motivationMinutes, settings.window)) {
+          if (await NotificationService.showAlmostThere(steps, gap, dailyStepGoal)) {
+            await NotificationService.markSent(Prefs.motivation);
+          }
+        }
+      case StepAlert.none:
+        break;
     }
   }
 
-  static Future<int> _fetchTodaySteps() async {
-    try {
-      final now = DateTime.now();
-      final midnight = DateTime(now.year, now.month, now.day);
+  static Future<int?> _todayStepCount() async {
+    final now = DateTime.now();
+    final midnight = DateTime(now.year, now.month, now.day);
+    final row = await _service().database.getDailyStep(midnight);
+    return row?.stepCount;
+  }
 
-      if (Platform.isAndroid) {
-        return await _fetchAndroidSteps(midnight, now);
-      }
-      return await _fetchAppleHealthSteps(midnight, now);
-    } catch (e) {
-      debugPrint("Error fetching steps: $e");
-      return 0;
+  /// 只在使用者開了「例外」通知、且現在在通知時段內時才發。
+  static Future<void> _notifyException(StepSyncStatus reason) async {
+    final prefs = SharedPreferencesAsync();
+    final settings = await _NotificationSettings.read(prefs);
+    if (!settings.enabled || !settings.exception) return;
+    if (!await NotificationService.canSend(Prefs.exception, settings.frequencyMinutes, settings.window)) return;
+    if (await NotificationService.showSyncError(reason)) {
+      await NotificationService.markSent(Prefs.exception);
     }
   }
 
-  static Future<int> _fetchAndroidSteps(DateTime start, DateTime end) async {
-    try {
-      // bool authorized = await health.requestAuthorization(types, permissions: permissions);
-      // if (!authorized) return 0;
-
-      int steps = await getQ1(start, end);
-      if (steps == 0) {
-        steps = await _getAggregatedSteps(start, end);
-      }
-
-      return steps;
-    } catch (e) {
-      debugPrint("Error fetching Android steps: $e");
-      return await _getAggregatedSteps(start, end);
-    }
+  static StepDataService _service() {
+    // 背景 isolate 有自己的 GetIt，裡面的 Health/StepDatabase 由外掛自行重建；
+    // 沒註冊過的話這裡會丟例外，由 callbackDispatcher 接住並標記任務失敗。
+    return GetIt.instance<StepDataService>();
   }
+}
 
-  /// Define a platform channel for communication with native code
-  static const MethodChannel platform = MethodChannel('com.example.health');
+/// 通知相關設定的快照（同一次任務裡讀一次就好，不要每處各讀各的預設值）。
+class _NotificationSettings {
+  const _NotificationSettings({
+    required this.enabled,
+    required this.reachGoal,
+    required this.motivation,
+    required this.exception,
+    required this.frequencyMinutes,
+    required this.motivationMinutes,
+    required this.window,
+  });
 
-  /// Fetches health data from Android Health Connect for given types and time range.
-  /// [types]: List of data types (e.g., ['steps', 'heart_rate']).
-  /// [startTime]: Start time as DateTime.
-  /// [endTime]: End time as DateTime.
-  /// Returns a Map with data type as key and list of values as value.
-  static Future<List<HealthDataPoint>> getHealthDataFromTypes({
-    required List<String> types,
-    required DateTime startTime,
-    required DateTime endTime,
-  }) async {
-    try {
-      // Convert DateTime to ISO 8601 string for platform channel
-      final result = await platform.invokeMethod('getHealthData', {
-        'types': types,
-        'startTime': startTime.toIso8601String(),
-        'endTime': endTime.toIso8601String(),
-      });
+  final bool enabled;
+  final bool reachGoal;
+  final bool motivation;
+  final bool exception;
+  final int frequencyMinutes;
+  final int motivationMinutes;
+  final NotificationWindow window;
 
-      // Parse the result as a List<Map> and convert to List<HealthDataPoint>
-      final List<dynamic> dataList = result as List<dynamic>;
-      return dataList.map((item) => HealthDataPoint.fromJson(item as Map<String, dynamic>)).toList();
-    } on PlatformException catch (e) {
-      throw Exception('Failed to get health data: ${e.message}');
-    }
-  }
+  static Future<_NotificationSettings> read(SharedPreferencesAsync prefs) async {
+    final enabled = await prefs.getBool(Prefs.notificationsEnabled) ?? PrefsDefaults.notificationsEnabled;
+    final frequency = (await prefs.getInt(Prefs.notificationFrequency) ?? PrefsDefaults.notificationFrequencyMinutes).clamp(15, 24 * 60);
+    final limitHours = (await prefs.getInt(Prefs.motivationTimeLimit) ?? PrefsDefaults.motivationTimeLimitHours).clamp(0, 24);
 
-  static Future<int> getQ1(DateTime start, DateTime end) async {
-    final types = [HealthDataType.STEPS];
-    final permissions = [HealthDataAccess.READ];
+    final startHour = await prefs.getInt(Prefs.activeStartHour) ?? PrefsDefaults.activeStartHour;
+    final endHour = await prefs.getInt(Prefs.activeEndHour) ?? PrefsDefaults.activeEndHour;
 
-    bool? hasPermission = await health.hasPermissions(types, permissions: permissions);
-    if (!hasPermission!) {
-      debugPrint("No permission for health data in background");
-      await NotificationService.showErrorNotification("No privilege");
-      return 999;
-    }
-
-    List<HealthDataPoint> healthData = await getHealthDataFromTypes(
-      types: ['steps'], // Add more types like 'heart_rate' if needed
-      startTime: start,
-      endTime: end,
+    return _NotificationSettings(
+      enabled: enabled,
+      reachGoal: await prefs.getBool(Prefs.reachGoal) ?? PrefsDefaults.reachGoal,
+      motivation: await prefs.getBool(Prefs.motivation) ?? PrefsDefaults.motivation,
+      exception: await prefs.getBool(Prefs.exception) ?? PrefsDefaults.exception,
+      frequencyMinutes: frequency,
+      motivationMinutes: (limitHours * 60).clamp(frequency, 24 * 60),
+      window: NotificationWindow(startHour: startHour, endHour: endHour),
     );
-
-    // List<HealthDataPoint> healthData = await health.getHealthDataFromTypes(types: types, startTime: start, endTime: end);
-    int steps = healthData.fold<int>(0, (sum, data) => sum + (data.value as NumericHealthValue).numericValue.toInt());
-    await NotificationService.showErrorNotification("debug for steps: $steps");
-    return steps;
-  }
-
-  static Future<int> _fetchAppleHealthSteps(DateTime start, DateTime end) async {
-    try {
-      final types = [HealthDataType.STEPS];
-      // final permissions = [HealthDataAccess.READ];
-
-      // bool authorized = await health.requestAuthorization types, permissions: permissions);
-      // if (!authorized) return 0;
-
-      List<HealthDataPoint> healthData = await health.getHealthDataFromTypes(types: types, startTime: start, endTime: end);
-
-      int steps = healthData.fold<int>(0, (sum, data) => sum + (data.value as NumericHealthValue).numericValue.toInt());
-
-      if (steps == 0) {
-        steps = await _getAggregatedSteps(start, end);
-      }
-
-      return steps;
-    } catch (e) {
-      debugPrint("Error fetching Apple Health steps: $e");
-      return await _getAggregatedSteps(start, end);
-    }
-  }
-
-  static Future<int> _getAggregatedSteps(DateTime start, DateTime end) async {
-    try {
-      int? steps = await health.getTotalStepsInInterval(start, end);
-      return steps ?? 0;
-    } catch (e) {
-      debugPrint("Error getting aggregated steps: $e");
-      return 0;
-    }
   }
 }

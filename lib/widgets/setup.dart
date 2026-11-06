@@ -13,7 +13,7 @@ class SetupScreen extends StatefulWidget {
 class _SetupScreenState extends State<SetupScreen> {
   @override
   Widget build(BuildContext context) {
-    final localizations = AppLocalizations.of(context);
+    final localizations = AppLocalizations.of(context)!;
     final settings = Provider.of<SettingsModel>(context);
     final isDarkTheme = Theme.of(context).brightness == Brightness.dark;
     final secondaryTextColor = isDarkTheme ? Colors.white.withValues(alpha: .8) : Theme.of(context).hintColor;
@@ -25,7 +25,7 @@ class _SetupScreenState extends State<SetupScreen> {
         context: context,
         builder: (context) {
           return AlertDialog(
-            title: Text(localizations?.customSyncTitle ?? 'Custom Sync Frequency'),
+            title: Text(localizations.customSyncTitle),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
               side: BorderSide(
@@ -40,8 +40,8 @@ class _SetupScreenState extends State<SetupScreen> {
             content: TextField(
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
-                labelText: localizations?.interval ?? 'Interval',
-                suffixText: localizations?.minutesUnit ?? 'minutes',
+                labelText: localizations.interval,
+                suffixText: localizations.minutesUnit,
                 border: OutlineInputBorder(
                   borderSide: BorderSide(
                     color:
@@ -57,7 +57,7 @@ class _SetupScreenState extends State<SetupScreen> {
               },
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(context), child: Text(localizations?.cancel ?? 'Cancel')),
+              TextButton(onPressed: () => Navigator.pop(context), child: Text(localizations.cancel)),
               TextButton(
                 onPressed: () {
                   if (customValue != null) {
@@ -65,7 +65,7 @@ class _SetupScreenState extends State<SetupScreen> {
                   }
                   Navigator.pop(context);
                 },
-                child: Text(localizations?.save ?? 'Save'),
+                child: Text(localizations.save),
               ),
             ],
           );
@@ -74,7 +74,7 @@ class _SetupScreenState extends State<SetupScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: Text(localizations?.setup ?? 'Setup'), elevation: 0),
+      appBar: AppBar(title: Text(localizations.setup), elevation: 0),
       body: ListView(
         padding: const EdgeInsets.all(8.0),
         children: [
@@ -82,35 +82,35 @@ class _SetupScreenState extends State<SetupScreen> {
           Padding(
             padding: const EdgeInsets.only(bottom: 8.0),
             child: Text(
-              localizations?.interface ?? 'Interface',
+              localizations.interface,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
           ),
           ListTile(
             dense: true, // Reduces height
-            title: Text(localizations?.selectLanguage ?? 'Select Language'),
+            title: Text(localizations.selectLanguage),
             subtitle: DropdownButton<String>(
               value: settings.language,
               isExpanded: true,
               items: [
-                DropdownMenuItem(value: 'system', child: Text(localizations?.followSystem ?? 'Follow System')),
-                DropdownMenuItem(value: 'en', child: Text(localizations?.english ?? 'English')),
-                DropdownMenuItem(value: 'zh_Hant', child: Text(localizations?.traditionalChinese ?? 'Traditional Chinese')),
-                DropdownMenuItem(value: 'zh_Hans', child: Text(localizations?.simplifiedChinese ?? 'Simplified Chinese')),
+                DropdownMenuItem(value: 'system', child: Text(localizations.followSystem)),
+                DropdownMenuItem(value: 'en', child: Text(localizations.english)),
+                DropdownMenuItem(value: 'zh_Hant', child: Text(localizations.traditionalChinese)),
+                DropdownMenuItem(value: 'zh_Hans', child: Text(localizations.simplifiedChinese)),
               ],
               onChanged: (value) => value != null ? settings.setLanguage(value) : null,
             ),
           ),
           ListTile(
             dense: true, // Reduces height
-            title: Text(localizations?.selectTheme ?? 'Select Theme'),
+            title: Text(localizations.selectTheme),
             subtitle: DropdownButton<String>(
               value: settings.theme,
               isExpanded: true,
               items: [
-                DropdownMenuItem(value: 'system', child: Text(localizations?.followSystem ?? 'Follow System')),
-                DropdownMenuItem(value: 'light', child: Text(localizations?.light ?? 'Light')),
-                DropdownMenuItem(value: 'dark', child: Text(localizations?.dark ?? 'Dark')),
+                DropdownMenuItem(value: 'system', child: Text(localizations.followSystem)),
+                DropdownMenuItem(value: 'light', child: Text(localizations.light)),
+                DropdownMenuItem(value: 'dark', child: Text(localizations.dark)),
               ],
               onChanged: (value) => value != null ? settings.setTheme(value) : null,
             ),
@@ -120,16 +120,16 @@ class _SetupScreenState extends State<SetupScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8.0),
             child: Text(
-              localizations?.healthDataSync ?? 'Health Data Sync',
+              localizations.healthDataSync,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
           ),
           Text(
-            localizations?.healthDataSyncDesc ?? 'Configure how to sync health data from your phone.',
+            localizations.healthDataSyncDesc,
             style: TextStyle(color: secondaryTextColor),
           ),
           SwitchListTile(
-            title: Text(localizations?.enableBackgroundSync ?? 'Enable Background Sync'),
+            title: Text(localizations.enableBackgroundSync),
             value: settings.healthSyncEnabled,
             onChanged: (value) => settings.setHealthSyncEnabled(value),
           ),
@@ -140,7 +140,7 @@ class _SetupScreenState extends State<SetupScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   ListTile(
-                    title: Text(localizations?.syncFrequency ?? 'Sync Frequency'),
+                    title: Text(localizations.syncFrequency),
                     trailing: SizedBox(
                       width: 150, // Adjust this value based on your layout
                       child: DropdownButton<int>(
@@ -150,20 +150,20 @@ class _SetupScreenState extends State<SetupScreen> {
                             settings.predefinedSyncFrequency.contains(settings.syncFrequency)
                                 ? settings.syncFrequency
                                 : null,
-                        hint: Text('${settings.syncFrequency} ${localizations?.minutesUnit ?? 'minutes'}'),
+                        hint: Text('${settings.syncFrequency} ${localizations.minutesUnit}'),
                         items:
                             settings.predefinedSyncFrequency
                                 .map(
                                   (value) => DropdownMenuItem(
                                     value: value,
-                                    child: Text(value == 60 ? '1 hr' : '$value ${localizations?.minutesUnit ?? 'm'}'),
+                                    child: Text(value == 60 ? localizations.oneHour : '$value ${localizations.minutesUnit}'),
                                   ),
                                 )
                                 .toList()
                               ..add(
                                 DropdownMenuItem(
                                   value: -1, // Flag for custom
-                                  child: Text(localizations?.custom ?? 'Custom'),
+                                  child: Text(localizations.custom),
                                 ),
                               ),
                         onChanged: (value) async {
@@ -183,33 +183,14 @@ class _SetupScreenState extends State<SetupScreen> {
                   ),
 
                   ListTile(
-                    title: Text(localizations?.activeHours ?? 'Active Hours'),
-                    subtitle: Text('From ${settings.activeStartHour}:00 to ${settings.activeEndHour}:00'),
+                    title: Text(localizations.activeHours),
+                    subtitle: Text(localizations.activeHoursRange(settings.activeStartHour, settings.activeEndHour)),
                     onTap: () => showActiveHoursPicker(settings),
                   ),
-                  SwitchListTile(
-                    title: Text(localizations?.startOnBoot ?? 'Start on Boot'),
-                    value: settings.startOnBoot,
-                    onChanged: (value) => settings.setStartOnBoot(value),
-                  ),
-                  SwitchListTile(
-                    title: Text(localizations?.stopOnTerminate ?? 'Stop on Terminate'),
-                    value: settings.stopOnTerminate,
-                    onChanged: (value) => settings.setStopOnTerminate(value),
-                  ),
-                  SwitchListTile(
-                    title: Text(localizations?.persistentSync ?? 'Persistent Sync'),
-                    value: settings.persistentSync,
-                    onChanged: (value) => settings.setPersistentSync(value),
-                  ),
-                  if (settings.persistentSync)
-                    Padding(
-                      padding: const EdgeInsets.only(left: 16.0, top: 8.0),
-                      child: Text(
-                        localizations?.persistentSyncReminder ?? 'Note: Sync will continue even if you force-stop the app.',
-                        style: TextStyle(color: Colors.orange, fontSize: 12),
-                      ),
-                    ),
+                  // 這裡原本有 Start on Boot / Stop on Terminate / Persistent Sync 三顆開關：
+                  // 它們只是把值寫進 prefs，全案沒有任何一行程式碼讀它們（而且 Android 上也做不到
+                  // 「使用者強制停止後還繼續同步」）。會騙人的開關比沒有開關更糟，整組刪除。
+                  // 背景同步真正的開關是上面的 Enable Background Sync（真的會去重排 WorkManager）。
                 ],
               ),
             ),
@@ -219,18 +200,22 @@ class _SetupScreenState extends State<SetupScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8.0),
             child: Text(
-              localizations?.displaySettings ?? 'Display Settings',
+              localizations.displaySettings,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
           ),
           SwitchListTile(
-            title: Text(localizations?.showCumulativeSteps ?? 'Show cumulative steps'),
+            title: Text(localizations.showCumulativeSteps),
             value: settings.showCumulative,
             onChanged: (value) => settings.setShowCumulative(value),
           ),
           SwitchListTile(
-            title: Text(localizations?.showDailyStepGoal ?? 'Show daily step goal'),
-            value: settings.showCumulative,
+            title: Text(localizations.showDailyStepGoal),
+            // 這裡原本寫 `value: settings.showCumulative`（從上面那顆複製過來忘了改）：
+            // 開關顯示的狀態跟它實際控制的值是兩回事 —— 關掉「累計步數」後這顆會顯示 OFF，
+            // 但目標線其實還在，點第一下只是把 OFF 改成 ON、圖表完全沒變化，看起來像壞掉。
+            // 同一個設定在 charts.dart 的 _MiniSwitch 綁的是對的欄位，兩個畫面會互相打臉。
+            value: settings.showDailyStepGoal,
             onChanged: (value) => settings.setShowDailyStepGoal(value),
           ),
 
@@ -238,12 +223,12 @@ class _SetupScreenState extends State<SetupScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8.0),
             child: Text(
-              localizations?.dailyStepGoal ?? 'Daily Step Goal',
+              localizations.dailyStepGoal,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
           ),
           ListTile(
-            title: Text(localizations?.setDailyStepGoal ?? 'Set your daily step goal'),
+            title: Text(localizations.setDailyStepGoal),
             subtitle: Row(
               children: [
                 IconButton(
@@ -270,7 +255,13 @@ class _SetupScreenState extends State<SetupScreen> {
                       final int? newValue = int.tryParse(value);
                       if (newValue != null && newValue >= 1000 && newValue <= 20000) {
                         settings.setDailyStepGoal(newValue);
+                        return;
                       }
+                      // 原本這裡是 `if (合法) 才 set`，不合法就什麼都不做 —— 欄位下次 build
+                      // 就跳回舊值，使用者看到的是「我打了數字沒有反應」。起碼講一句範圍。
+                      ScaffoldMessenger.of(context)
+                        ..clearSnackBars()
+                        ..showSnackBar(SnackBar(content: Text(localizations.dailyStepGoalRange), duration: const Duration(seconds: 2)));
                     },
                   ),
                 ),
@@ -291,7 +282,7 @@ class _SetupScreenState extends State<SetupScreen> {
   }
 
   void showActiveHoursPicker(SettingsModel settings) async {
-    final localizations = AppLocalizations.of(context);
+    final localizations = AppLocalizations.of(context)!;
 
     // Helper function to convert hour to TimeOfDay
     TimeOfDay hourToTimeOfDay(int hour) => TimeOfDay(hour: hour, minute: 0);
@@ -306,7 +297,7 @@ class _SetupScreenState extends State<SetupScreen> {
       builder:
           (context) => TimePickerDialog(
             initialTime: initialStart,
-            helpText: localizations?.selectStartTime ?? 'Select Start Time',
+            helpText: localizations.selectStartTime,
             initialEntryMode: TimePickerEntryMode.dial,
           ),
     );
@@ -319,21 +310,21 @@ class _SetupScreenState extends State<SetupScreen> {
       builder:
           (context) => TimePickerDialog(
             initialTime: initialEnd,
-            helpText: localizations?.selectEndTime ?? 'Select End Time',
+            helpText: localizations.selectEndTime,
             initialEntryMode: TimePickerEntryMode.dial,
           ),
     );
 
     if (pickedEnd == null || !mounted) return; // User canceled or widget unmounted
 
-    // Validate that end time is after start time
-    final startMinutes = pickedStart.hour * 60 + pickedStart.minute;
-    final endMinutes = pickedEnd.hour * 60 + pickedEnd.minute;
-
-    if (endMinutes <= startMinutes) {
+    // 只有「開始＝結束」才是真的設定錯。以前這裡用 `endMinutes <= startMinutes` 把
+    // 22:00 → 07:00 這種跨午夜時段也一起擋掉，但 `NotificationWindow.contains()` 本來
+    // 就支援跨午夜 —— 夜貓子因此永遠設不了自己要的通知時段。
+    // （資料庫只有「時」的解析度，所以比較的是小時；選了同一小時代表整點範圍沒有意義。）
+    if (pickedStart.hour == pickedEnd.hour) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(localizations?.endTimeError ?? 'End time must be after start time.'), duration: const Duration(seconds: 2)),
+          SnackBar(content: Text(localizations.activeHoursSameHourError), duration: const Duration(seconds: 2)),
         );
       }
       return;

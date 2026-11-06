@@ -1,5 +1,4 @@
-import 'package:flutter/foundation.dart';
-import 'package:intl/intl.dart';
+import 'package:dhealth/settings_keys.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 enum Weekday {
@@ -25,27 +24,17 @@ enum Weekday {
 }
 
 class WeekdayUtils {
-  static const String _weekStartKey = 'week_start_day';
+  static const String _weekStartKey = Prefs.weekStartDay;
 
-  static Future<Weekday> getWeekStartDay() async {
+  /// 使用者存過的週首日；沒存過就用 [localeDefault]（呼叫端從
+  /// `MaterialLocalizations.of(context).datePickerFirstDayOfTheWeek` 拿 —— 那個才是
+  /// 本地化資料的正確來源），都沒有则退回週一。
+  static Future<Weekday> getWeekStartDay({Weekday? localeDefault}) async {
     try {
-      // 1.1 Try to get from SharedPreferences
-      final prefs = SharedPreferencesAsync();
-      final storedValue = await prefs.getInt(_weekStartKey);
-
-      if (storedValue != null) {
-        return Weekday.fromValue(storedValue);
-      }
-
-      // 1.2 If not found, get from system locale using intl
-      // Get first day of week based on current locale
-      final locale = Intl.getCurrentLocale();
-      // This is a simplified approach; actual implementation might vary
-      // Many countries use Monday (1), US uses Sunday (7)
-      final defaultDay = locale.startsWith('en_US') ? 7 : 1;
-      return Weekday.fromValue(defaultDay);
-    } catch (e) {
-      // Fallback to Monday in case of any errors
+      final stored = await SharedPreferencesAsync().getInt(_weekStartKey);
+      if (stored != null) return Weekday.fromValue(stored);
+      return localeDefault ?? Weekday.monday;
+    } catch (_) {
       return Weekday.monday;
     }
   }
@@ -57,11 +46,3 @@ class WeekdayUtils {
   }
 }
 
-// Example usage
-void main() async {
-  final weekStart = await WeekdayUtils.getWeekStartDay();
-  debugPrint('Week starts on: ${weekStart.name}');
-
-  // Set new week start
-  await WeekdayUtils.setWeekStartDay(Weekday.sunday);
-}

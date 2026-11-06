@@ -163,13 +163,13 @@ abstract class AppLocalizations {
   /// No description provided for @aboutDescription.
   ///
   /// In en, this message translates to:
-  /// **'dHealth is an app to track and manage your health data with support for importing and exporting SQLite databases.'**
+  /// **'dHealth reads your daily step count from Health Connect and shows it by hour, day, week and month. Your data stays on this device.'**
   String get aboutDescription;
 
   /// No description provided for @platformSupportDesc.
   ///
   /// In en, this message translates to:
-  /// **'Works with Health Connect (Android).'**
+  /// **'Android 13 or above with Health Connect and Google Play services. iOS is not supported yet.'**
   String get platformSupportDesc;
 
   /// No description provided for @platformSupportDesc_xxx.
@@ -187,13 +187,13 @@ abstract class AppLocalizations {
   /// No description provided for @healthTracking.
   ///
   /// In en, this message translates to:
-  /// **'Health Data Tracking'**
+  /// **'Daily steps'**
   String get healthTracking;
 
   /// No description provided for @healthTrackingDesc.
   ///
   /// In en, this message translates to:
-  /// **'Monitor your steps and other health metrics.'**
+  /// **'Step counts from Health Connect, with hourly, daily, weekly and monthly charts.'**
   String get healthTrackingDesc;
 
   /// No description provided for @importExportDesc.
@@ -205,7 +205,7 @@ abstract class AppLocalizations {
   /// No description provided for @platformSupport.
   ///
   /// In en, this message translates to:
-  /// **'Platform Support'**
+  /// **'Platform support'**
   String get platformSupport;
 
   /// No description provided for @version.
@@ -223,8 +223,8 @@ abstract class AppLocalizations {
   /// No description provided for @contactDesc.
   ///
   /// In en, this message translates to:
-  /// **'For support or feedback, email us at: support@example.com'**
-  String get contactDesc;
+  /// **'For support or feedback, email us at: {email}'**
+  String contactDesc(String email);
 
   /// No description provided for @oooooSetup.
   ///
@@ -364,41 +364,11 @@ abstract class AppLocalizations {
   /// **'Select End Time'**
   String get selectEndTime;
 
-  /// No description provided for @endTimeError.
-  ///
-  /// In en, this message translates to:
-  /// **'End time must be after start time'**
-  String get endTimeError;
-
   /// No description provided for @activeHours.
   ///
   /// In en, this message translates to:
   /// **'Active Hours'**
   String get activeHours;
-
-  /// No description provided for @startOnBoot.
-  ///
-  /// In en, this message translates to:
-  /// **'Start on Boot'**
-  String get startOnBoot;
-
-  /// No description provided for @stopOnTerminate.
-  ///
-  /// In en, this message translates to:
-  /// **'Stop on Terminate'**
-  String get stopOnTerminate;
-
-  /// No description provided for @persistentSync.
-  ///
-  /// In en, this message translates to:
-  /// **'Persistent Sync'**
-  String get persistentSync;
-
-  /// No description provided for @persistentSyncReminder.
-  ///
-  /// In en, this message translates to:
-  /// **'Note: Sync will continue even if you force-stop the app.'**
-  String get persistentSyncReminder;
 
   /// No description provided for @hourly.
   ///
@@ -537,18 +507,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Notify about exceptions or errors.'**
   String get exceptionNotificationDescription;
-
-  /// No description provided for @newAccomplishmentNotification.
-  ///
-  /// In en, this message translates to:
-  /// **'New Accomplishments'**
-  String get newAccomplishmentNotification;
-
-  /// No description provided for @newAccomplishmentNotificationDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Notify about new achievements.'**
-  String get newAccomplishmentNotificationDescription;
 
   /// No description provided for @customFrequency.
   ///
@@ -844,11 +802,11 @@ abstract class AppLocalizations {
   /// **'Almost There!'**
   String get motivationTitle;
 
-  /// No description provided for @motivationBody.
+  /// motivationBody
   ///
   /// In en, this message translates to:
-  /// **'You\'re just 1000 steps away from your goal of {goal} steps!'**
-  String motivationBody(int goal);
+  /// **'You\'re {gap} steps away from your goal of {goal} steps!'**
+  String motivationBody(int gap, int goal);
 
   /// No description provided for @viewDetails.
   ///
@@ -963,6 +921,252 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This chart shows your step count over the selected period. The bars represent daily/weekly/monthly/yearly steps, and the dotted line shows the average steps.'**
   String get chartHelpContent;
+
+  /// No description provided for @syncNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync now'**
+  String get syncNow;
+
+  /// No description provided for @syncSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Synced'**
+  String get syncSuccess;
+
+  /// No description provided for @syncFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync failed'**
+  String get syncFailed;
+
+  /// No description provided for @retry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get retry;
+
+  /// No description provided for @permissionActivityRecognitionMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Physical-activity permission is not granted, so the step count stays at 0.'**
+  String get permissionActivityRecognitionMissing;
+
+  /// No description provided for @permissionHealthReadMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Health Connect is not allowed to read your steps.'**
+  String get permissionHealthReadMissing;
+
+  /// No description provided for @healthConnectUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Health Connect is not available on this device.'**
+  String get healthConnectUnavailable;
+
+  /// No description provided for @healthConnectUnavailableDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Install it from the Play Store to read your step data.'**
+  String get healthConnectUnavailableDesc;
+
+  /// No description provided for @installHealthConnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Install Health Connect'**
+  String get installHealthConnect;
+
+  /// chartError
+  ///
+  /// In en, this message translates to:
+  /// **'Chart error: {error}'**
+  String chartError(String error);
+
+  /// No description provided for @cumulativeShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Cumul.'**
+  String get cumulativeShort;
+
+  /// No description provided for @goalShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Goal'**
+  String get goalShort;
+
+  /// hourSteps
+  ///
+  /// In en, this message translates to:
+  /// **'{hour}:00\n{steps} steps'**
+  String hourSteps(int hour, int steps);
+
+  /// No description provided for @percentOfAverage.
+  ///
+  /// In en, this message translates to:
+  /// **'of avg'**
+  String get percentOfAverage;
+
+  /// No description provided for @importing.
+  ///
+  /// In en, this message translates to:
+  /// **'Importing data…'**
+  String get importing;
+
+  /// percentComplete
+  ///
+  /// In en, this message translates to:
+  /// **'{percent}% complete'**
+  String percentComplete(String percent);
+
+  /// No description provided for @dateRangeTo.
+  ///
+  /// In en, this message translates to:
+  /// **'to'**
+  String get dateRangeTo;
+
+  /// No description provided for @noDirectorySelected.
+  ///
+  /// In en, this message translates to:
+  /// **'No folder selected'**
+  String get noDirectorySelected;
+
+  /// exportedTo
+  ///
+  /// In en, this message translates to:
+  /// **'Exported to {path}'**
+  String exportedTo(String path);
+
+  /// importedDays
+  ///
+  /// In en, this message translates to:
+  /// **'Imported {days} days of data'**
+  String importedDays(int days);
+
+  /// No description provided for @databaseNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Database file not found'**
+  String get databaseNotFound;
+
+  /// No description provided for @shareSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Database shared'**
+  String get shareSuccess;
+
+  /// No description provided for @shareCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Sharing was cancelled'**
+  String get shareCancelled;
+
+  /// No description provided for @shareFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Share failed'**
+  String get shareFailed;
+
+  /// No description provided for @notificationChannelName.
+  ///
+  /// In en, this message translates to:
+  /// **'Step tracker'**
+  String get notificationChannelName;
+
+  /// No description provided for @notificationChannelDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Step goal and motivation reminders'**
+  String get notificationChannelDescription;
+
+  /// No description provided for @errorNotificationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Step tracking problem'**
+  String get errorNotificationTitle;
+
+  /// errorNotificationBody
+  ///
+  /// In en, this message translates to:
+  /// **'{message}'**
+  String errorNotificationBody(String message);
+
+  /// No description provided for @hourlyDataUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s steps could not be read from Health Connect'**
+  String get hourlyDataUnavailable;
+
+  /// No description provided for @importClearDataWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Warning: this deletes ALL data currently stored in the app first.'**
+  String get importClearDataWarning;
+
+  /// No description provided for @notificationTimeWindowHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications are only sent during the active hours set in Setup → Active Hours.'**
+  String get notificationTimeWindowHint;
+
+  /// No description provided for @oneHour.
+  ///
+  /// In en, this message translates to:
+  /// **'1 hr'**
+  String get oneHour;
+
+  /// No description provided for @activeHoursRange.
+  ///
+  /// In en, this message translates to:
+  /// **'From {from}:00 to {to}:00'**
+  String activeHoursRange(int from, int to);
+
+  /// No description provided for @activeHoursSameHourError.
+  ///
+  /// In en, this message translates to:
+  /// **'Start and end are the same hour - please pick a different end time'**
+  String get activeHoursSameHourError;
+
+  /// No description provided for @syncReasonPermissionDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Health Connect did not grant permission to read steps'**
+  String get syncReasonPermissionDenied;
+
+  /// No description provided for @syncReasonUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not read from Health Connect (not installed, or the device has no Google Play services)'**
+  String get syncReasonUnavailable;
+
+  /// No description provided for @syncReasonInvalidRange.
+  ///
+  /// In en, this message translates to:
+  /// **'The end date is earlier than the start date'**
+  String get syncReasonInvalidRange;
+
+  /// No description provided for @importReasonFileNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'The selected file does not exist'**
+  String get importReasonFileNotFound;
+
+  /// No description provided for @importReasonNoData.
+  ///
+  /// In en, this message translates to:
+  /// **'The file contains no step data'**
+  String get importReasonNoData;
+
+  /// No description provided for @importReasonReadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The file could not be read (not a dHealth export?)'**
+  String get importReasonReadFailed;
+
+  /// No description provided for @dailyStepGoalRange.
+  ///
+  /// In en, this message translates to:
+  /// **'The daily step goal must be between 1000 and 20000'**
+  String get dailyStepGoalRange;
 }
 
 class _AppLocalizationsDelegate

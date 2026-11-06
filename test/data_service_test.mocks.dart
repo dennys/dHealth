@@ -943,13 +943,6 @@ class MockStepDatabase extends _i1.Mock implements _i2.StepDatabase {
   ) as _i6.Future<void>);
 
   @override
-  _i6.Future<void> markDayAsComplete(String? date) => (super.noSuchMethod(
-    Invocation.method(#markDayAsComplete, [date]),
-    returnValue: _i6.Future<void>.value(),
-    returnValueForMissingStub: _i6.Future<void>.value(),
-  ) as _i6.Future<void>);
-
-  @override
   _i6.Future<void> deleteAllData() => (super.noSuchMethod(
     Invocation.method(#deleteAllData, []),
     returnValue: _i6.Future<void>.value(),
@@ -1003,15 +996,6 @@ class MockStepDatabase extends _i1.Mock implements _i2.StepDatabase {
       <MapEntry<DateTime, int>>[],
     ),
   ) as _i6.Future<List<MapEntry<DateTime, int>>>);
-
-  @override
-  _i6.Future<List<MapEntry<DateTime, int>>> getAllYearlySteps() =>
-      (super.noSuchMethod(
-        Invocation.method(#getAllYearlySteps, []),
-        returnValue: _i6.Future<List<MapEntry<DateTime, int>>>.value(
-          <MapEntry<DateTime, int>>[],
-        ),
-      ) as _i6.Future<List<MapEntry<DateTime, int>>>);
 
   @override
   _i3.Migrator createMigrator() => (super.noSuchMethod(

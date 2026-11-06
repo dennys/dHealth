@@ -1,17 +1,18 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
-    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
-    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 權限原則：只宣告「程式碼真的用到」的。每一條多出來的都是上架審查多問一題，
+         也是使用者眼中「這個 app 為什麼要這個」。本輪移除的（code 內 0 個呼叫）：
+         REQUEST_IGNORE_BATTERY_OPTIMIZATIONS（Play 限制權限，需聲明）、
+         USE_EXACT_ALARM / SCHEDULE_EXACT_ALARM（WorkManager 與本地通知都不用精確鬧鐘）、
+         INTERNET（只讀本機 Health Connect；debug profile 自己有一條給 hot reload）、
+         WAKE_LOCK（wakeUpScreen 沒開）、health.WRITE_STEPS（寫入健康資料的功能已移除）、
+         RECEIVE_BOOT_COMPLETED（本 app 沒有 boot receiver；週期性工作交給 WorkManager，
+         JobScheduler 自己會跨重開機保留任務，不需要這條權限）。 -->
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
     <uses-permission android:name="android.permission.health.READ_STEPS" />
-    <uses-permission android:name="android.permission.health.WRITE_STEPS" />
     <uses-permission android:name="android.permission.health.READ_HEALTH_DATA_HISTORY" />
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" /> <!-- Android 13+ -->
-    <uses-permission android:name="android.permission.WAKE_LOCK" /> <!-- wakeUpScreen: true-->
     <uses-permission android:name="android.permission.health.READ_HEALTH_DATA_IN_BACKGROUND" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" /> <!-- Android 13+ -->
     <!-- Permissions: https://developer.android.com/reference/android/health/connect/HealthPermissions -->
         <!-- awesome_notifications 的 AAR 會塞進一堆廠商桌面圖示 badge／快捷鍵權限；本專案完全沒用 badge
          （lib 內 badge|shortcut 命中 0 個），全部用 tools:node="remove" 抵銷，避免上架審查多問一堆無用權限。 -->
@@ -40,6 +41,7 @@
         android:label="dHealth"
         android:name="${applicationName}"
         android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"

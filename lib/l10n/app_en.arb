@@ -10,17 +10,24 @@
   "menu": "Menu",
   "oooooAbout": "",
   "about": "About",
-  "aboutDescription": "dHealth is an app to track and manage your health data with support for importing and exporting SQLite databases.",
-  "platformSupportDesc": "Works with Health Connect (Android).",
+  "aboutDescription": "dHealth reads your daily step count from Health Connect and shows it by hour, day, week and month. Your data stays on this device.",
+  "platformSupportDesc": "Android 13 or above with Health Connect and Google Play services. iOS is not supported yet.",
   "platformSupportDesc_xxx": "Works with Health Connect (Android) and HealthKit (iOS).",
   "features": "Features",
-  "healthTracking": "Health Data Tracking",
-  "healthTrackingDesc": "Monitor your steps and other health metrics.",
+  "healthTracking": "Daily steps",
+  "healthTrackingDesc": "Step counts from Health Connect, with hourly, daily, weekly and monthly charts.",
   "importExportDesc": "Backup or restore your data using SQLite files.",
-  "platformSupport": "Platform Support",
+  "platformSupport": "Platform support",
   "version": "Version",
   "contact": "Contact",
-  "contactDesc": "For support or feedback, email us at: support@example.com",
+  "contactDesc": "For support or feedback, email us at: {email}",
+  "@contactDesc": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
   "oooooSetup": "",
   "setup": "Setup",
   "interface": "Interface",
@@ -44,12 +51,7 @@
   "every1Hour": "Every hour",
   "selectStartTime": "Select Start Time",
   "selectEndTime": "Select End Time",
-  "endTimeError": "End time must be after start time",
   "activeHours": "Active Hours",
-  "startOnBoot": "Start on Boot",
-  "stopOnTerminate": "Stop on Terminate",
-  "persistentSync": "Persistent Sync",
-  "persistentSyncReminder": "Note: Sync will continue even if you force-stop the app.",
   "hourly": "Hourly",
   "daily": "Daily",
   "dailyStepGoal": "Daily Step Goal",
@@ -73,8 +75,6 @@
   "motivationTimeLimitDescription": "Minimum time between motivation notifications.",
   "exceptionNotification": "Exceptions",
   "exceptionNotificationDescription": "Notify about exceptions or errors.",
-  "newAccomplishmentNotification": "New Accomplishments",
-  "newAccomplishmentNotificationDescription": "Notify about new achievements.",
   "customFrequency": "Custom Frequency",
   "minutesLabel": "Minutes",
   "enterMinutes": "Enter minutes",
@@ -164,9 +164,13 @@
     }
   },
   "motivationTitle": "Almost There!",
-  "motivationBody": "You're just 1000 steps away from your goal of {goal} steps!",
+  "motivationBody": "You're {gap} steps away from your goal of {goal} steps!",
   "@motivationBody": {
+    "description": "motivationBody",
     "placeholders": {
+      "gap": {
+        "type": "int"
+      },
       "goal": {
         "type": "int"
       }
@@ -190,5 +194,107 @@
   "past": "Past",
   "chartHelpTitle": "Chart Help",
   "hourlyStepsChartExplanation": "This chart shows your hourly step count.\n\n - 'Cumulative' switch: Toggle to see total steps accumulated over the day.\n - 'Goal' switch: Toggle to display your daily step goal as a horizontal line.\n Adjust these settings to customize your view!",
-  "chartHelpContent": "This chart shows your step count over the selected period. The bars represent daily/weekly/monthly/yearly steps, and the dotted line shows the average steps."
+  "chartHelpContent": "This chart shows your step count over the selected period. The bars represent daily/weekly/monthly/yearly steps, and the dotted line shows the average steps.",
+  "syncNow": "Sync now",
+  "syncSuccess": "Synced",
+  "syncFailed": "Sync failed",
+  "retry": "Retry",
+  "permissionActivityRecognitionMissing": "Physical-activity permission is not granted, so the step count stays at 0.",
+  "permissionHealthReadMissing": "Health Connect is not allowed to read your steps.",
+  "healthConnectUnavailable": "Health Connect is not available on this device.",
+  "healthConnectUnavailableDesc": "Install it from the Play Store to read your step data.",
+  "installHealthConnect": "Install Health Connect",
+  "chartError": "Chart error: {error}",
+  "@chartError": {
+    "description": "chartError",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "cumulativeShort": "Cumul.",
+  "goalShort": "Goal",
+  "hourSteps": "{hour}:00\n{steps} steps",
+  "@hourSteps": {
+    "description": "hourSteps",
+    "placeholders": {
+      "hour": {
+        "type": "int"
+      },
+      "steps": {
+        "type": "int"
+      }
+    }
+  },
+  "percentOfAverage": "of avg",
+  "importing": "Importing data…",
+  "percentComplete": "{percent}% complete",
+  "@percentComplete": {
+    "description": "percentComplete",
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "dateRangeTo": "to",
+  "noDirectorySelected": "No folder selected",
+  "exportedTo": "Exported to {path}",
+  "@exportedTo": {
+    "description": "exportedTo",
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "importedDays": "Imported {days} days of data",
+  "@importedDays": {
+    "description": "importedDays",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "databaseNotFound": "Database file not found",
+  "shareSuccess": "Database shared",
+  "shareCancelled": "Sharing was cancelled",
+  "shareFailed": "Share failed",
+  "notificationChannelName": "Step tracker",
+  "notificationChannelDescription": "Step goal and motivation reminders",
+  "errorNotificationTitle": "Step tracking problem",
+  "errorNotificationBody": "{message}",
+  "@errorNotificationBody": {
+    "description": "errorNotificationBody",
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "hourlyDataUnavailable": "Today's steps could not be read from Health Connect",
+  "importClearDataWarning": "Warning: this deletes ALL data currently stored in the app first.",
+  "notificationTimeWindowHint": "Notifications are only sent during the active hours set in Setup → Active Hours.",
+  "oneHour": "1 hr",
+  "activeHoursRange": "From {from}:00 to {to}:00",
+  "@activeHoursRange": {
+    "placeholders": {
+      "from": {
+        "type": "int"
+      },
+      "to": {
+        "type": "int"
+      }
+    }
+  },
+  "activeHoursSameHourError": "Start and end are the same hour - please pick a different end time",
+  "syncReasonPermissionDenied": "Health Connect did not grant permission to read steps",
+  "syncReasonUnavailable": "Could not read from Health Connect (not installed, or the device has no Google Play services)",
+  "syncReasonInvalidRange": "The end date is earlier than the start date",
+  "importReasonFileNotFound": "The selected file does not exist",
+  "importReasonNoData": "The file contains no step data",
+  "importReasonReadFailed": "The file could not be read (not a dHealth export?)",
+  "dailyStepGoalRange": "The daily step goal must be between 1000 and 20000"
 }

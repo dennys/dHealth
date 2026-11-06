@@ -31,9 +31,10 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         ndk {
-            // https://developer.android.com/ndk/guides/abis#sa
-            abiFilters.addAll( listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64"))
-            // abiFilters.addAll( listOf("arm64-v8a"))
+          // minSdk 33（Android 13）的装置实质上是 arm64 世代；README 也寫只 enable arm64。
+          // 要支援 armeabi-v7a 的老装置再把它加回來（APK 體積與 AOT 時間都會上去）。
+          // https://developer.android.com/ndk/guides/abis#sa
+          abiFilters.addAll(const listOf("arm64-v8a"))
         }
     }
 

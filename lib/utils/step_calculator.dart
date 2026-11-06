@@ -1,5 +1,6 @@
 // utils/step_calculator.dart
 import 'package:dhealth/database/database.dart';
+import 'package:health/health.dart';
 import 'package:intl/intl.dart';
 
 class StepCalculator {
@@ -75,5 +76,42 @@ class StepCalculator {
   static double calculateAverageSteps(List<DailyStep> steps) {
     final validSteps = steps.where((step) => step.stepCount >= 0).toList();
     return validSteps.isEmpty ? 0 : validSteps.map((e) => e.stepCount).reduce((a, b) => a + b) / validSteps.length;
+  }
+
+  /// 把每個步數資料點依時間攤到它涵蓋的幾個小時（跳小時按秒數比例分配）。
+  /// 小於 [todayStart] 的資料點不計（小時圖只看今天）。
+  static Map<int, int> hourlyDistribution(List<HealthDataPoint> points, DateTime todayStart) {
+    final distribution = <int, int>{for (var i = 0; i < 24; i++) i: 0};
+
+    void add(int hour, int steps) => distribution[hour] = (distribution[hour] ?? 0) + steps;
+
+    for (final data in points) {
+      if (data.type != HealthDataType.STEPS) continue;
+      final value = data.value;
+      if (value is! NumericHealthValue) continue;
+      if (data.dateFrom.isBefore(todayStart)) continue;
+
+      final steps = value.numericValue.toInt();
+      if (steps == 0) continue;
+
+      final totalSeconds = data.dateTo.difference(data.dateFrom).inSeconds;
+      if (data.dateFrom.hour == data.dateTo.hour || totalSeconds <= 0) {
+        add(data.dateFrom.hour, steps);
+        continue;
+      }
+
+      var current = data.dateFrom;
+      var remaining = steps;
+      while (current.isBefore(data.dateTo)) {
+        var hourEnd = DateTime(current.year, current.month, current.day, current.hour, 59, 59);
+        if (hourEnd.isAfter(data.dateTo)) hourEnd = data.dateTo;
+        final share = (hourEnd.difference(current).inSeconds / totalSeconds * steps).round();
+        add(current.hour, share);
+        remaining -= share;
+        current = hourEnd.add(const Duration(seconds: 1));
+      }
+      if (remaining > 0) add(data.dateTo.hour, remaining);
+    }
+    return distribution;
   }
 }

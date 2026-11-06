@@ -45,6 +45,17 @@ void main() {
       expect([Weekday.monday, Weekday.sunday].contains(result), true);
     });
 
+    // 舊實作是 Intl.getCurrentLocale().startsWith('en_US') ? sunday : monday，而
+    // getCurrentLocale() 在沒人設 Intl.defaultLocale 時恆為 'en_US' —— 中文介面也會
+    // 被判成週日開始。現在由呼叫端交給 MaterialLocalizations 決定，這裡只負責存/取。
+    test('未儲存時用呼叫端給的 locale 預設，沒有則週一', () async {
+      final prefs = SharedPreferencesAsync();
+      await prefs.clear();
+
+      expect(await WeekdayUtils.getWeekStartDay(localeDefault: Weekday.sunday), Weekday.sunday);
+      expect(await WeekdayUtils.getWeekStartDay(), Weekday.monday);
+    });
+
     test('setWeekStartDay stores value correctly', () async {
       await WeekdayUtils.setWeekStartDay(Weekday.friday);
       final prefs = SharedPreferencesAsync();

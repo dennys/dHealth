@@ -3,33 +3,14 @@ import 'package:provider/provider.dart';
 import 'package:dhealth/generated/l10n/app_localizations.dart';
 import '../settings_model.dart'; // Import your SettingsModel
 
-// notification_enabled: Boolean, default true (Enable Notifications).
-// notification_frequency: Integer (minutes), default 15 (Notification Frequency).
-// notification_reach_goal: Boolean, default true (Reach Goal Notification).
-// notification_motivation: Boolean, default true (Motivation Notification).
-// notification_motivation_time_limit: Integer (hours), default 1 (Motivation Time Limit).
-// notification_exception: Boolean, default true (Exception Notification).
-// notification_accomplishment: Boolean, default true (New Accomplishment Notification).
-// notification_sound_enabled: Boolean, default true (Notification Sound).
-// notification_vibration_enabled: Boolean, default true (Vibration).
-// notification_priority: String (low, default, high), default default (Notification Priority).
-// notification_start_time: String (e.g., 8:0), default 8:0 (Start Time, 8 AM).
-// notification_end_time: String (e.g., 22:0), default 22:0 (End Time, 10 PM).
-
-// the above is my app's setup widget, I want to build another file to setup notification's setup.
-// 1. suggest name for the 2 files and class name. the original is "setup", I want to add another for notification only
-// 2. this new setup widget should config these settings by shared_preferences (use async)
-// 2.1 enable notification or not (value is bool, default is true)
-// 2.2 notify frequency, default is 15 mins. If users want to change, let me to choose some common values and another custom option
-// 2.3 choose what notification want to show
-// 2.3.1 reach goal notification, default is true
-// 2.3.2 motivation (Almost There Notification) or not, default is true. => if I'm near the goal, show a message to encourage
-// 2.3.2.1 motivation time limit: only show motivation at most 1 time in x hours (x is config, default is 1)
-// 2.3.3 show exception or not, default is true
-// 2.4 show a new accomplishment, default is true
-// 3. all above setup use use the same prefix in shared_preferences and give me a list
-// 4. reference the layout from https://github.com/AntennaPod/AntennaPod/blob/84907b114fc4688c5ede9e25066a597145cf8d89/ui/preferences/src/main/res/xml/preferences_import_export.xml#L9
-// 5. I use awesome_notification, any setup I should open for users?
+/// 通知設定頁。
+///
+/// 這裡只放「通知」相關的控制項；**通知時段（Active Hours）不在本頁** ——
+/// 它的唯一來源是 `setup.dart` 的 Active Hours（寫 `Prefs.activeStartHour/EndHour`），
+/// `NotificationService.canSend()` 讀的就是那一組。之前本頁另有一組 Start/End Time，
+/// 存進 `notification_start_time`/`notification_end_time` 兩個沒有人讀的 key：
+/// 使用者在這裡調好時段，實際生效的卻是另一頁的設定（而且兩個時間選譯器都預設成 end）。
+/// 所以把這組裝飾品刪掉，保留一個來源。
 
 class NotificationSetupScreen extends StatelessWidget {
   const NotificationSetupScreen({super.key});
@@ -123,15 +104,8 @@ class NotificationSetupScreen extends StatelessWidget {
             onChanged: (value) => settings.setException(value),
           ),
           const Divider(),
-
-          // New Accomplishment
-          SwitchListTile(
-            title: Text(localizations.newAccomplishmentNotification, style: TextStyle(color: textColor)),
-            subtitle: Text(localizations.newAccomplishmentNotificationDescription, style: TextStyle(color: secondaryTextColor)),
-            value: settings.accomplishment,
-            onChanged: (value) => settings.setAccomplishment(value),
-          ),
-          const Divider(),
+          // New Accomplishment 的開關刪了：它只寫進 prefs，全案 0 個讀取者，
+          // 而且本案只有 Goal Reached / Almost There / Error 三種通知，沒有第四種可以開。
 
           // Notification Appearance
           Text(localizations.notificationAppearance, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: textColor)),
@@ -166,40 +140,6 @@ class NotificationSetupScreen extends StatelessWidget {
           ),
           const Divider(),
 
-          // Notification Time Window
-          Text(localizations.notificationTimeWindow, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: textColor)),
-          ListTile(
-            title: Text(localizations.startTime, style: TextStyle(color: textColor)),
-            subtitle: Text(localizations.startTimeDescription, style: TextStyle(color: secondaryTextColor)),
-            trailing: Text(settings.startTime.format(context), style: TextStyle(color: textColor)),
-            onTap: () async {
-              final time = await showTimePicker(
-                context: context,
-                initialTime: settings.endTime,
-                // force to use en_US because I like it's layour
-                builder: (context, child) => Localizations.override(context: context, locale: const Locale('en', 'US'), child: child!),
-              );
-              if (time != null) {
-                settings.setStartTime(time);
-              }
-            },
-          ),
-          ListTile(
-            title: Text(localizations.endTime, style: TextStyle(color: textColor)),
-            subtitle: Text(localizations.endTimeDescription, style: TextStyle(color: secondaryTextColor)),
-            trailing: Text(settings.endTime.format(context), style: TextStyle(color: textColor)),
-            onTap: () async {
-              final time = await showTimePicker(
-                context: context,
-                initialTime: settings.endTime,
-                // force to use en_US because I like it's layour
-                builder: (context, child) => Localizations.override(context: context, locale: const Locale('en', 'US'), child: child!),
-              );
-              if (time != null) {
-                settings.setEndTime(time);
-              }
-            },
-          ),
         ],
       ),
     );

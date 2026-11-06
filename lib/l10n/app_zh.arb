@@ -10,17 +10,24 @@
   "menu": "選單",
   "oooooAbout": "",
   "about": "關於",
-  "aboutDescription": "dHealth 是一款用於追蹤和管理您的健康數據的應用程式，支持導入和導出 SQLite 數據庫。",
-  "platformSupportDesc": "支援 Health Connect（安卓）。",
+  "aboutDescription": "dHealth 只從 Health Connect 讀你的每日步數，並依小時、天、週、月呈現。資料留在這台裝置上。",
+  "platformSupportDesc": "Android 13 以上，需 Health Connect 與 Google Play services。iOS 尚未支援。",
   "platformSupportDesc_xxx": "支援 Health Connect（安卓）和 HealthKit（iOS）。",
   "features": "功能",
-  "healthTracking": "健康數據追蹤",
-  "healthTrackingDesc": "監控您的步數和其他健康指標。",
+  "healthTracking": "每日步數",
+  "healthTrackingDesc": "取自 Health Connect 的步數，含小時／每日／每週／每月圖表。",
   "importExportDesc": "使用 SQLite 文件備份或還原您的數據。",
   "platformSupport": "平台支援",
   "version": "版本",
   "contact": "聯繫",
-  "contactDesc": "如需支援或反饋，請發送電子郵件至：support@example.com",
+  "contactDesc": "如需支援或想回報問題，請写信給：{email}",
+  "@contactDesc": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
   "oooooSetup": "",
   "setup": "設定",
   "interface": "介面",
@@ -43,10 +50,6 @@
   "every30Minutes": "每30分鐘",
   "every1Hour": "每小時",
   "activeHours": "活動時間",
-  "startOnBoot": "開機時啟動",
-  "stopOnTerminate": "終止時停止",
-  "persistentSync": "持續同步",
-  "persistentSyncReminder": "注意：即使您強制停止應用程式，同步也會繼續。",
   "hourly": "每小時",
   "daily": "每天",
   "dailyStepGoal": "每日目標",
@@ -70,8 +73,6 @@
   "motivationTimeLimitDescription": "激勵通知之間的最小時間間隔。",
   "exceptionNotification": "異常情況",
   "exceptionNotificationDescription": "通知異常或錯誤。",
-  "newAccomplishmentNotification": "新成就",
-  "newAccomplishmentNotificationDescription": "通知新的成就。",
   "customFrequency": "自訂頻率",
   "minutesLabel": "分鐘",
   "enterMinutes": "輸入分鐘數",
@@ -161,9 +162,13 @@
     }
   },
   "motivationTitle": "就差一點！",
-  "motivationBody": "你離 {goal} 步的目標只差 1000 步了！",
+  "motivationBody": "距離 {goal} 步的目標還差 {gap} 步！",
   "@motivationBody": {
+    "description": "motivationBody",
     "placeholders": {
+      "gap": {
+        "type": "int"
+      },
       "goal": {
         "type": "int"
       }
@@ -190,5 +195,106 @@
   "chartHelpContent": "此圖表顯示您在所選期間的步數。柱狀圖表示每日/每週/每月/每年的步數，虛線表示平均步數。",
   "selectStartTime": "選擇開始時間",
   "selectEndTime": "選擇結束時間",
-  "endTimeError": "結束時間必須晚於開始時間"
+  "syncNow": "立即同步",
+  "syncSuccess": "已同步",
+  "syncFailed": "同步失敗",
+  "retry": "重試",
+  "permissionActivityRecognitionMissing": "未授予「身體活動」權限，步數會一直是 0。",
+  "permissionHealthReadMissing": "Health Connect 未允許讀取你的步數。",
+  "healthConnectUnavailable": "這條裝置上沒有 Health Connect。",
+  "healthConnectUnavailableDesc": "請從 Play Store 安裝，才能讀取步數資料。",
+  "installHealthConnect": "安裝 Health Connect",
+  "chartError": "圖表錯誤：{error}",
+  "@chartError": {
+    "description": "chartError",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "cumulativeShort": "累計",
+  "goalShort": "目標",
+  "hourSteps": "{hour}:00\n{steps} 步",
+  "@hourSteps": {
+    "description": "hourSteps",
+    "placeholders": {
+      "hour": {
+        "type": "int"
+      },
+      "steps": {
+        "type": "int"
+      }
+    }
+  },
+  "percentOfAverage": "日均占比",
+  "importing": "正在匯入資料…",
+  "percentComplete": "{percent}% 完成",
+  "@percentComplete": {
+    "description": "percentComplete",
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "dateRangeTo": "至",
+  "noDirectorySelected": "未選擇資料夾",
+  "exportedTo": "已匯出到 {path}",
+  "@exportedTo": {
+    "description": "exportedTo",
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "importedDays": "已匯入 {days} 天的資料",
+  "@importedDays": {
+    "description": "importedDays",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "databaseNotFound": "找不到資料庫檔案",
+  "shareSuccess": "資料庫已分享",
+  "shareCancelled": "已取消分享",
+  "shareFailed": "分享失敗",
+  "notificationChannelName": "步數追蹤",
+  "notificationChannelDescription": "步數目標與鼓勵提醒",
+  "errorNotificationTitle": "步數追蹤有問題",
+  "errorNotificationBody": "{message}",
+  "@errorNotificationBody": {
+    "description": "errorNotificationBody",
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "hourlyDataUnavailable": "讀不到今天的步數（Health Connect）",
+  "importClearDataWarning": "注意：這會先刪除 app 裡現有的全部資料。",
+  "notificationTimeWindowHint": "通知只會在「設定 → 活動時間」設定的時間內發送。",
+  "oneHour": "1 小時",
+  "activeHoursRange": "從 {from}:00 到 {to}:00",
+  "@activeHoursRange": {
+    "placeholders": {
+      "from": {
+        "type": "int"
+      },
+      "to": {
+        "type": "int"
+      }
+    }
+  },
+  "activeHoursSameHourError": "開始與結束是同一小時，請選一個不同的結束時間",
+  "syncReasonPermissionDenied": "Health Connect 沒有給本 app 讀取步數的授權",
+  "syncReasonUnavailable": "讀不到 Health Connect（未安裝，或這台裝置沒有 Google Play services）",
+  "syncReasonInvalidRange": "結束日期早於開始日期",
+  "importReasonFileNotFound": "選定的檔案不存在",
+  "importReasonNoData": "這個檔案裡沒有步數資料",
+  "importReasonReadFailed": "檔案讀不起來（不是 dHealth 的匯出檔？）",
+  "dailyStepGoalRange": "每日目標要介於 1000 與 20000 步之間"
 }
