@@ -5,7 +5,7 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-android {
+extensions.configure<com.android.build.api.dsl.ApplicationExtension> {
     namespace = "com.dennys.dhealth"
     // permission_handler_android 14.1.1（permission_handler 13）要求依赖它的模組用 compileSdk >= 37，
     // 而 flutter.compileSdkVersion 仍是 36，會卡在 :app:checkDebugAarMetadata。
@@ -34,7 +34,7 @@ android {
           // minSdk 33（Android 13）的装置实质上是 arm64 世代；README 也寫只 enable arm64。
           // 要支援 armeabi-v7a 的老装置再把它加回來（APK 體積與 AOT 時間都會上去）。
           // https://developer.android.com/ndk/guides/abis#sa
-          abiFilters.addAll(const listOf("arm64-v8a"))
+          abiFilters.addAll(listOf("arm64-v8a"))
         }
     }
 
