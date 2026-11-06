@@ -22,8 +22,11 @@ android {
         applicationId = "com.dennys.dhealth"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        // Health Connect requires Android 14.
-        minSdk = 34
+        // Health Connect 的真正下限是 Android 9（API 28）+ Play services：14 以上是系統
+        // framework module，13 及以下要從 Play Store 裝 Health Connect APK（app 內的
+        // 「Install Health Connect」按鈕就是那條路）。取 33 是因為這是目前唯一有真機可測的
+        // 較舊版本；要再往下就不能低於 28，否則裝得上但永遠讀不到資料。
+        minSdk = 33
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
