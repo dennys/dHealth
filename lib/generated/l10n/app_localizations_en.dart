@@ -439,6 +439,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get past => 'Past';
 
   @override
+  String get customRange => 'Custom';
+
+  @override
   String get chartHelpTitle => 'Chart Help';
 
   @override

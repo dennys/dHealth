@@ -904,6 +904,12 @@ abstract class AppLocalizations {
   /// **'Past'**
   String get past;
 
+  /// No description provided for @customRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get customRange;
+
   /// No description provided for @chartHelpTitle.
   ///
   /// In en, this message translates to:

@@ -1,10 +1,10 @@
 import 'package:dhealth/database/database.dart';
 import 'package:dhealth/generated/l10n/app_localizations.dart';
 import 'package:dhealth/settings_model.dart';
+import 'package:dhealth/utils/chart_range.dart';
 import 'package:dhealth/utils/step_calculator.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:health/health.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -19,28 +19,26 @@ import 'package:provider/provider.dart';
 /// 就是檔案開頭那張備忘單裡「畫面會閃嗎」的由來。現在 future 放在 State，
 /// 只在 [refreshToken] 變動（同步完成）時重抓。
 
-/// 今天每小時的步數曲線。[points] 是今天的原始步數資料點（由 HomeScreen 同步後取得）。
+/// 今天每小時的步數曲線。[totals] 是今天每個小時的步數（由 HomeScreen 同步後取得，已在 Health Connect 去重）。
 ///
-/// [loaded] = false 代表「今天根本沒讀到」（Health Connect 失靈/無權限），
+/// [totals] = null 代表「今天根本沒讀到」（Health Connect 失靈/無權限），
 /// 那種情況要明講，不能畫一條 0 步的線 —— 那會看起來像「今天一步都沒走」。
 class HourlyStepsChart extends StatelessWidget {
-  const HourlyStepsChart({super.key, required this.points, this.loaded = true});
+  const HourlyStepsChart({super.key, required this.totals});
 
-  final List<HealthDataPoint> points;
-  final bool loaded;
+  final Map<int, int>? totals;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    if (!loaded) {
+    final hourly = totals;
+    if (hourly == null) {
       return _EmptyCard(message: l10n.hourlyDataUnavailable);
     }
     final settings = Provider.of<SettingsModel>(context);
     final theme = Theme.of(context);
     final now = DateTime.now();
-    final todayStart = DateTime(now.year, now.month, now.day);
 
-    final hourly = StepCalculator.hourlyDistribution(points, todayStart);
     final display = Map<int, int>.from(hourly);
     var cumulative = 0;
     if (settings.showCumulative) {
@@ -206,135 +204,121 @@ class HourlyStepsChart extends StatelessWidget {
   }
 }
 
-/// 最近 [n] 天。
+/// 區間內每一天。
 class DailyStepsChart extends StatelessWidget {
-  const DailyStepsChart({super.key, required this.database, required this.refreshToken, this.n = 7});
+  const DailyStepsChart({super.key, required this.database, required this.refreshToken, required this.range});
 
   final StepDatabase database;
   final int refreshToken;
-  final int n;
+  final ChartRange range;
 
   @override
   Widget build(BuildContext context) {
-    final today = DateTime.now();
-    final startDate = today.subtract(Duration(days: n - 1));
-    final prevStartDate = startDate.subtract(Duration(days: n));
     final locale = Localizations.localeOf(context).languageCode;
 
     return _StepChart(
       database: database,
       refreshToken: refreshToken,
-      periods: n,
+      range: range,
+      plan: (r) => (from: r.start, periods: r.dayCount),
+      group: StepCalculator.calculateDailySteps,
       titlePrefix: AppLocalizations.of(context)!.days,
       barWidth: 10,
       showDayOfWeek: true,
-      processSteps: (steps) => StepCalculator.calculateDailySteps(steps, startDate, n),
-      getAverage: StepCalculator.calculateAverageSteps,
-      getPreviousAverage: (steps) => _previousAverage(steps, prevStartDate, startDate, n, StepCalculator.calculateDailySteps),
       bottomTitleFormat: (date) => DateFormat('M/d', locale).format(date),
     );
   }
 }
 
-/// 最近 [n] 週。
+/// 區間涵蓋的每一週（對齊到週一）。
 class WeeklyStepsChart extends StatelessWidget {
-  const WeeklyStepsChart({super.key, required this.database, required this.refreshToken, this.n = 7});
+  const WeeklyStepsChart({super.key, required this.database, required this.refreshToken, required this.range});
 
   final StepDatabase database;
   final int refreshToken;
-  final int n;
+  final ChartRange range;
 
   @override
   Widget build(BuildContext context) {
-    final today = DateTime.now();
-    final startDate = today.subtract(Duration(days: (n * 7) - 1));
-    final prevStartDate = startDate.subtract(Duration(days: n * 7));
     final locale = Localizations.localeOf(context).languageCode;
 
     return _StepChart(
       database: database,
       refreshToken: refreshToken,
-      periods: n,
+      range: range,
+      plan: (r) {
+        final from = r.start.subtract(Duration(days: r.start.weekday - 1));
+        return (from: from, periods: r.end.difference(from).inDays ~/ 7 + 1);
+      },
+      group: StepCalculator.calculateWeeklySteps,
       titlePrefix: AppLocalizations.of(context)!.weeks,
       barWidth: 20,
       showDayOfWeek: false,
-      processSteps: (steps) => StepCalculator.calculateWeeklySteps(steps, startDate, n),
-      getAverage: StepCalculator.calculateAverageSteps,
-      getPreviousAverage: (steps) => _previousAverage(steps, prevStartDate, startDate, n, StepCalculator.calculateWeeklySteps),
       bottomTitleFormat: (date) => DateFormat('M/d', locale).format(date),
     );
   }
 }
 
-/// 最近 [n] 月。
+/// 區間涵蓋的每一月（對齊到月初）。
 class MonthlyStepsChart extends StatelessWidget {
-  const MonthlyStepsChart({super.key, required this.database, required this.refreshToken, this.n = 7});
+  const MonthlyStepsChart({super.key, required this.database, required this.refreshToken, required this.range});
 
   final StepDatabase database;
   final int refreshToken;
-  final int n;
+  final ChartRange range;
 
   @override
   Widget build(BuildContext context) {
-    final today = DateTime.now();
-    final startDate = DateTime(today.year, today.month - n + 1, 1);
-    final prevStartDate = DateTime(today.year, today.month - n * 2 + 1, 1);
     final locale = Localizations.localeOf(context).languageCode;
 
     return _StepChart(
       database: database,
       refreshToken: refreshToken,
-      periods: n,
+      range: range,
+      plan: (r) {
+        final from = DateTime(r.start.year, r.start.month, 1);
+        return (from: from, periods: (r.end.year - from.year) * 12 + r.end.month - from.month + 1);
+      },
+      group: StepCalculator.calculateMonthlySteps,
       titlePrefix: AppLocalizations.of(context)!.months,
       barWidth: 30,
       showDayOfWeek: false,
-      processSteps: (steps) => StepCalculator.calculateMonthlySteps(steps, startDate, n),
-      getAverage: StepCalculator.calculateAverageSteps,
-      getPreviousAverage: (steps) => _previousAverage(steps, prevStartDate, startDate, n, StepCalculator.calculateMonthlySteps),
       bottomTitleFormat: (date) => DateFormat('yyyy-MM', locale).format(date),
     );
   }
 }
 
-/// 「上一期平均」：取 [prevStartDate]（含）到 [startDate)（不含）這段，交給對應週期的聚合函數。
-double _previousAverage(
-  List<DailyStep> allSteps,
-  DateTime prevStartDate,
-  DateTime startDate,
-  int periods,
-  List<DailyStep> Function(List<DailyStep>, DateTime, int) group,
-) {
-  final filtered = allSteps
-      .where((step) =>
-          DateTime.parse(step.date).isAfter(prevStartDate.subtract(const Duration(days: 1))) &&
-          DateTime.parse(step.date).isBefore(startDate))
-      .toList();
-  return StepCalculator.calculateAverageSteps(group(filtered, prevStartDate, periods));
+/// 只保留日期落在 [from]～[to]（含）的紀錄。
+List<DailyStep> _within(List<DailyStep> steps, DateTime from, DateTime to) {
+  return steps.where((step) {
+    final date = DateTime.tryParse(step.date);
+    return date != null && !date.isBefore(from) && !date.isAfter(to);
+  }).toList();
 }
 
 class _StepChart extends StatefulWidget {
   const _StepChart({
     required this.database,
     required this.refreshToken,
-    required this.periods,
+    required this.range,
+    required this.plan,
+    required this.group,
     required this.titlePrefix,
     required this.barWidth,
     required this.showDayOfWeek,
-    required this.processSteps,
-    required this.getAverage,
-    required this.getPreviousAverage,
     required this.bottomTitleFormat,
   });
 
   final StepDatabase database;
   final int refreshToken;
-  final int periods;
+  final ChartRange range;
+
+  /// 由區間算出這個週期的起點與期數。
+  final ({DateTime from, int periods}) Function(ChartRange) plan;
+  final List<DailyStep> Function(List<DailyStep>, DateTime, int) group;
   final String titlePrefix;
   final double barWidth;
   final bool showDayOfWeek;
-  final List<DailyStep> Function(List<DailyStep>) processSteps;
-  final double Function(List<DailyStep>) getAverage;
-  final double Function(List<DailyStep>) getPreviousAverage;
   final String Function(DateTime) bottomTitleFormat;
 
   @override
@@ -368,25 +352,87 @@ class _StepChartState extends State<_StepChart> {
         final all = snapshot.data ?? const <DailyStep>[];
         if (all.isEmpty) return _EmptyCard(message: l10n.noDataInDatabase);
 
-        final processed = widget.processSteps(all);
+        final range = widget.range;
+        final plan = widget.plan(range);
+        final processed = widget.group(_within(all, plan.from, range.end), plan.from, plan.periods);
         if (processed.isEmpty) return _EmptyCard(message: l10n.noDataInDatabase);
 
-        final currentAvg = widget.getAverage(processed);
-        final prevAvg = widget.getPreviousAverage(all);
+        final prevRange = range.previous;
+        final prevPlan = widget.plan(prevRange);
+        final prevProcessed = widget.group(_within(all, prevPlan.from, prevRange.end), prevPlan.from, prevPlan.periods);
+
+        final currentAvg = StepCalculator.calculateAverageSteps(processed);
+        final prevAvg = StepCalculator.calculateAverageSteps(prevProcessed);
         final percentageDiff = prevAvg != 0 ? (((currentAvg - prevAvg) / prevAvg) * 100).toInt() : 0;
         final percentageString = percentageDiff >= 0 ? '+$percentageDiff%' : '$percentageDiff%';
+        final prefix = range.presetDays != null ? '${l10n.past} ' : '';
 
         return _BarChart(
           periodSteps: processed,
-          periods: widget.periods,
+          periods: plan.periods,
           title:
-              '${l10n.past} ${widget.periods} ${widget.titlePrefix}: ${l10n.average} ${NumberFormat.decimalPattern().format(currentAvg.toInt())} ${l10n.steps} ($percentageString)',
+              '$prefix${plan.periods} ${widget.titlePrefix}: ${l10n.average} ${NumberFormat.decimalPattern().format(currentAvg.toInt())} ${l10n.steps} ($percentageString)',
           barWidth: widget.barWidth,
           showDayOfWeek: widget.showDayOfWeek,
           averageSteps: currentAvg,
           bottomTitleFormat: widget.bottomTitleFormat,
         );
       },
+    );
+  }
+}
+
+/// 首頁的日期區間選擇：7／30／90 天，或自訂起訖日。
+class ChartRangeSelector extends StatelessWidget {
+  const ChartRangeSelector({super.key, required this.range, required this.onPreset, required this.onCustom});
+
+  final ChartRange range;
+  final ValueChanged<int> onPreset;
+  final ValueChanged<DateTimeRange> onCustom;
+
+  void _pickCustom(BuildContext context) async {
+    final today = DateUtils.dateOnly(DateTime.now());
+    final firstDate = today.subtract(const Duration(days: 365));
+    final inBounds = !range.start.isBefore(firstDate) && !range.end.isAfter(today);
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: firstDate,
+      lastDate: today,
+      initialDateRange: inBounds ? DateTimeRange(start: range.start, end: range.end) : null,
+    );
+    if (picked != null) onCustom(picked);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final locale = Localizations.localeOf(context).languageCode;
+    final format = DateFormat('M/d', locale);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 4,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          for (final days in ChartRange.presets)
+            ChoiceChip(
+              label: Text('$days ${l10n.days}'),
+              selected: range.presetDays == days,
+              onSelected: (_) => onPreset(days),
+            ),
+          ChoiceChip(
+            label: Text(l10n.customRange),
+            selected: range.presetDays == null,
+            onSelected: (_) => _pickCustom(context),
+          ),
+          Text(
+            '${format.format(range.start)} – ${format.format(range.end)}',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -443,6 +489,10 @@ class _BarChart extends StatelessWidget {
     final visible = sorted.length > periods ? sorted.sublist(sorted.length - periods) : sorted;
     final maxValue = visible.fold(0, (max, e) => e.value > max ? e.value : max);
     final maxY = maxValue > 0 ? maxValue * 1.3 : 1000.0;
+    // 柱子太多時縮窄，標籤也每隔幾根才顯示一個，避免擠在一起。
+    final availableWidth = MediaQuery.sizeOf(context).width - 48;
+    final rodWidth = (availableWidth / visible.length * 0.6).clamp(2.0, barWidth).toDouble();
+    final labelEvery = (visible.length / 7).ceil();
 
     return Card(
       elevation: 4,
@@ -480,7 +530,7 @@ class _BarChart extends StatelessWidget {
                               BarChartRodData(
                                 toY: steps.toDouble(),
                                 color: _getStepBasedColor(steps, maxValue, visible[index].key.weekday),
-                                width: barWidth,
+                                width: rodWidth,
                                 borderRadius: const BorderRadius.only(topLeft: Radius.circular(6), topRight: Radius.circular(6)),
                               ),
                             ],
@@ -502,7 +552,7 @@ class _BarChart extends StatelessWidget {
                               showTitles: true,
                               getTitlesWidget: (value, meta) {
                                 final index = value.toInt();
-                                if (index < 0 || index >= visible.length) return const SizedBox();
+                                if (index < 0 || index >= visible.length || index % labelEvery != 0) return const SizedBox();
                                 return Padding(
                                   padding: const EdgeInsets.only(top: 8.0),
                                   child: Text(

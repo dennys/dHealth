@@ -16,21 +16,6 @@ void main() {
   late StepDataService stepDataService;
   final getIt = GetIt.instance;
 
-  HealthDataPoint stepPoint(DateTime from, DateTime to, int steps) => HealthDataPoint(
-    uuid: 'uuid-$from-$steps',
-    value: NumericHealthValue(numericValue: steps),
-    type: HealthDataType.STEPS,
-    unit: HealthDataUnit.COUNT,
-    dateFrom: from,
-    dateTo: to,
-    sourcePlatform: HealthPlatformType.googleHealthConnect,
-    sourceDeviceId: 'deviceId',
-    sourceId: 'sourceId',
-    sourceName: 'HealthApp',
-    recordingMethod: RecordingMethod.automatic,
-    workoutSummary: null,
-  );
-
   setUp(() {
     getIt.reset();
     mockHealth = MockHealth();
@@ -46,17 +31,18 @@ void main() {
 
   void denyRead() => when(mockHealth.hasPermissions(stepTypes, permissions: stepPermissions)).thenAnswer((_) async => false);
 
-  void stubFetch(List<HealthDataPoint>? points) {
-    when(mockHealth.getHealthDataFromTypes(types: stepTypes, startTime: anyNamed('startTime'), endTime: anyNamed('endTime')))
-        .thenAnswer((_) async => points ?? <HealthDataPoint>[]);
-    when(mockHealth.removeDuplicates(any)).thenAnswer((invocation) => invocation.positionalArguments.first as List<HealthDataPoint>);
+  /// 模擬 Health Connect 的聚合 API：[stepsByDay] 的 key 是 yyyy-MM-dd，沒列的日子回 0。
+  void stubFetch(Map<String, int> stepsByDay) {
+    when(mockHealth.getTotalStepsInInterval(any, any)).thenAnswer((invocation) async {
+      final from = invocation.positionalArguments[0] as DateTime;
+      return stepsByDay[formatDateKey(from)] ?? 0;
+    });
   }
 
   group('syncRange', () {
-    test('讀到資料就覆蓋寫入該區間，同一天多個資料點是累加', () async {
+    test('同一天的步數直接採用 Health Connect 聚合值寫入（不再逐點加總，避免多來源重複計算）', () async {
       allowRead();
-      final day1 = DateTime(2025, 3, 10, 8);
-      stubFetch([stepPoint(day1, day1.add(const Duration(hours: 1)), 100), stepPoint(day1.add(const Duration(hours: 2)), day1.add(const Duration(hours: 3)), 50)]);
+      stubFetch({'2025-03-10': 150});
       when(mockDatabase.getDailyStep(any)).thenAnswer((_) async => null);
 
       final result = await stepDataService.syncRange(DateTime(2025, 3, 10), DateTime(2025, 3, 10));
@@ -69,7 +55,7 @@ void main() {
     test('過去的日子 isComplete = true，今天 false', () async {
       allowRead();
       final now = DateTime.now();
-      stubFetch([stepPoint(now, now.add(const Duration(minutes: 5)), 10)]);
+      stubFetch({formatDateKey(now): 10});
       when(mockDatabase.getDailyStep(any)).thenAnswer((_) async => null);
 
       await stepDataService.syncRange(now, now);
@@ -79,14 +65,24 @@ void main() {
 
     test('讀取失敗時绝不能刪除任何資料（舊版會先刪再讀，Health Connect 一失靈那個區間就永久消失）', () async {
       allowRead();
-      when(mockHealth.getHealthDataFromTypes(types: stepTypes, startTime: anyNamed('startTime'), endTime: anyNamed('endTime')))
-          .thenThrow(Exception('Health Connect 掛了'));
+      when(mockHealth.getTotalStepsInInterval(any, any)).thenThrow(Exception('Health Connect 掛了'));
 
       final result = await stepDataService.syncRange(DateTime(2025, 3, 1), DateTime(2025, 3, 31));
 
       expect(result.status, StepSyncStatus.unavailable);
       verifyNever(mockDatabase.deleteDataInRange(any, any));
       verifyNever(mockDatabase.deleteAllData());
+      verifyNever(mockDatabase.upsertDailyStep(any, any, any, isComplete: anyNamed('isComplete')));
+    });
+
+    test('聚合 API 回 null（讀不到）時同樣不能刪除任何資料', () async {
+      allowRead();
+      when(mockHealth.getTotalStepsInInterval(any, any)).thenAnswer((_) async => null);
+
+      final result = await stepDataService.syncRange(DateTime(2025, 3, 1), DateTime(2025, 3, 2));
+
+      expect(result.status, StepSyncStatus.unavailable);
+      verifyNever(mockDatabase.deleteDataInRange(any, any));
       verifyNever(mockDatabase.upsertDailyStep(any, any, any, isComplete: anyNamed('isComplete')));
     });
 
@@ -102,7 +98,7 @@ void main() {
 
     test('真的讀到 0 步是正當結果：該區間被清空而不是保留舊值', () async {
       allowRead();
-      stubFetch([]);
+      stubFetch({});
 
       final result = await stepDataService.syncRange(DateTime(2025, 3, 10), DateTime(2025, 3, 11));
 
@@ -113,7 +109,7 @@ void main() {
 
     test('刪除範圍不得超過使用者要的結束日（舊版 end +1 天且閉區間，多刪隔天）', () async {
       allowRead();
-      stubFetch([]);
+      stubFetch({});
 
       await stepDataService.syncRange(DateTime(2025, 3, 10), DateTime(2025, 3, 10));
 
@@ -128,7 +124,7 @@ void main() {
 
     test('clearAllFirst 走 deleteAllData', () async {
       allowRead();
-      stubFetch([]);
+      stubFetch({});
 
       await stepDataService.syncRange(DateTime(2025, 3, 10), DateTime(2025, 3, 10), clearAllFirst: true);
 
@@ -152,7 +148,7 @@ void main() {
       final lastDate = DateTime(2025, 1, 1);
       when(mockDatabase.getLastDate()).thenAnswer((_) async => lastDate);
       allowRead();
-      stubFetch([]);
+      stubFetch({});
 
       await stepDataService.syncNewData();
 
@@ -163,7 +159,7 @@ void main() {
     test('資料庫全空時往回取 30 天（舊版被 getLastDate 的 now-7d 假值蓋住，只補到 8 天）', () async {
       when(mockDatabase.getLastDate()).thenAnswer((_) async => null);
       allowRead();
-      stubFetch([]);
+      stubFetch({});
 
       await stepDataService.syncNewData();
 
@@ -177,7 +173,7 @@ void main() {
   group('importFromPhone', () {
     test('分段跑完整個區間並回報進度', () async {
       allowRead();
-      stubFetch([]);
+      stubFetch({});
       when(mockDatabase.getLastDate()).thenAnswer((_) async => null);
 
       final progress = <double>[];
@@ -198,14 +194,11 @@ void main() {
     test('其中一段讀不到時資料庫完全沒被動過（含 clearAllFirst）', () async {
       allowRead();
       var calls = 0;
-      when(mockHealth.getHealthDataFromTypes(types: stepTypes, startTime: anyNamed('startTime'), endTime: anyNamed('endTime')))
-          .thenAnswer((_) async {
+      when(mockHealth.getTotalStepsInInterval(any, any)).thenAnswer((_) async {
         calls++;
-        if (calls > 1) throw Exception('Health Connect 半路失靈');
-        final day = DateTime(2025, 1, 5, 8);
-        return [stepPoint(day, day.add(const Duration(hours: 1)), 1234)];
+        if (calls > 30) throw Exception('Health Connect 半路失靈'); // 第 31 天起是第二段
+        return 1234;
       });
-      when(mockHealth.removeDuplicates(any)).thenAnswer((invocation) => invocation.positionalArguments.first as List<HealthDataPoint>);
 
       final result = await stepDataService.importFromPhone(
         startDate: DateTime(2025, 1, 1),
@@ -214,7 +207,7 @@ void main() {
       );
 
       expect(result.status, StepSyncStatus.unavailable);
-      expect(calls, greaterThan(1), reason: '確實跑到第二段才失敗');
+      expect(calls, greaterThan(30), reason: '確實跑到第二段才失敗');
       verifyNever(mockDatabase.deleteAllData());
       verifyNever(mockDatabase.deleteDataInRange(any, any));
       verifyNever(mockDatabase.upsertDailyStep(any, any, any, isComplete: anyNamed('isComplete')));

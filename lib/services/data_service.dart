@@ -25,22 +25,33 @@ class StepDataService {
   final Health health = GetIt.I<Health>();
   final StepDatabase database = GetIt.I<StepDatabase>();
 
-  /// 讀一段区間的步數。
+  /// 讀取步數是否已授權。
+  Future<bool> _hasReadPermission() async => await health.hasPermissions(stepTypes, permissions: stepPermissions) == true;
+
+  /// 逐日讀取 [start]..[end]（含兩端）的步數。
+  ///
+  /// 用 Health Connect 的聚合 API（`getTotalStepsInInterval`）而不是把原始資料點加總：
+  /// 手機、手錶、Google Fit 等來源會寫入重疊的步數紀錄，聚合 API 會在 Health Connect 端去重，
+  /// 逐點加總則會把每個來源都算一次（實際值的約兩倍）。
   ///
   /// 回傳 null = 這次**沒讀到**（沒權限或 Health Connect 出錯）；
-  /// 回傳空清單 = 真的讀到了、但這段期間就是 0 步。兩者對資料庫的意義完全不同：
+  /// 回傳的 map 只含步數 > 0 的日子。null 與「0 步」在資料庫層意義完全不同：
   /// 前者絕對不能刪資料，後者才應該把該段覆蓋成空。
-  /// 舊版把兩者都吞成「null → 不寫」，而刪除是在讀取**之前**就做了，
-  /// 所以 Health Connect 一失靈，那個區間（含被 +1 天連帶掃到的隔天）就永久消失。
-  Future<List<HealthDataPoint>?> _fetchPoints({required DateTime startTime, required DateTime endTime}) async {
+  Future<Map<String, int>?> _fetchDailySteps(DateTime start, DateTime end) async {
     try {
-      final bool? hasPermissions = await health.hasPermissions(stepTypes, permissions: stepPermissions);
-      if (hasPermissions != true) {
+      if (!await _hasReadPermission()) {
         appLog('未取得健康資料讀取權限，跳過同步（未刪除任何資料）');
         return null;
       }
-      final healthData = await health.getHealthDataFromTypes(types: stepTypes, startTime: startTime, endTime: endTime);
-      return health.removeDuplicates(healthData);
+      final days = <String, int>{};
+      final last = DateTime(end.year, end.month, end.day);
+      for (var day = DateTime(start.year, start.month, start.day); !day.isAfter(last); day = DateTime(day.year, day.month, day.day + 1)) {
+        final (from, to) = _dayBounds(day, day);
+        final steps = await health.getTotalStepsInInterval(from, to);
+        if (steps == null) throw StateError('getTotalStepsInInterval 回傳 null（${formatDateKey(day)}）');
+        if (steps > 0) days[formatDateKey(day)] = steps;
+      }
+      return days;
     } catch (error) {
       appError('讀取健康資料失敗（未刪除任何資料）', error);
       return null;
@@ -67,13 +78,12 @@ class StepDataService {
   /// 讀一段區間並聚合。回傳的 failure 非 null 時代表「這次沒讀到」，
   /// 呼叫端**絕對不能**拿去動資料庫。
   Future<_ReadResult> _readDays(DateTime start, DateTime end) async {
-    final (from, to) = _dayBounds(start, end);
-    final points = await _fetchPoints(startTime: from, endTime: to);
-    if (points == null) {
+    final days = await _fetchDailySteps(start, end);
+    if (days == null) {
       final denied = await _permissionDenied();
       return (days: null, failure: denied ? StepSyncStatus.permissionDenied : StepSyncStatus.unavailable, detail: null);
     }
-    return (days: _aggregateByDay(points), failure: null, detail: null);
+    return (days: days, failure: null, detail: null);
   }
 
   /// 起訖補到「當天 00:00:00 ~ 23:59:59.999」，讓「含尾日」成立。
@@ -143,32 +153,35 @@ class StepDataService {
     return (status: StepSyncStatus.success, detail: null);
   }
 
-  /// 給小時圖表用的原始步數資料點（不寫 DB）。
+  /// 給小時圖表用：今天 0 點到現在，每個小時的步數（去重後的聚合值，不寫 DB）。
   ///
-  /// 回傳 null 是「讀不到」，空清單才是「今天真的 0 步」—— 兩者必須分開，
+  /// 回傳 null 是「讀不到」，map 內的 0 才是「該小時真的 0 步」——兩者必須分開，
   /// 否則 Health Connect 一晃眼，主畫面就畫出一條 0 步的線，看起來像「今天沒走路」。
-  Future<List<HealthDataPoint>?> fetchStepPoints({required DateTime startTime, required DateTime endTime}) =>
-      _fetchPoints(startTime: startTime, endTime: endTime);
-
-  Future<bool> _permissionDenied() async {
+  Future<Map<int, int>?> fetchHourlyTotals(DateTime now) async {
     try {
-      return await health.hasPermissions(stepTypes, permissions: stepPermissions) != true;
-    } catch (e) {
-      return false;
+      if (!await _hasReadPermission()) return null;
+      final today = DateTime(now.year, now.month, now.day);
+      final totals = <int, int>{};
+      for (var hour = 0; hour <= now.hour; hour++) {
+        final from = today.add(Duration(hours: hour));
+        final to = hour == now.hour ? now : DateTime(today.year, today.month, today.day, hour, 59, 59, 999);
+        final steps = await health.getTotalStepsInInterval(from, to);
+        if (steps == null) throw StateError('getTotalStepsInInterval 回傳 null（$hour 時）');
+        totals[hour] = steps;
+      }
+      return totals;
+    } catch (error) {
+      appError('讀取小時步數失敗', error);
+      return null;
     }
   }
 
-  /// 把資料點依日加總。同一天的多個資料點是**累加**（一段一段的步數），不是覆寫。
-  Map<String, int> _aggregateByDay(List<HealthDataPoint> dataPoints) {
-    final Map<String, int> dailySteps = {};
-    for (final point in dataPoints) {
-      if (point.type != HealthDataType.STEPS) continue;
-      final value = point.value;
-      if (value is! NumericHealthValue) continue;
-      final key = formatDateKey(point.dateFrom);
-      dailySteps[key] = (dailySteps[key] ?? 0) + value.numericValue.toInt();
+  Future<bool> _permissionDenied() async {
+    try {
+      return !await _hasReadPermission();
+    } catch (e) {
+      return false;
     }
-    return dailySteps;
   }
 
   /// 從資料庫最後一笔的前一天開始補（多回來一天處理跨午夜與時區邊界）。

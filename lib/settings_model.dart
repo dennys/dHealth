@@ -39,6 +39,7 @@ class SettingsModel extends ChangeNotifier {
   bool _showCumulative = PrefsDefaults.showCumulative;
   bool _showDailyStepGoal = PrefsDefaults.showDailyStepGoal;
   int _dailyStepGoal = PrefsDefaults.dailyStepGoal;
+  String _dailyChartRange = PrefsDefaults.dailyChartRange;
 
   // Notification settings
   bool _notificationsEnabled = PrefsDefaults.notificationsEnabled;
@@ -66,6 +67,7 @@ class SettingsModel extends ChangeNotifier {
   bool get showCumulative => _showCumulative;
   bool get showDailyStepGoal => _showDailyStepGoal;
   int get dailyStepGoal => _dailyStepGoal;
+  String get dailyChartRange => _dailyChartRange;
 
   // Getters - Notification
   bool get notificationsEnabled => _notificationsEnabled;
@@ -92,6 +94,7 @@ class SettingsModel extends ChangeNotifier {
     _showCumulative = await _prefs.getBool(Prefs.showCumulative) ?? PrefsDefaults.showCumulative;
     _showDailyStepGoal = await _prefs.getBool(Prefs.showDailyStepGoal) ?? PrefsDefaults.showDailyStepGoal;
     _dailyStepGoal = _clampGoal(await _prefs.getInt(Prefs.dailyStepGoal));
+    _dailyChartRange = await _prefs.getString(Prefs.dailyChartRange) ?? PrefsDefaults.dailyChartRange;
 
     // Notification
     _notificationsEnabled = await _prefs.getBool(Prefs.notificationsEnabled) ?? PrefsDefaults.notificationsEnabled;
@@ -154,6 +157,12 @@ class SettingsModel extends ChangeNotifier {
   Future<void> setActiveEndHour(int activeEndHour) async {
     _activeEndHour = _clampHour(activeEndHour, PrefsDefaults.activeEndHour);
     await _prefs.setInt(Prefs.activeEndHour, _activeEndHour);
+    notifyListeners();
+  }
+
+  Future<void> setDailyChartRange(String value) async {
+    _dailyChartRange = value;
+    await _prefs.setString(Prefs.dailyChartRange, value);
     notifyListeners();
   }
 

@@ -19,6 +19,7 @@ import 'package:health/health.dart';
 import 'package:provider/provider.dart';
 
 import 'database/database.dart';
+import 'utils/chart_range.dart';
 import 'utils/log.dart';
 import 'utils/sync_reason.dart';
 
@@ -75,8 +76,8 @@ class _HomeScreenState extends State<HomeScreen> {
   PermissionFailure? _permissionFailure;
   HealthConnectSdkStatus? _healthConnectStatus;
 
-  /// null = 「今天到底走了多少我們不知道」（讀取失敗）；空清單才是「今天真的 0 步」。
-  List<HealthDataPoint>? _hourlyPoints;
+  /// null = 「今天到底走了多少我們不知道」（讀取失敗）；有值才是真的讀到（0 步也是有值）。
+  Map<int, int>? _hourlyTotals;
 
   StepDatabase get _database => getIt<StepDatabase>();
   StepDataService get _stepService => getIt<StepDataService>();
@@ -120,7 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final l10n = AppLocalizations.of(context)!;
     try {
       final result = await _stepService.syncNewData();
-      await _loadHourlyPoints();
+      await _loadHourlyTotals();
       if (!mounted) return;
       setState(() {
         _refreshToken++;
@@ -141,11 +142,9 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _loadHourlyPoints() async {
-    final now = DateTime.now();
-    final todayStart = DateTime(now.year, now.month, now.day);
-    final points = await _stepService.fetchStepPoints(startTime: todayStart, endTime: now);
-    if (mounted) setState(() => _hourlyPoints = points); // null 會一路傳到圖表，畫「讀不到」而不是 0 步
+  Future<void> _loadHourlyTotals() async {
+    final totals = await _stepService.fetchHourlyTotals(DateTime.now());
+    if (mounted) setState(() => _hourlyTotals = totals); // null 會一路傳到圖表，畫「讀不到」而不是 0 步
   }
 
   void _showMessage(String message, {bool error = false}) {
@@ -172,12 +171,14 @@ class _HomeScreenState extends State<HomeScreen> {
     await Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
     if (!mounted) return;
     setState(() => _refreshToken++);
-    await _loadHourlyPoints();
+    await _loadHourlyTotals();
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final settings = Provider.of<SettingsModel>(context);
+    final range = ChartRange.decode(settings.dailyChartRange, DateTime.now());
     final healthConnectUnavailable = Platform.isAndroid && _healthConnectStatus != null && _healthConnectStatus != HealthConnectSdkStatus.sdkAvailable;
 
     return Scaffold(
@@ -205,10 +206,15 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             if (healthConnectUnavailable) _HealthConnectUnavailableBanner(onInstall: _installHealthConnect),
             if (_permissionFailure != null) _PermissionBanner(message: _permissionMessage(l10n, _permissionFailure!), onRetry: _bootstrap),
-            SizedBox(height: 310, child: HourlyStepsChart(points: _hourlyPoints ?? const [], loaded: _hourlyPoints != null)),
-            SizedBox(height: 300, child: DailyStepsChart(database: _database, refreshToken: _refreshToken, n: 7)),
-            SizedBox(height: 300, child: WeeklyStepsChart(database: _database, refreshToken: _refreshToken, n: 7)),
-            SizedBox(height: 300, child: MonthlyStepsChart(database: _database, refreshToken: _refreshToken, n: 7)),
+            SizedBox(height: 310, child: HourlyStepsChart(totals: _hourlyTotals)),
+            ChartRangeSelector(
+              range: range,
+              onPreset: (days) => settings.setDailyChartRange(ChartRange.preset(days, DateTime.now()).encode()),
+              onCustom: (picked) => settings.setDailyChartRange(ChartRange.custom(picked.start, picked.end).encode()),
+            ),
+            SizedBox(height: 300, child: DailyStepsChart(database: _database, refreshToken: _refreshToken, range: range)),
+            SizedBox(height: 300, child: WeeklyStepsChart(database: _database, refreshToken: _refreshToken, range: range)),
+            SizedBox(height: 300, child: MonthlyStepsChart(database: _database, refreshToken: _refreshToken, range: range)),
           ],
         ),
       ),

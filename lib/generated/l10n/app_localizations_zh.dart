@@ -429,6 +429,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get past => '過去';
 
   @override
+  String get customRange => '自訂';
+
+  @override
   String get chartHelpTitle => '圖表說明';
 
   @override
@@ -1001,6 +1004,9 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get past => '过去';
 
   @override
+  String get customRange => '自定义';
+
+  @override
   String get chartHelpTitle => '图表说明';
 
   @override
@@ -1571,6 +1577,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get past => '過去';
+
+  @override
+  String get customRange => '自訂';
 
   @override
   String get chartHelpTitle => '圖表說明';
