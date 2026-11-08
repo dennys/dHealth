@@ -96,6 +96,15 @@ jobs:
       - name: Build debug APK
         run: flutter build apk --debug --target-platform android-arm64
 
+      # release 簽章要用 dneko.keystore（被 .gitignore 擋掉），從 secret 還原。
+      # 沒設 KEYSTORE_B64 就直接紅，不要讓它死在 Gradle 的「Keystore not found」。
+      - name: Restore signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
+        run: |
+          test -n "$KEYSTORE_B64" || { echo "::error::Set repository secret KEYSTORE_B64"; exit 1; }
+          echo "$KEYSTORE_B64" | base64 -d > android/app/dneko.keystore
+
       # --no-tree-shake-icons：沿用原本註解掉的 build job 的意圖，避免動態引用的 Material icon
       # 被 tree-shake 掉變成豆腐
       - name: Build release APK

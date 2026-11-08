@@ -38,11 +38,19 @@ extensions.configure<com.android.build.api.dsl.ApplicationExtension> {
         }
     }
 
+    signingConfigs {
+        // 與 dNeko 共用同一把 signing key（dneko.keystore 由 dneko_keystore_b64.txt 解碼）。
+        create("release") {
+            storeFile = file("dneko.keystore")
+            storePassword = "iu6cv1o8k5b7re0d"
+            keyAlias = "dneko"
+            keyPassword = "iu6cv1o8k5b7re0d"
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }
