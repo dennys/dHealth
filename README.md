@@ -81,3 +81,45 @@ Notification
    1. Use https://www.remove.bg
 
 Download file and copy / resize it to `android\app\src\main\res\drawable-\*\*\*hdpi`
+
+## Release signing（APK 簽章）
+
+本 repo 是 public，**簽章檔與密碼一律不進版控**（`android/.gitignore` 已擋 `*.keystore`、
+`key.properties`）。機制與 dNeko 相同：
+
+| 位置 | 存放方式 |
+|---|---|
+| 本地開發 | `android/app/dhealth.keystore` + `android/key.properties`（自行生成，gitignored） |
+| GitHub Actions | secrets：`KEYSTORE_B64`（keystore 檔的 base64）、`KEY_PROPERTIES`（key.properties 全文） |
+| 兩者都沒有（如 fork） | release 退回 debug 簽章，CI 不會紅 |
+
+`android/key.properties` 格式：
+
+```properties
+storeFile=dhealth.keystore
+storePassword=<密碼>
+keyAlias=dhealth
+keyPassword=<密碼>
+```
+
+新環境生成 keystore（密碼請換掉）：
+
+```powershell
+keytool -genkeypair -keystore android\app\dhealth.keystore -storetype PKCS12 `
+  -keyalg RSA -keysize 2048 -validity 10000 -alias dhealth `
+  -storepass <密碼> -keypass <密碼> -dname "CN=dHealth, OU=dev, O=denny, L=TP, C=TW"
+```
+
+CI 的 `Restore signing key` 步驟會清洗 secret 被判貼帶入的空白/`\r`，再用 `keytool -list`
+預檢 keystore 與密碼是否同鑰——不對就一步報錯，不會等 Gradle 三分鐘後才炸
+`keystore password was incorrect`。CI 另外產出 `dHealth-release-v<pubspec版本>.apk`。
+
+建置（本地與 CI 相同，只出 arm64，APK 約 22MB；不帶 flag 會把三個 ABI 全塞進去變 61MB）：
+
+```powershell
+flutter build apk --release --target-platform android-arm64
+```
+
+> ⚠️ 洩密處理：public repo 中只要 keystore 或密碼進過 commit，視為該鑰作廢——
+> 重新生成 keystore 並更新 secrets，舊鑰丟棄（歷史 commit 改不掉，洩漏無法回收）。
+> 正式上过 Play 的 app 換鑰要走 upload key rotation，所以趁 0.x 就簽對。
