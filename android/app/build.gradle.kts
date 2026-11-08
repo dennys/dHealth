@@ -1,8 +1,19 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+// release 簽章檔與密碼都放 android/key.properties（gitignored，絕不進 repo）。
+// CI 由 KEYSTORE_B64 / KEY_PASSWORD secrets 生成它；沒有就退回 debug 簽章，
+// 讓 fork 和沒設 secret 的 CI 照样能 build。
+val keystoreProps = Properties().apply {
+    val f = rootProject.file("key.properties")
+    if (f.exists()) FileInputStream(f).use { load(it) }
 }
 
 extensions.configure<com.android.build.api.dsl.ApplicationExtension> {
@@ -39,18 +50,23 @@ extensions.configure<com.android.build.api.dsl.ApplicationExtension> {
     }
 
     signingConfigs {
-        // 與 dNeko 共用同一把 signing key（dneko.keystore 由 dneko_keystore_b64.txt 解碼）。
-        create("release") {
-            storeFile = file("dneko.keystore")
-            storePassword = "iu6cv1o8k5b7re0d"
-            keyAlias = "dneko"
-            keyPassword = "iu6cv1o8k5b7re0d"
+        if (keystoreProps.isNotEmpty()) {
+            create("release") {
+                storeFile = file(keystoreProps["storeFile"] as String)
+                storePassword = keystoreProps["storePassword"] as String
+                keyAlias = keystoreProps["keyAlias"] as String
+                keyPassword = keystoreProps["keyPassword"] as String
+            }
         }
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = if (keystoreProps.isNotEmpty()) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }

@@ -96,23 +96,37 @@ jobs:
       - name: Build debug APK
         run: flutter build apk --debug --target-platform android-arm64
 
-      # release 簽章要用 dneko.keystore（被 .gitignore 擋掉），從 secret 還原。
-      # 沒設 KEYSTORE_B64 就直接紅，不要讓它死在 Gradle 的「Keystore not found」。
+      # release 簽章：keystore 與密碼都在 GitHub secrets，repo 裡零機密。
+      # 沒設 secrets 就退回 debug 簽章（fork 也能過 CI）。
       - name: Restore signing key
         env:
           KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          test -n "$KEYSTORE_B64" || { echo "::error::Set repository secret KEYSTORE_B64"; exit 1; }
-          echo "$KEYSTORE_B64" | base64 -d > android/app/dneko.keystore
+          if [ -z "$KEYSTORE_B64" ]; then
+            echo "::warning::KEYSTORE_B64 not set, release APK will be debug-signed"
+            exit 0
+          fi
+          echo "$KEYSTORE_B64" | base64 -d > android/app/dhealth.keystore
+          printf 'storeFile=dhealth.keystore\nstorePassword=%s\nkeyAlias=dhealth\nkeyPassword=%s\n' \
+            "$KEY_PASSWORD" "$KEY_PASSWORD" > android/key.properties
 
       # --no-tree-shake-icons：沿用原本註解掉的 build job 的意圖，避免動態引用的 Material icon
       # 被 tree-shake 掉變成豆腐
       - name: Build release APK
         run: flutter build apk --release --target-platform android-arm64 --no-tree-shake-icons
 
+      # AGP 9 沒有 applicationVariants 可改輸出檔名，發佈檔名在 CI 端組裝。
+      - name: Rename release APK
+        run: |
+          v=$(grep '^version:' pubspec.yaml | cut -d: -f2 | cut -d+ -f1 | tr -d '[:space:]')
+          cp build/app/outputs/flutter-apk/app-release.apk dHealth-release-v$v.apk
+
       - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
           name: apks
-          path: build/app/outputs/flutter-apk/*.apk
+          path: |
+            build/app/outputs/flutter-apk/*.apk
+            dHealth-release-v*.apk
           retention-days: 14
