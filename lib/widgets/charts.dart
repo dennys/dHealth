@@ -105,9 +105,12 @@ class HourlyStepsChart extends StatelessWidget {
                               if (value >= chartMaxY * 0.95) return const SizedBox.shrink();
                               return Padding(
                                 padding: const EdgeInsets.only(right: 8.0),
-                                child: Text(
-                                  value.toInt().toString(),
-                                  style: TextStyle(fontSize: 10, color: theme.colorScheme.onSurface.withValues(alpha: 0.7)),
+                                child: Align(
+                                  alignment: Alignment.centerRight,
+                                  child: Text(
+                                    value.toInt().toString(),
+                                    style: TextStyle(fontSize: 10, color: theme.colorScheme.onSurface.withValues(alpha: 0.7)),
+                                  ),
                                 ),
                               );
                             },
@@ -524,7 +527,13 @@ class _BarChart extends StatelessWidget {
                               reservedSize: 48,
                               getTitlesWidget: (value, meta) => Padding(
                                 padding: const EdgeInsets.only(right: 8.0),
-                                child: Text(value.toInt().toString(), style: TextStyle(fontSize: 10, color: textColor.withValues(alpha: 0.7))),
+                                child: Align(
+                                  alignment: Alignment.centerRight,
+                                  child: Text(
+                                    value.toInt().toString(),
+                                    style: TextStyle(fontSize: 10, color: textColor.withValues(alpha: 0.7)),
+                                  ),
+                                ),
                               ),
                             ),
                           ),
