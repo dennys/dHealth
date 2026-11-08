@@ -28,7 +28,7 @@ dependencies:
   get_it: ^9.3.0
 
   intl: ^0.20.2
-  awesome_notifications: ^0.10.1
+  awesome_notifications: ^0.12.1
 
   workmanager: ^0.10.10
 
