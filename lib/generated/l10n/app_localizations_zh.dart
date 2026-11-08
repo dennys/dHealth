@@ -429,7 +429,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get past => '過去';
 
   @override
-  String get customRange => '自訂';
+  String get periods => '期';
+
+  @override
+  String get previousPage => '更早';
+
+  @override
+  String get nextPage => '更晚';
+
+  @override
+  String get latest => '最近';
 
   @override
   String get chartHelpTitle => '圖表說明';
@@ -1004,7 +1013,16 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get past => '过去';
 
   @override
-  String get customRange => '自定义';
+  String get periods => '期';
+
+  @override
+  String get previousPage => '更早';
+
+  @override
+  String get nextPage => '更晚';
+
+  @override
+  String get latest => '最近';
 
   @override
   String get chartHelpTitle => '图表说明';
@@ -1579,7 +1597,16 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get past => '過去';
 
   @override
-  String get customRange => '自訂';
+  String get periods => '期';
+
+  @override
+  String get previousPage => '更早';
+
+  @override
+  String get nextPage => '更晚';
+
+  @override
+  String get latest => '最近';
 
   @override
   String get chartHelpTitle => '圖表說明';

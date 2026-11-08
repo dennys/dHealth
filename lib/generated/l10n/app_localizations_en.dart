@@ -439,7 +439,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get past => 'Past';
 
   @override
-  String get customRange => 'Custom';
+  String get periods => 'Periods';
+
+  @override
+  String get previousPage => 'Earlier';
+
+  @override
+  String get nextPage => 'Later';
+
+  @override
+  String get latest => 'Latest';
 
   @override
   String get chartHelpTitle => 'Chart Help';

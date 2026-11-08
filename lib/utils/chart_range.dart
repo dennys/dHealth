@@ -1,48 +1,52 @@
 // utils/chart_range.dart
-import 'package:intl/intl.dart';
 
-/// 首頁圖表的日期區間，起訖皆為當地日期 00:00，含首尾。
+/// 首頁圖表的期數 N 與頁碼 P：顯示「往前第 P 頁、每頁 N 期」。
+/// 「期」由每張圖自己解讀 —— 日圖是 N 天、週圖是 N 週、月圖是 N 個月。
 class ChartRange {
-  ChartRange._(this.start, this.end, this.presetDays);
-
-  /// 以 [today] 為結尾的最近 [days] 天。
-  factory ChartRange.preset(int days, DateTime today) {
-    final end = _dateOnly(today);
-    return ChartRange._(end.subtract(Duration(days: days - 1)), end, days);
-  }
-
-  factory ChartRange.custom(DateTime start, DateTime end) => ChartRange._(_dateOnly(start), _dateOnly(end), null);
-
-  final DateTime start;
-  final DateTime end;
-
-  /// 預設區間的天數；自訂區間為 null。
-  final int? presetDays;
+  const ChartRange(this.periods, this.offset, this.today);
 
   static const List<int> presets = [7, 30, 90];
 
-  int get dayCount => end.difference(start).inDays + 1;
+  /// 每頁的期數。
+  final int periods;
 
-  /// 等長、緊接在 [start] 之前的區間，用來算「上一期平均」。
-  ChartRange get previous => ChartRange._(start.subtract(Duration(days: dayCount)), start.subtract(const Duration(days: 1)), null);
+  /// 0 = 最近一頁，1 = 往前一頁（每頁往回 [periods] 期）。
+  final int offset;
 
-  /// 預設區間存天數（如 `7`）；自訂區間存日期（如 `2024-01-01|2024-02-01`）。
-  String encode() => presetDays != null ? '$presetDays' : '${_format(start)}|${_format(end)}';
+  final DateTime today;
 
-  /// 解析失敗時回到最近 7 天。
-  static ChartRange decode(String raw, DateTime today) {
-    final parts = raw.split('|');
-    if (parts.length == 2) {
-      final start = DateTime.tryParse(parts[0]);
-      final end = DateTime.tryParse(parts[1]);
-      if (start != null && end != null && !start.isAfter(end)) return ChartRange.custom(start, end);
-    }
-    final days = int.tryParse(raw);
-    if (days != null && days > 0) return ChartRange.preset(days, today);
-    return ChartRange.preset(7, today);
+  /// 往前一頁，用來算「上一期平均」。
+  ChartRange get previous => ChartRange(periods, offset + 1, today);
+
+  ChartRange shifted(int newOffset) => ChartRange(periods, newOffset, today);
+
+  /// 往前 [offset] 頁、共 [periods] 天（含首尾）。
+  ({DateTime from, DateTime to, int periods}) days() {
+    final to = _dateOnly(today).subtract(Duration(days: periods * offset));
+    return (from: to.subtract(Duration(days: periods - 1)), to: to, periods: periods);
+  }
+
+  /// 往前 [offset] 頁、共 [periods] 週（起點對齊週一）。
+  ({DateTime from, DateTime to, int periods}) weeks() {
+    final to = _dateOnly(today).subtract(Duration(days: 7 * periods * offset));
+    final from = to.subtract(Duration(days: 7 * (periods - 1) + to.weekday - 1));
+    return (from: from, to: to, periods: periods);
+  }
+
+  /// 往前 [offset] 頁、共 [periods] 個月（起點對齊月初）。
+  ({DateTime from, DateTime to, int periods}) months() {
+    final t = _dateOnly(today);
+    final to = DateTime(t.year, t.month - periods * offset, t.day);
+    return (from: DateTime(to.year, to.month - periods + 1, 1), to: to, periods: periods);
+  }
+
+  String encode() => '$periods';
+
+  /// 解析失敗（含舊版存的日期區間 `a|b`）時回到最近 7 期。
+  static ChartRange decode(String raw, int offset, DateTime today) {
+    final periods = int.tryParse(raw);
+    return ChartRange(periods != null && periods > 0 ? periods : 7, offset, today);
   }
 
   static DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
-
-  static String _format(DateTime d) => DateFormat('yyyy-MM-dd').format(d);
 }

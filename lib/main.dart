@@ -72,6 +72,9 @@ class _HomeScreenState extends State<HomeScreen> {
   /// 每次同步完成就 +1，圖表用它決定要不要重抓（避免 FutureBuilder 在 build 裡
   /// 現做 future —— 那是「每次重建都重查一次、畫面一直閃」的根源）。
   int _refreshToken = 0;
+
+  /// 圖表往前翻了几頁（不持久化：重進首頁回到最近一頁）。
+  int _rangeOffset = 0;
   bool _syncing = false;
   PermissionFailure? _permissionFailure;
   HealthConnectSdkStatus? _healthConnectStatus;
@@ -178,7 +181,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final settings = Provider.of<SettingsModel>(context);
-    final range = ChartRange.decode(settings.dailyChartRange, DateTime.now());
+    final range = ChartRange.decode(settings.dailyChartRange, _rangeOffset, DateTime.now());
     final healthConnectUnavailable = Platform.isAndroid && _healthConnectStatus != null && _healthConnectStatus != HealthConnectSdkStatus.sdkAvailable;
 
     return Scaffold(
@@ -209,12 +212,31 @@ class _HomeScreenState extends State<HomeScreen> {
             SizedBox(height: 310, child: HourlyStepsChart(totals: _hourlyTotals)),
             ChartRangeSelector(
               range: range,
-              onPreset: (days) => settings.setDailyChartRange(ChartRange.preset(days, DateTime.now()).encode()),
-              onCustom: (picked) => settings.setDailyChartRange(ChartRange.custom(picked.start, picked.end).encode()),
+              onPeriods: (periods) {
+                setState(() => _rangeOffset = 0);
+                settings.setDailyChartRange(ChartRange(periods, 0, DateTime.now()).encode());
+              },
+              onOffset: (offset) => setState(() => _rangeOffset = offset),
             ),
-            SizedBox(height: 300, child: DailyStepsChart(database: _database, refreshToken: _refreshToken, range: range)),
-            SizedBox(height: 300, child: WeeklyStepsChart(database: _database, refreshToken: _refreshToken, range: range)),
-            SizedBox(height: 300, child: MonthlyStepsChart(database: _database, refreshToken: _refreshToken, range: range)),
+            GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onHorizontalDragEnd: (details) {
+                // 往左滑 = 看更舊的一頁，往右滑 = 回到較新的一頁。
+                final dx = details.velocity.pixelsPerSecond.dx;
+                if (dx < -200) {
+                  setState(() => _rangeOffset++);
+                } else if (dx > 200 && _rangeOffset > 0) {
+                  setState(() => _rangeOffset--);
+                }
+              },
+              child: Column(
+                children: [
+                  SizedBox(height: 300, child: DailyStepsChart(database: _database, refreshToken: _refreshToken, range: range)),
+                  SizedBox(height: 300, child: WeeklyStepsChart(database: _database, refreshToken: _refreshToken, range: range)),
+                  SizedBox(height: 300, child: MonthlyStepsChart(database: _database, refreshToken: _refreshToken, range: range)),
+                ],
+              ),
+            ),
           ],
         ),
       ),

@@ -220,7 +220,7 @@ class DailyStepsChart extends StatelessWidget {
       database: database,
       refreshToken: refreshToken,
       range: range,
-      plan: (r) => (from: r.start, periods: r.dayCount),
+      plan: (r) => r.days(),
       group: StepCalculator.calculateDailySteps,
       titlePrefix: AppLocalizations.of(context)!.days,
       barWidth: 10,
@@ -246,10 +246,7 @@ class WeeklyStepsChart extends StatelessWidget {
       database: database,
       refreshToken: refreshToken,
       range: range,
-      plan: (r) {
-        final from = r.start.subtract(Duration(days: r.start.weekday - 1));
-        return (from: from, periods: r.end.difference(from).inDays ~/ 7 + 1);
-      },
+      plan: (r) => r.weeks(),
       group: StepCalculator.calculateWeeklySteps,
       titlePrefix: AppLocalizations.of(context)!.weeks,
       barWidth: 20,
@@ -275,10 +272,7 @@ class MonthlyStepsChart extends StatelessWidget {
       database: database,
       refreshToken: refreshToken,
       range: range,
-      plan: (r) {
-        final from = DateTime(r.start.year, r.start.month, 1);
-        return (from: from, periods: (r.end.year - from.year) * 12 + r.end.month - from.month + 1);
-      },
+      plan: (r) => r.months(),
       group: StepCalculator.calculateMonthlySteps,
       titlePrefix: AppLocalizations.of(context)!.months,
       barWidth: 30,
@@ -313,8 +307,8 @@ class _StepChart extends StatefulWidget {
   final int refreshToken;
   final ChartRange range;
 
-  /// 由區間算出這個週期的起點與期數。
-  final ({DateTime from, int periods}) Function(ChartRange) plan;
+  /// 由期數與頁碼算出這個週期的起訖與期數。
+  final ({DateTime from, DateTime to, int periods}) Function(ChartRange) plan;
   final List<DailyStep> Function(List<DailyStep>, DateTime, int) group;
   final String titlePrefix;
   final double barWidth;
@@ -354,18 +348,18 @@ class _StepChartState extends State<_StepChart> {
 
         final range = widget.range;
         final plan = widget.plan(range);
-        final processed = widget.group(_within(all, plan.from, range.end), plan.from, plan.periods);
+        final processed = widget.group(_within(all, plan.from, plan.to), plan.from, plan.periods);
         if (processed.isEmpty) return _EmptyCard(message: l10n.noDataInDatabase);
 
         final prevRange = range.previous;
         final prevPlan = widget.plan(prevRange);
-        final prevProcessed = widget.group(_within(all, prevPlan.from, prevRange.end), prevPlan.from, prevPlan.periods);
+        final prevProcessed = widget.group(_within(all, prevPlan.from, prevPlan.to), prevPlan.from, prevPlan.periods);
 
         final currentAvg = StepCalculator.calculateAverageSteps(processed);
         final prevAvg = StepCalculator.calculateAverageSteps(prevProcessed);
         final percentageDiff = prevAvg != 0 ? (((currentAvg - prevAvg) / prevAvg) * 100).toInt() : 0;
         final percentageString = percentageDiff >= 0 ? '+$percentageDiff%' : '$percentageDiff%';
-        final prefix = range.presetDays != null ? '${l10n.past} ' : '';
+        final prefix = '${l10n.past} ';
 
         return _BarChart(
           periodSteps: processed,
@@ -382,32 +376,17 @@ class _StepChartState extends State<_StepChart> {
   }
 }
 
-/// 首頁的日期區間選擇：7／30／90 天，或自訂起訖日。
+/// 首頁圖表的期數選擇：7／30／90 期，‹ › 翻頁（圖表區也能左右滑）。
 class ChartRangeSelector extends StatelessWidget {
-  const ChartRangeSelector({super.key, required this.range, required this.onPreset, required this.onCustom});
+  const ChartRangeSelector({super.key, required this.range, required this.onPeriods, required this.onOffset});
 
   final ChartRange range;
-  final ValueChanged<int> onPreset;
-  final ValueChanged<DateTimeRange> onCustom;
-
-  void _pickCustom(BuildContext context) async {
-    final today = DateUtils.dateOnly(DateTime.now());
-    final firstDate = today.subtract(const Duration(days: 365));
-    final inBounds = !range.start.isBefore(firstDate) && !range.end.isAfter(today);
-    final picked = await showDateRangePicker(
-      context: context,
-      firstDate: firstDate,
-      lastDate: today,
-      initialDateRange: inBounds ? DateTimeRange(start: range.start, end: range.end) : null,
-    );
-    if (picked != null) onCustom(picked);
-  }
+  final ValueChanged<int> onPeriods;
+  final ValueChanged<int> onOffset;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final locale = Localizations.localeOf(context).languageCode;
-    final format = DateFormat('M/d', locale);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -416,21 +395,23 @@ class ChartRangeSelector extends StatelessWidget {
         runSpacing: 4,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          for (final days in ChartRange.presets)
+          IconButton(
+            tooltip: l10n.previousPage,
+            icon: const Icon(Icons.chevron_left),
+            onPressed: range.offset > 0 ? () => onOffset(range.offset - 1) : null,
+          ),
+          for (final periods in ChartRange.presets)
             ChoiceChip(
-              label: Text('$days ${l10n.days}'),
-              selected: range.presetDays == days,
-              onSelected: (_) => onPreset(days),
+              label: Text('$periods ${l10n.periods}'),
+              selected: range.periods == periods,
+              onSelected: (_) => onPeriods(periods),
             ),
-          ChoiceChip(
-            label: Text(l10n.customRange),
-            selected: range.presetDays == null,
-            onSelected: (_) => _pickCustom(context),
+          IconButton(
+            tooltip: l10n.nextPage,
+            icon: const Icon(Icons.chevron_right),
+            onPressed: () => onOffset(range.offset + 1),
           ),
-          Text(
-            '${format.format(range.start)} – ${format.format(range.end)}',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
-          ),
+          if (range.offset > 0) TextButton(onPressed: () => onOffset(0), child: Text(l10n.latest)),
         ],
       ),
     );

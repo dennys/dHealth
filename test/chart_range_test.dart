@@ -2,60 +2,68 @@ import 'package:dhealth/utils/chart_range.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  final today = DateTime(2024, 3, 10, 15, 30);
+  final today = DateTime(2024, 3, 10, 15, 30); // 週日
 
-  group('ChartRange.preset', () {
-    test('以今天為結尾的最近 N 天（含今天）', () {
-      final range = ChartRange.preset(7, today);
-      expect(range.start, DateTime(2024, 3, 4));
-      expect(range.end, DateTime(2024, 3, 10));
-      expect(range.dayCount, 7);
-      expect(range.presetDays, 7);
+  group('days', () {
+    test('最近 N 天含今天', () {
+      final w = ChartRange(7, 0, today).days();
+      expect(w.from, DateTime(2024, 3, 4));
+      expect(w.to, DateTime(2024, 3, 10));
+      expect(w.periods, 7);
+    });
+
+    test('第 P 頁往回推整頁', () {
+      final w = ChartRange(7, 2, today).days();
+      expect(w.from, DateTime(2024, 2, 19));
+      expect(w.to, DateTime(2024, 2, 25));
     });
   });
 
-  group('ChartRange.custom', () {
-    test('去掉時分秒，dayCount 含首尾', () {
-      final range = ChartRange.custom(DateTime(2024, 2, 1, 9), DateTime(2024, 2, 29, 23));
-      expect(range.start, DateTime(2024, 2, 1));
-      expect(range.end, DateTime(2024, 2, 29));
-      expect(range.dayCount, 29);
-      expect(range.presetDays, isNull);
+  group('weeks', () {
+    test('起點對齊週一，涵蓋含今天的一週', () {
+      final w = ChartRange(4, 0, today).weeks();
+      expect(w.from.weekday, DateTime.monday); // 2/12
+      expect(w.from, DateTime(2024, 2, 12));
+      expect(w.to, DateTime(2024, 3, 10));
+      expect(w.periods, 4);
+    });
+
+    test('第 P 頁往回推整頁（每週 = 7 天）', () {
+      final w = ChartRange(4, 1, today).weeks();
+      expect(w.from, DateTime(2024, 1, 15));
+      expect(w.to, DateTime(2024, 2, 11));
     });
   });
 
-  group('ChartRange.previous', () {
-    test('是等長、緊接在 start 之前的區間', () {
-      final prev = ChartRange.preset(7, today).previous;
-      expect(prev.start, DateTime(2024, 2, 26));
-      expect(prev.end, DateTime(2024, 3, 3));
-      expect(prev.dayCount, 7);
+  group('months', () {
+    test('起點對齊月初，涵蓋含今天的一月', () {
+      final w = ChartRange(3, 0, today).months();
+      expect(w.from, DateTime(2024, 1, 1));
+      expect(w.to, DateTime(2024, 3, 10));
+      expect(w.periods, 3);
+    });
+
+    test('跨年度往回推', () {
+      final w = ChartRange(3, 1, today).months();
+      expect(w.from, DateTime(2023, 10, 1));
+      expect(w.to, DateTime(2023, 12, 10));
     });
   });
 
-  group('encode / decode', () {
-    test('預設區間存天數並可還原', () {
-      final encoded = ChartRange.preset(30, today).encode();
-      expect(encoded, '30');
-      final decoded = ChartRange.decode(encoded, today);
-      expect(decoded.presetDays, 30);
-      expect(decoded.start, DateTime(2024, 2, 10));
+  group('previous / encode / decode', () {
+    test('previous 是往前一頁', () {
+      expect(ChartRange(30, 0, today).previous.offset, 1);
     });
 
-    test('自訂區間存日期並可還原', () {
-      final original = ChartRange.custom(DateTime(2024, 1, 5), DateTime(2024, 2, 20));
-      final encoded = original.encode();
-      expect(encoded, '2024-01-05|2024-02-20');
-      final decoded = ChartRange.decode(encoded, today);
-      expect(decoded.start, DateTime(2024, 1, 5));
-      expect(decoded.end, DateTime(2024, 2, 20));
-      expect(decoded.presetDays, isNull);
+    test('存期數並可還原', () {
+      expect(ChartRange(30, 0, today).encode(), '30');
+      expect(ChartRange.decode('30', 2, today).periods, 30);
+      expect(ChartRange.decode('30', 2, today).offset, 2);
     });
 
-    test('無效或倒置的值回到最近 7 天', () {
-      for (final raw in ['', 'abc', '0', '-3', '2024-03-01|2024-02-01', 'x|y']) {
-        final decoded = ChartRange.decode(raw, today);
-        expect(decoded.presetDays, 7, reason: raw);
+    test('無效或舊版日期區間的值回到 7 期', () {
+      for (final raw in ['', 'abc', '0', '-3', '2024-01-05|2024-02-20']) {
+        expect(ChartRange.decode(raw, 0, today).periods, 7, reason: raw);
       }
     });
   });

@@ -904,11 +904,29 @@ abstract class AppLocalizations {
   /// **'Past'**
   String get past;
 
-  /// No description provided for @customRange.
+  /// No description provided for @periods.
   ///
   /// In en, this message translates to:
-  /// **'Custom'**
-  String get customRange;
+  /// **'Periods'**
+  String get periods;
+
+  /// No description provided for @previousPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Earlier'**
+  String get previousPage;
+
+  /// No description provided for @nextPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Later'**
+  String get nextPage;
+
+  /// No description provided for @latest.
+  ///
+  /// In en, this message translates to:
+  /// **'Latest'**
+  String get latest;
 
   /// No description provided for @chartHelpTitle.
   ///
