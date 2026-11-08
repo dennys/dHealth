@@ -398,7 +398,7 @@ class ChartRangeSelector extends StatelessWidget {
           IconButton(
             tooltip: l10n.previousPage,
             icon: const Icon(Icons.chevron_left),
-            onPressed: range.offset > 0 ? () => onOffset(range.offset - 1) : null,
+            onPressed: () => onOffset(range.offset + 1),
           ),
           for (final periods in ChartRange.presets)
             ChoiceChip(
@@ -409,7 +409,7 @@ class ChartRangeSelector extends StatelessWidget {
           IconButton(
             tooltip: l10n.nextPage,
             icon: const Icon(Icons.chevron_right),
-            onPressed: () => onOffset(range.offset + 1),
+            onPressed: range.offset > 0 ? () => onOffset(range.offset - 1) : null,
           ),
           if (range.offset > 0) TextButton(onPressed: () => onOffset(0), child: Text(l10n.latest)),
         ],

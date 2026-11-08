@@ -75,6 +75,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// 圖表往前翻了几頁（不持久化：重進首頁回到最近一頁）。
   int _rangeOffset = 0;
+
+  /// 上一次畫面的頁碼，只用來決定翻頁動畫的方向。
+  int _lastOffset = 0;
   bool _syncing = false;
   PermissionFailure? _permissionFailure;
   HealthConnectSdkStatus? _healthConnectStatus;
@@ -183,6 +186,10 @@ class _HomeScreenState extends State<HomeScreen> {
     final settings = Provider.of<SettingsModel>(context);
     final range = ChartRange.decode(settings.dailyChartRange, _rangeOffset, DateTime.now());
     final healthConnectUnavailable = Platform.isAndroid && _healthConnectStatus != null && _healthConnectStatus != HealthConnectSdkStatus.sdkAvailable;
+    // 翻頁動畫方向：offset 變大 = 往舊頁走，新頁從左邊滑入。
+    final older = _rangeOffset >= _lastOffset;
+    _lastOffset = _rangeOffset;
+    final pageKey = ValueKey('${range.periods}-$_rangeOffset');
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
@@ -221,20 +228,33 @@ class _HomeScreenState extends State<HomeScreen> {
             GestureDetector(
               behavior: HitTestBehavior.translucent,
               onHorizontalDragEnd: (details) {
-                // 往左滑 = 看更舊的一頁，往右滑 = 回到較新的一頁。
+                // 往右滑 = 看更舊的一頁（手指帶動頁面，與常見相簿手勢一致）。
                 final dx = details.velocity.pixelsPerSecond.dx;
-                if (dx < -200) {
+                if (dx > 200) {
                   setState(() => _rangeOffset++);
-                } else if (dx > 200 && _rangeOffset > 0) {
+                } else if (dx < -200 && _rangeOffset > 0) {
                   setState(() => _rangeOffset--);
                 }
               },
-              child: Column(
-                children: [
-                  SizedBox(height: 300, child: DailyStepsChart(database: _database, refreshToken: _refreshToken, range: range)),
-                  SizedBox(height: 300, child: WeeklyStepsChart(database: _database, refreshToken: _refreshToken, range: range)),
-                  SizedBox(height: 300, child: MonthlyStepsChart(database: _database, refreshToken: _refreshToken, range: range)),
-                ],
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 250),
+                transitionBuilder: (child, animation) {
+                  // 進入頁從滑動來的方向滑入，舊頁往反方向滑出。
+                  final isEnter = child.key == pageKey;
+                  final begin = isEnter == older ? const Offset(-1, 0) : const Offset(1, 0);
+                  return SlideTransition(
+                    position: Tween(begin: begin, end: Offset.zero).animate(animation),
+                    child: FadeTransition(opacity: animation, child: child),
+                  );
+                },
+                child: Column(
+                  key: pageKey,
+                  children: [
+                    SizedBox(height: 300, child: DailyStepsChart(database: _database, refreshToken: _refreshToken, range: range)),
+                    SizedBox(height: 300, child: WeeklyStepsChart(database: _database, refreshToken: _refreshToken, range: range)),
+                    SizedBox(height: 300, child: MonthlyStepsChart(database: _database, refreshToken: _refreshToken, range: range)),
+                  ],
+                ),
               ),
             ),
           ],
