@@ -107,9 +107,12 @@ jobs:
             echo "::warning::KEYSTORE_B64 not set, release APK will be debug-signed"
             exit 0
           fi
-          echo "$KEYSTORE_B64" | base64 -d > android/app/dhealth.keystore
-          printf 'storeFile=dhealth.keystore\nstorePassword=%s\nkeyAlias=dhealth\nkeyPassword=%s\n' \
-            "$KEY_PASSWORD" "$KEY_PASSWORD" > android/key.properties
+          # secret 常被判貼時帶進 \r\n 或空白，一律清掉再用
+          PW=$(printf '%s' "$KEY_PASSWORD" | tr -d '[:space:]')
+          printf '%s' "$KEYSTORE_B64" | tr -d '[:space:]' | base64 -d > android/app/dhealth.keystore
+          keytool -list -keystore android/app/dhealth.keystore -storepass "$PW" >/dev/null 2>&1 \
+            || { echo "::error::keystore 開不起來：KEY_PASSWORD 與 KEYSTORE_B64 不是同一把 key（或值被剪到）"; exit 1; }
+          printf 'storeFile=dhealth.keystore\nstorePassword=%s\nkeyAlias=dhealth\nkeyPassword=%s\n' "$PW" "$PW" > android/key.properties
 
       # --no-tree-shake-icons：沿用原本註解掉的 build job 的意圖，避免動態引用的 Material icon
       # 被 tree-shake 掉變成豆腐
