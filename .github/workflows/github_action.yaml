@@ -96,23 +96,28 @@ jobs:
       - name: Build debug APK
         run: flutter build apk --debug --target-platform android-arm64
 
-      # release 簽章：keystore 與密碼都在 GitHub secrets，repo 裡零機密。
+      # release 簽章：keystore 與 key.properties 都在 GitHub secrets，repo 裡零機密
+      # （與 dNeko 同格式：KEYSTORE_B64 = keystore 檔 base64，KEY_PROPERTIES = key.properties 全文）。
       # 沒設 secrets 就退回 debug 簽章（fork 也能過 CI）。
       - name: Restore signing key
         env:
           KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEY_PROPERTIES: ${{ secrets.KEY_PROPERTIES }}
         run: |
           if [ -z "$KEYSTORE_B64" ]; then
             echo "::warning::KEYSTORE_B64 not set, release APK will be debug-signed"
             exit 0
           fi
-          # secret 常被判貼時帶進 \r\n 或空白，一律清掉再用
-          PW=$(printf '%s' "$KEY_PASSWORD" | tr -d '[:space:]')
+          if [ -z "$KEY_PROPERTIES" ]; then
+            echo "::error::KEY_PROPERTIES not set（storeFile/storePassword/keyAlias/keyPassword 四行）"
+            exit 1
+          fi
+          # secret 常被判貼時帶進 \r\n 或空白：base64 全部清掉，properties 只去 \r（格式還在）
           printf '%s' "$KEYSTORE_B64" | tr -d '[:space:]' | base64 -d > android/app/dhealth.keystore
+          printf '%s\n' "$KEY_PROPERTIES" | tr -d '\r' > android/key.properties
+          PW=$(grep '^storePassword=' android/key.properties | cut -d= -f2- | tr -d ' \t')
           keytool -list -keystore android/app/dhealth.keystore -storepass "$PW" >/dev/null 2>&1 \
-            || { echo "::error::keystore 開不起來：KEY_PASSWORD 與 KEYSTORE_B64 不是同一把 key（或值被剪到）"; exit 1; }
-          printf 'storeFile=dhealth.keystore\nstorePassword=%s\nkeyAlias=dhealth\nkeyPassword=%s\n' "$PW" "$PW" > android/key.properties
+            || { echo "::error::keystore 開不起來：KEYSTORE_B64 與 KEY_PROPERTIES 不是同一把 key（或值被剪到）"; exit 1; }
 
       # --no-tree-shake-icons：沿用原本註解掉的 build job 的意圖，避免動態引用的 Material icon
       # 被 tree-shake 掉變成豆腐
