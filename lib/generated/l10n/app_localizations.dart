@@ -766,9 +766,6 @@ abstract class AppLocalizations {
   /// **'Export failed'**
   String get exportFailed;
 
-  /// Shown once after a database file SQLite could not read was set aside.
-  String get databaseQuarantined;
-
   /// No description provided for @widgets.
   ///
   /// In en, this message translates to:
