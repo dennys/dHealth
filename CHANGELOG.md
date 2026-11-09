@@ -5,6 +5,52 @@
 新的完成紀錄加在最上面。
 
 ---
+
+## 2026-11-09 本輪：審查報告剩下的 M/L 項全部做掉（commit `d116fdd`）
+
+`flutter analyze` 0 issue、`flutter test` 87 全過（70 → 87：刪掉 3 條測死碼的、新增 20 條）。
+新增的斷言都做過**變異檢查**（把舊行為塞回去會紅）：單小時 throw、判斷即寫時間戳、
+拆掉互斥鎖，三種都如預期變紅。**逐條都還沒在真機跑過** —— 驗收單在 **`../DEVICE_TEST.md`**。
+
+- **死碼四件套刪除**（H1）：`lib/data.dart`／`lib/util.dart`／`services/health_service.dart`／
+  `database/exporter.dart`（commit `c334a86`）。它們是 health 套件範例殘留：會寫入隨機假健康資料、
+  請求 Location 權限（違反本案「只讀步數」）、而 `exporter.dart` 會 `database.close()` 關掉
+  GetIt 裡活著的連線再把新連線丟掉 —— 匯出一次整個 app 拿著已關閉的 DB。0 個呼叫者，純地雷。
+- **通知頁 dropdown assertion**（H2，commit `7aecc03`）：選「自訂」存了不在清單裡的值（如 45）
+  會讓 `DropdownButton` 在 debug 直接 assertion 炸、release 顯示空白看不到現值。比照 `setup.dart`
+  改走 `null` + hint，`motivationTimeLimit` 那顆也補上同款防護，並加回歸測試。
+- **串行 IPC → 分批併發**（M1/M2）：逐日 365 次、逐小時 24 次是冷啟動與匯入慢的主因，改成
+  一批 6 個的 `Future.wait`。**daily 的語意一個字都沒動**（任何一天讀不到照舊整個同步不動資料庫
+  —— 缺的那天會被 `deleteDataInRange` 刪掉而不會被寫回）。hourly 則改成「補插一次，還是讀不到
+  就只省略那一格」，不再讓一個小時的抖動牺牲 23 個好小時；全部讀不到才回 null。
+- **同步互斥鎖**（M3）：手動/下拉與 WorkManager 背景同步可能同時跑（`_syncing` 只擋得住 UI 自己），
+  雨條都是「先讀後寫 + transaction」，交錯時理論上會出現半套狀態 → 寫入路徑 serialize。
+- **drift migration 骨架**（M5）：之前 `schemaVersion=1` 又沒有 `onUpgrade`，下次改 schema
+  老安裝升級直接崩。測試期採砍表重建（人類 2026-11-09 同意資料可遺失），**上架前要改逐版
+  `ALTER TABLE`** —— 那時候 `allowBackup="false"` 讓手上只有一份資料，不能靠重抓。
+- **「最近 N 天」夾 1..3650**（M6）、**通知頻率拿掉說謊的「5 分鐘」**（L4，背景一律 clamp 15）、
+  **CSV 時間改 UTC**（L5）、**刪 4 個零呼叫者的 DB 查詢**（L1）、**`onProgress` 的 Set 字面量
+  lambda 改成正常 block**（L8）。
+- **新測試**：`notification_service_test.dart`（時段視窗含跨午夜、節流、「判斷不燒節流槽」——
+  舊版在判斷的當下就寫時間戳，權限沒給也會把節流槽燒掉，使用者一顆都沒看到卻要再等一個間隔）、
+  `backup_reminder_test.dart`、`fetchHourlyTotals` 6 條、同步 serialize 1 條。
+- **新功能：備份可能過期提醒**。`allowBackup="false"` 之後匯出是唯一備份路，而之前完全沒提醒；
+  三個匯出入口成功後都蓋時間戳，背景距上次超過 14 天就發第四種通知（沿用同一套 `canSend`
+  節流與時段視窗，同步失敗那一趟不发）。天数算法抽成純函式 `daysSinceExport` 並測它。
+
+**本輪沒做**（都進 TODO 了）：聚合 API（要先在真機確認時間桶與時區）、通知 channel 重啟才生效
+但 UI 沒講（M4）、`setup.dart` 的 controller/分鐘丟棄/過時註解（L2/L3/L7）、節流 key 收進
+`Prefs`（L6）、drawer 寫死亮色綠（L10）、拆檔、`permission_service`／`executeTask`／
+`importStepsFromFile` 的測試、上架相關（`kSupportEmail`、`dataExtractionRules`、
+Play Data Safety、release 簽章）。
+
+**順帶記一個坑**：本機跑 `flutter pub get` 會因為被 gitignore 的 `pubspec_overrides.yaml`
+（把 `path_provider_android` 釘在 2.2.23）而把 `pubspec.lock` 與兩份 `generated_plugins.cmake`
+裡的 `jni`／`jni_flutter`／`jni_util` 整段拿掉。那是**本機環境的產物**，commit 進去會靜靜改掉
+CI 的 plugin 清單 —— 本輪已還原，日後 commit 前要留意這三個檔案。
+
+---
+
 ## 2026-11-06 本輪已做（未 push，commit 見 `git log`）
 - **minSdk 34 → 33（支援 Android 13）**。實測 `checkDebugAarMetadata` 過得去
   （`connect-client 1.2.0-alpha02` 的 AAR 只宣告 minSdk 26，gradle cache 內 140 個 AAR 無一要求 ≥28）。

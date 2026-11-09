@@ -31,31 +31,33 @@ CI 也正常出 artifacts；卡住的只有 Linux/aarch64 —— AOT 的 `gen_sn
 
 ## 待辦（按優先序）
 
-### 1. 真機 Android 13 驗收單（minSdk 33 之後必跑，目前一項都沒驗過）
-1. Android 13 裝得上（`apks.zip` 解出來的 `app-release.apk`，別把 zip 直接拿去裝）
-2. 「Check Health Connect Status」應顯示 **不可用**（13 上 Health Connect 不是系統元件）
-3. 按「Install Health Connect」要跳到 Play Store 的那個 APK（`lib/main.dart:160` `_installHealthConnect`）
-4. 裝好 Health Connect 後：授權流程 → 讀到今日步數 → 與 Health Connect 顯示一致
-5. 背景排程：殺 app 後 `Workmanager` 的 `stepTrackerTask` 還跑不跑、有没有寫進 DB；重開機後會不會自己回來
-6. 被電池最佳化後是否失靈（`REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` / 精確鬧鐘 `USE_EXACT_ALARM` 要不要白名單）
-7. 三種通知真的弹出來：Goal Reached / Almost There / Error（`notification_service.dart:95-110`）；
-   同時驗節流與通知時段：同類之間至少隔 `frequencyMinutes`、且只在 startHour–endHour 視窗内發
-   （`NotificationService.allowSending`，`notification_service.dart:76`；決策本身是
-   `decideStepAlert`，已有測試）
-8. 切中文介面看 `endTimeError`／`selectStartTime`／`selectEndTime` 還有沒有英文
-9. 匯出／分享 DB 可用（`allowBackup="false"` 之後，匯出是唯一的備份路）
-10. 資料持久化：寫一筆 → 殺 app 重開還在
-> 沒有 Google Play services 的機型（國內常見 ROM）讀不到步數，這是平台限制，不是 bug。
+### 1. 真機驗收單 → 已搬到 **`../DEVICE_TEST.md`**（跨 dHealth／dNeko 一份）
+
+**至今仍是零**，尤其這兩組：
+- **B-1 背景排程**：殺 app 後 `stepTrackerTask` 還跑不跑、有沒有寫進 DB、重開機後會不會自己回來。
+  「不會自己回來」是**實作缺口**（要嘛靠 `BOOT_COMPLETED`，要嘛明確接受「重開機後要開一次 app」），
+  不是「ROM 壞」，驗之前別先假設是對方的問題。
+- **B-2 通知**：三種通知真的彈出來 + 節流（同類之間至少隔 `frequencyMinutes`）+ 只在時段視窗內
+  （含跨午夜那一支）。決策的純邏輯已有測試，但「真的彈出來」只有真機看得見。
+
+人類 2026-11-09 口頭回報「Android 13 裝得上、含 overlay 等都正常」，但沒有逐項記錄，
+所以單裡其餘項目（Health Connect 狀態/安裝、授權讀步數、中文缺字串、匯出可用、資料持久化）
+也留在單裡同場再掃一次就好，成本很低。本輪新增的**分批併發同步**與**備份過期提醒**的
+驗收步驟（含匯出前後應該看到什麼）也寫在同一份。
 
 ### 2. 兩個超大檔案該拆
 - `lib/widgets/charts.dart` 651 行單檔 → 圖表元件按類型拆（現況：4 個圖表類別同一檔，但已無死碼）
 - `lib/widgets/import_export.dart` 457 行 → 匯入/匯出/分享三塊可分
 
 ### 3. 測試覆蓋的洞
-現在有：`database`、`data_service`（含同步安全回歸）、`step_calculator`、`weekday_utils`、
-`settings_model`、`decideStepAlert`（通知決策的纯邏輯）。
-完全沒有：**`Workmanager` 排程本身、`notification_service`（频道建立/節流）、`permission_service`、
-`charts` 的取數路徑**。真要进一步補，先補 `permission_service`（它是唯一還沒被測過的入口邏輯）。
+現在有：`database`、`data_service`（同步安全回歸 + **同步 serialize** + **小時曲線的容忍行為**）、
+`step_calculator`、`weekday_utils`、`settings_model`、`decideStepAlert`、
+**`notification_service`（時段視窗含跨午夜、節流、判斷不燒節流槽）**、**備份提醒的天數算法**。
+新增的斷言都做過變異檢查（把舊行為塞回去會紅），不是怎麼跑都過的假測試。
+
+完全沒有：**`Workmanager` 排程本身**、**`permission_service`**（唯一還沒測過的入口邏輯，
+真要補先補它）、**`BackgroundService.executeTask`**（要 mocks）、**`importStepsFromFile`**、
+`charts` 的取數路徑。
 
 ### 4. 一致性 / 上架前
 - l10n 取字串慣例：本案到处是 `AppLocalizations.of(context)?.xxx ?? '英文 fallback'`，
@@ -64,6 +66,40 @@ CI 也正常出 artifacts；卡住的只有 Linux/aarch64 —— AOT 的 `gen_sn
 - release 簽名仍是 debug key（`android/app/build.gradle.kts` 的 `signingConfig`）。- CI 的 `codecov/codecov-action@v4` 沒帶 token：public repo 沒事，**轉 private 會紅**。
 - 尚無 `dataExtractionRules`（`allowBackup="false"` 已設，健康資料已不进雲備份；
   要上架就得把 Play 的資料安全聲明對上實際行為）。
+
+## 2026-11-09 審查後仍開著的（代碼面；已做的都進 CHANGELOG 了）
+
+### 1. 聚合 API 還沒用（M1 剩下的那一半）
+現在是「分批併發的逐小時」（一批 6 個）。真正一次拿回全天逐小時桶的是
+`getHealthAggregateDataFromTypes(..., activitySegmentDuration: Duration(hours: 1))`
+—— 注意審查報告写的 `getTotalStepsInInterval(..., HealthIntervalArgument(timeUnitPolicy:))`
+**在 health 13.3.2 並不存在**（實查 pub-cache：`health_plugin.dart:1248` 只有兩個位置參數）。
+換過去之前要在真機確認回傳的時間桶邊界與時區，否則可能把「整天讀不到」换成「整天錯位」；
+驗收見 `../DEVICE_TEST.md` B-4（前後各測一輪冷啟動/下拉刷新/匯入 365 天）。
+
+### 2. 通知 channel 只在啟動時建（M4）
+聲音／震動／重要性屬於 channel 層，Android 會快取，所以設定的開關要重啟才生效。
+代碼註解講了，**UI 沒講** —— 使用者會以為關掉就安靜了。補法二選一：三個 setter 去
+`createNotificationChannel()` 更新既有 channel，或在 subtitle 寫「重啟後生效」
+（要一個新的 l10n 字串）。真機 B-2e 就是驗這個。
+
+### 3. `setup.dart` 的三個小毛病（L2/L3/L7 同一支檔案附近）
+- 每次 build 現做 `TextEditingController` → 游標/IME 狀態脆，目標輸入框偶發不順。
+  收進 State 持有，`didUpdateWidget` 同步外部值。
+- Active Hours 用 TimePicker 但只取 `.hour`，分鐘悄悄丟棄（選 7:30 變 7:00）。
+  改成「小時下拉 ×2」講清楚，或乾脆把設定做成分鐘解析度。
+- `settings_keys.dart` 還寫「預設最近 7 天」（期數制之後應是「最近 7 期」）、
+  `charts.dart:14` 的檔案備忘行數也過時了。
+
+### 4. 節流時間戳的裸字串 key（L6）
+`notification_service.dart` 用 `'notification_last_sent_' + kind` 直接寫 prefs，繞過
+`settings_keys.dart` 的「全案唯一定義」慣例。收進 `Prefs` 就好（鍵名不変，不動既有安裝）。
+
+### 5. Drawer 顏色寫死亮色綠（L10）
+`main.dart` 的 `DrawerThemeData(backgroundColor: Colors.green[50])` 沒走 colorScheme，
+亮色模式下 drawer 上的文字對比沒保障。換 `surfaceContainerLow` 之類的 colorScheme 色。
+
+---
 
 ## 2026-11-09 待辦：遷移到 Flutter Built-in Kotlin（三案共同，先拿 d2048 試）
 
