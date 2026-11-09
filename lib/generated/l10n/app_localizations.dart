@@ -766,6 +766,12 @@ abstract class AppLocalizations {
   /// **'Export failed'**
   String get exportFailed;
 
+  /// No description provided for @databaseQuarantined.
+  ///
+  /// In en, this message translates to:
+  /// **'Old health data could not be read and was saved as a .corrupt file. Sync again, or restore a file you exported.'**
+  String get databaseQuarantined;
+
   /// No description provided for @widgets.
   ///
   /// In en, this message translates to:

@@ -132,6 +132,7 @@
   "shareDatabaseFile": "汇出到云端",
   "exportSuccess": "汇出成功完成",
   "exportFailed": "汇出失败",
+  "databaseQuarantined": "旧健康数据无法读取，已另存为 .corrupt 文件。请重新同步，或恢复之前导出的文件。",
   "widgets": "小工具",
   "chartTitle": "过去 {steps} 天，平均 {average} 步",
   "@chartTitle": {

@@ -352,6 +352,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get exportFailed => '匯出失敗';
 
   @override
+  String get databaseQuarantined =>
+      '舊健康資料無法讀取，已另存為 .corrupt 檔案。請重新同步，或還原先前匯出的檔案。';
+
+  @override
   String get widgets => '小工具';
 
   @override
@@ -944,6 +948,10 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get exportFailed => '汇出失败';
 
   @override
+  String get databaseQuarantined =>
+      '旧健康数据无法读取，已另存为 .corrupt 文件。请重新同步，或恢复之前导出的文件。';
+
+  @override
   String get widgets => '小工具';
 
   @override
@@ -1534,6 +1542,10 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get exportFailed => '匯出失敗';
+
+  @override
+  String get databaseQuarantined =>
+      '舊健康資料無法讀取，已另存為 .corrupt 檔案。請重新同步，或還原先前匯出的檔案。';
 
   @override
   String get widgets => '小工具';

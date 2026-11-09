@@ -134,6 +134,7 @@
   "shareDatabaseFile": "Share Database File",
   "exportSuccess": "Export completed successfully",
   "exportFailed": "Export failed",
+  "databaseQuarantined": "Old health data could not be read and was saved as a .corrupt file. Sync again, or restore a file you exported.",
   "widgets": "Widgets",
   "chartTitle": "Last {steps} days, average is {average} steps",
   "@chartTitle": {
