@@ -96,6 +96,44 @@ void main() {
       verifyNever(mockDatabase.upsertDailyStep(any, any, any, isComplete: anyNamed('isComplete')));
     });
 
+    test('今天讀不到只跳過今天：其他天照常寫入，今天原有的列被保留', () async {
+      allowRead();
+      final now = DateTime.now();
+      final yesterday = now.subtract(const Duration(days: 1));
+      final todayKey = formatDateKey(now);
+      when(mockHealth.getTotalStepsInInterval(any, any)).thenAnswer((invocation) async {
+        final from = invocation.positionalArguments[0] as DateTime;
+        return formatDateKey(from) == todayKey ? null : 500;
+      });
+      final existingToday = DailyStep(date: todayKey, stepCount: 321, lastUpdated: now, isComplete: false);
+      when(mockDatabase.getDailyStep(any)).thenAnswer((invocation) async {
+        final date = invocation.positionalArguments[0] as DateTime;
+        return formatDateKey(date) == todayKey ? existingToday : null;
+      });
+
+      final result = await stepDataService.syncRange(yesterday, now);
+
+      expect(result.status, StepSyncStatus.success);
+      verify(mockDatabase.upsertDailyStep(formatDateKey(yesterday), 500, any, isComplete: true)).called(1);
+      verify(mockDatabase.upsertDailyStep(todayKey, 321, any, isComplete: false)).called(1);
+    });
+
+    test('過去的日子讀不到仍然整個失敗（只有今天享有跳過的例外）', () async {
+      allowRead();
+      final now = DateTime.now();
+      final yesterday = now.subtract(const Duration(days: 1));
+      final yesterdayKey = formatDateKey(yesterday);
+      when(mockHealth.getTotalStepsInInterval(any, any)).thenAnswer((invocation) async {
+        final from = invocation.positionalArguments[0] as DateTime;
+        return formatDateKey(from) == yesterdayKey ? null : 500;
+      });
+
+      final result = await stepDataService.syncRange(yesterday, now);
+
+      expect(result.status, StepSyncStatus.unavailable);
+      verifyNever(mockDatabase.deleteDataInRange(any, any));
+    });
+
     test('真的讀到 0 步是正當結果：該區間被清空而不是保留舊值', () async {
       allowRead();
       stubFetch({});

@@ -24,14 +24,20 @@ import 'package:provider/provider.dart';
 /// [totals] = null 代表「今天根本沒讀到」（Health Connect 失靈/無權限），
 /// 那種情況要明講，不能畫一條 0 步的線 —— 那會看起來像「今天一步都沒走」。
 class HourlyStepsChart extends StatelessWidget {
-  const HourlyStepsChart({super.key, required this.totals});
+  const HourlyStepsChart({super.key, required this.totals, this.loading = false});
 
   final Map<int, int>? totals;
+
+  /// 還在第一次查詢中（尚無結果）。
+  final bool loading;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final hourly = totals;
+    if (loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
     if (hourly == null) {
       return _EmptyCard(message: l10n.hourlyDataUnavailable);
     }

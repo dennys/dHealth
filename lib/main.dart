@@ -86,6 +86,9 @@ class _HomeScreenState extends State<HomeScreen> {
   /// null = 「今天到底走了多少我們不知道」（讀取失敗）；有值才是真的讀到（0 步也是有值）。
   Map<int, int>? _hourlyTotals;
 
+  /// 還沒第一次查完今天的小時資料：這段要畫「載入中」，不能跟「讀不到」長一樣。
+  bool _hourlyLoading = true;
+
   StepDatabase get _database => getIt<StepDatabase>();
   StepDataService get _stepService => getIt<StepDataService>();
 
@@ -105,6 +108,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// 進場：先要權限（沒權限讀到 0 步會看起來像「今天真的沒走路」），再同步一次。
   Future<void> _bootstrap() async {
+    // 今天的小時圖不該等「整段歷史同步」跑完才有資料：先獨立查一次，同步結束後會再查一次。
+    unawaited(_loadHourlyTotals());
     final failure = await PermissionService.requestStepAccess();
     if (!mounted) return;
     setState(() => _permissionFailure = failure);
@@ -149,9 +154,38 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _loadHourlyTotals() async {
-    final totals = await _stepService.fetchHourlyTotals(DateTime.now());
-    if (mounted) setState(() => _hourlyTotals = totals); // null 會一路傳到圖表，畫「讀不到」而不是 0 步
+  /// 小時圖的讀取順序：先畫 DB 裡上次存的（冷啟動時 Health Connect 常讀不到，不能讓圖空著），
+  /// 再向 Health Connect 查今天的值；讀到就寫回 DB。讀不到則保留舊值，不會因此變成「讀不到」。
+  Future<void> _loadHourlyTotals({int maxRetries = 3}) async {
+    final now = DateTime.now();
+    if (_hourlyTotals == null) {
+      final stored = await _database.getHourlySteps(now);
+      if (stored.isNotEmpty && mounted) {
+        setState(() {
+          _hourlyTotals = stored;
+          _hourlyLoading = false;
+        });
+      }
+    }
+
+    Map<int, int>? totals;
+    // Health Connect 冷啟動時 native 端會吞掉例外並回 null，所以讀不到就隔 2、4、8 秒再試
+    for (var attempt = 0; ; attempt++) {
+      totals = await _stepService.fetchHourlyTotals(DateTime.now());
+      if (totals != null || attempt >= maxRetries || !mounted) break;
+      final delay = Duration(seconds: 2 << attempt);
+      appLog('今天的小時步數讀不到，${delay.inSeconds} 秒後重試（第 ${attempt + 1} 次）');
+      await Future<void>.delayed(delay);
+    }
+    if (totals != null) await _database.upsertHourlySteps(now, totals);
+
+    if (mounted) {
+      setState(() {
+        // 讀不到時保留先前的值（DB 快取或上一次成功的結果），null 只代表「從沒讀到過」
+        _hourlyTotals = totals ?? _hourlyTotals;
+        _hourlyLoading = false;
+      });
+    }
   }
 
   void _showMessage(String message, {bool error = false}) {
@@ -223,7 +257,7 @@ class _HomeScreenState extends State<HomeScreen> {
             // The old file SQLite could not read is still on the phone as *.corrupt;
             // say so, otherwise the missing history looks like a sync bug.
             if (databaseWasQuarantined) _NoticeCard(message: l10n.databaseQuarantined),
-            SizedBox(height: 310, child: HourlyStepsChart(totals: _hourlyTotals)),
+            SizedBox(height: 310, child: HourlyStepsChart(totals: _hourlyTotals, loading: _hourlyLoading)),
             ChartRangeSelector(
               range: range,
               onPeriods: (periods) {

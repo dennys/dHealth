@@ -329,15 +329,332 @@ class DailyStepsCompanion extends UpdateCompanion<DailyStep> {
   }
 }
 
+class $HourlyStepsTable extends HourlySteps
+    with TableInfo<$HourlyStepsTable, HourlyStep> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $HourlyStepsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  @override
+  late final GeneratedColumn<String> date = GeneratedColumn<String>(
+    'date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _hourMeta = const VerificationMeta('hour');
+  @override
+  late final GeneratedColumn<int> hour = GeneratedColumn<int>(
+    'hour',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _stepCountMeta = const VerificationMeta(
+    'stepCount',
+  );
+  @override
+  late final GeneratedColumn<int> stepCount = GeneratedColumn<int>(
+    'step_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _lastUpdatedMeta = const VerificationMeta(
+    'lastUpdated',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastUpdated = GeneratedColumn<DateTime>(
+    'last_updated',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [date, hour, stepCount, lastUpdated];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'hourly_steps';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<HourlyStep> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('date')) {
+      context.handle(
+        _dateMeta,
+        date.isAcceptableOrUnknown(data['date']!, _dateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dateMeta);
+    }
+    if (data.containsKey('hour')) {
+      context.handle(
+        _hourMeta,
+        hour.isAcceptableOrUnknown(data['hour']!, _hourMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_hourMeta);
+    }
+    if (data.containsKey('step_count')) {
+      context.handle(
+        _stepCountMeta,
+        stepCount.isAcceptableOrUnknown(data['step_count']!, _stepCountMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_stepCountMeta);
+    }
+    if (data.containsKey('last_updated')) {
+      context.handle(
+        _lastUpdatedMeta,
+        lastUpdated.isAcceptableOrUnknown(
+          data['last_updated']!,
+          _lastUpdatedMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_lastUpdatedMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {date, hour};
+  @override
+  HourlyStep map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return HourlyStep(
+      date: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}date'],
+      )!,
+      hour: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}hour'],
+      )!,
+      stepCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}step_count'],
+      )!,
+      lastUpdated: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_updated'],
+      )!,
+    );
+  }
+
+  @override
+  $HourlyStepsTable createAlias(String alias) {
+    return $HourlyStepsTable(attachedDatabase, alias);
+  }
+}
+
+class HourlyStep extends DataClass implements Insertable<HourlyStep> {
+  final String date;
+  final int hour;
+  final int stepCount;
+  final DateTime lastUpdated;
+  const HourlyStep({
+    required this.date,
+    required this.hour,
+    required this.stepCount,
+    required this.lastUpdated,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['date'] = Variable<String>(date);
+    map['hour'] = Variable<int>(hour);
+    map['step_count'] = Variable<int>(stepCount);
+    map['last_updated'] = Variable<DateTime>(lastUpdated);
+    return map;
+  }
+
+  HourlyStepsCompanion toCompanion(bool nullToAbsent) {
+    return HourlyStepsCompanion(
+      date: Value(date),
+      hour: Value(hour),
+      stepCount: Value(stepCount),
+      lastUpdated: Value(lastUpdated),
+    );
+  }
+
+  factory HourlyStep.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return HourlyStep(
+      date: serializer.fromJson<String>(json['date']),
+      hour: serializer.fromJson<int>(json['hour']),
+      stepCount: serializer.fromJson<int>(json['stepCount']),
+      lastUpdated: serializer.fromJson<DateTime>(json['lastUpdated']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'date': serializer.toJson<String>(date),
+      'hour': serializer.toJson<int>(hour),
+      'stepCount': serializer.toJson<int>(stepCount),
+      'lastUpdated': serializer.toJson<DateTime>(lastUpdated),
+    };
+  }
+
+  HourlyStep copyWith({
+    String? date,
+    int? hour,
+    int? stepCount,
+    DateTime? lastUpdated,
+  }) => HourlyStep(
+    date: date ?? this.date,
+    hour: hour ?? this.hour,
+    stepCount: stepCount ?? this.stepCount,
+    lastUpdated: lastUpdated ?? this.lastUpdated,
+  );
+  HourlyStep copyWithCompanion(HourlyStepsCompanion data) {
+    return HourlyStep(
+      date: data.date.present ? data.date.value : this.date,
+      hour: data.hour.present ? data.hour.value : this.hour,
+      stepCount: data.stepCount.present ? data.stepCount.value : this.stepCount,
+      lastUpdated: data.lastUpdated.present
+          ? data.lastUpdated.value
+          : this.lastUpdated,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HourlyStep(')
+          ..write('date: $date, ')
+          ..write('hour: $hour, ')
+          ..write('stepCount: $stepCount, ')
+          ..write('lastUpdated: $lastUpdated')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(date, hour, stepCount, lastUpdated);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is HourlyStep &&
+          other.date == this.date &&
+          other.hour == this.hour &&
+          other.stepCount == this.stepCount &&
+          other.lastUpdated == this.lastUpdated);
+}
+
+class HourlyStepsCompanion extends UpdateCompanion<HourlyStep> {
+  final Value<String> date;
+  final Value<int> hour;
+  final Value<int> stepCount;
+  final Value<DateTime> lastUpdated;
+  final Value<int> rowid;
+  const HourlyStepsCompanion({
+    this.date = const Value.absent(),
+    this.hour = const Value.absent(),
+    this.stepCount = const Value.absent(),
+    this.lastUpdated = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  HourlyStepsCompanion.insert({
+    required String date,
+    required int hour,
+    required int stepCount,
+    required DateTime lastUpdated,
+    this.rowid = const Value.absent(),
+  }) : date = Value(date),
+       hour = Value(hour),
+       stepCount = Value(stepCount),
+       lastUpdated = Value(lastUpdated);
+  static Insertable<HourlyStep> custom({
+    Expression<String>? date,
+    Expression<int>? hour,
+    Expression<int>? stepCount,
+    Expression<DateTime>? lastUpdated,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (date != null) 'date': date,
+      if (hour != null) 'hour': hour,
+      if (stepCount != null) 'step_count': stepCount,
+      if (lastUpdated != null) 'last_updated': lastUpdated,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  HourlyStepsCompanion copyWith({
+    Value<String>? date,
+    Value<int>? hour,
+    Value<int>? stepCount,
+    Value<DateTime>? lastUpdated,
+    Value<int>? rowid,
+  }) {
+    return HourlyStepsCompanion(
+      date: date ?? this.date,
+      hour: hour ?? this.hour,
+      stepCount: stepCount ?? this.stepCount,
+      lastUpdated: lastUpdated ?? this.lastUpdated,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (date.present) {
+      map['date'] = Variable<String>(date.value);
+    }
+    if (hour.present) {
+      map['hour'] = Variable<int>(hour.value);
+    }
+    if (stepCount.present) {
+      map['step_count'] = Variable<int>(stepCount.value);
+    }
+    if (lastUpdated.present) {
+      map['last_updated'] = Variable<DateTime>(lastUpdated.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HourlyStepsCompanion(')
+          ..write('date: $date, ')
+          ..write('hour: $hour, ')
+          ..write('stepCount: $stepCount, ')
+          ..write('lastUpdated: $lastUpdated, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$StepDatabase extends GeneratedDatabase {
   _$StepDatabase(QueryExecutor e) : super(e);
   $StepDatabaseManager get managers => $StepDatabaseManager(this);
   late final $DailyStepsTable dailySteps = $DailyStepsTable(this);
+  late final $HourlyStepsTable hourlySteps = $HourlyStepsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
-  List<DatabaseSchemaEntity> get allSchemaEntities => [dailySteps];
+  List<DatabaseSchemaEntity> get allSchemaEntities => [dailySteps, hourlySteps];
 }
 
 typedef $$DailyStepsTableCreateCompanionBuilder = DailyStepsCompanion Function({
@@ -529,10 +846,204 @@ typedef $$DailyStepsTableProcessedTableManager =
       DailyStep,
       PrefetchHooks Function()
     >;
+typedef $$HourlyStepsTableCreateCompanionBuilder =
+    HourlyStepsCompanion Function({
+      required String date,
+      required int hour,
+      required int stepCount,
+      required DateTime lastUpdated,
+      Value<int> rowid,
+    });
+typedef $$HourlyStepsTableUpdateCompanionBuilder =
+    HourlyStepsCompanion Function({
+      Value<String> date,
+      Value<int> hour,
+      Value<int> stepCount,
+      Value<DateTime> lastUpdated,
+      Value<int> rowid,
+    });
+
+class $$HourlyStepsTableFilterComposer
+    extends Composer<_$StepDatabase, $HourlyStepsTable> {
+  $$HourlyStepsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get hour => $composableBuilder(
+    column: $table.hour,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get stepCount => $composableBuilder(
+    column: $table.stepCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastUpdated => $composableBuilder(
+    column: $table.lastUpdated,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$HourlyStepsTableOrderingComposer
+    extends Composer<_$StepDatabase, $HourlyStepsTable> {
+  $$HourlyStepsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get hour => $composableBuilder(
+    column: $table.hour,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get stepCount => $composableBuilder(
+    column: $table.stepCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastUpdated => $composableBuilder(
+    column: $table.lastUpdated,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$HourlyStepsTableAnnotationComposer
+    extends Composer<_$StepDatabase, $HourlyStepsTable> {
+  $$HourlyStepsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get date =>
+      $composableBuilder(column: $table.date, builder: (column) => column);
+
+  GeneratedColumn<int> get hour =>
+      $composableBuilder(column: $table.hour, builder: (column) => column);
+
+  GeneratedColumn<int> get stepCount =>
+      $composableBuilder(column: $table.stepCount, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastUpdated => $composableBuilder(
+    column: $table.lastUpdated,
+    builder: (column) => column,
+  );
+}
+
+class $$HourlyStepsTableTableManager
+    extends
+        RootTableManager<
+          _$StepDatabase,
+          $HourlyStepsTable,
+          HourlyStep,
+          $$HourlyStepsTableFilterComposer,
+          $$HourlyStepsTableOrderingComposer,
+          $$HourlyStepsTableAnnotationComposer,
+          $$HourlyStepsTableCreateCompanionBuilder,
+          $$HourlyStepsTableUpdateCompanionBuilder,
+          (
+            HourlyStep,
+            BaseReferences<_$StepDatabase, $HourlyStepsTable, HourlyStep>,
+          ),
+          HourlyStep,
+          PrefetchHooks Function()
+        > {
+  $$HourlyStepsTableTableManager(_$StepDatabase db, $HourlyStepsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$HourlyStepsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$HourlyStepsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$HourlyStepsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> date = const Value.absent(),
+                Value<int> hour = const Value.absent(),
+                Value<int> stepCount = const Value.absent(),
+                Value<DateTime> lastUpdated = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => HourlyStepsCompanion(
+                date: date,
+                hour: hour,
+                stepCount: stepCount,
+                lastUpdated: lastUpdated,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String date,
+                required int hour,
+                required int stepCount,
+                required DateTime lastUpdated,
+                Value<int> rowid = const Value.absent(),
+              }) => HourlyStepsCompanion.insert(
+                date: date,
+                hour: hour,
+                stepCount: stepCount,
+                lastUpdated: lastUpdated,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$HourlyStepsTable, HourlyStep>(table),
+                  BaseReferences<_$StepDatabase, $HourlyStepsTable, HourlyStep>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$HourlyStepsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$StepDatabase,
+      $HourlyStepsTable,
+      HourlyStep,
+      $$HourlyStepsTableFilterComposer,
+      $$HourlyStepsTableOrderingComposer,
+      $$HourlyStepsTableAnnotationComposer,
+      $$HourlyStepsTableCreateCompanionBuilder,
+      $$HourlyStepsTableUpdateCompanionBuilder,
+      (
+        HourlyStep,
+        BaseReferences<_$StepDatabase, $HourlyStepsTable, HourlyStep>,
+      ),
+      HourlyStep,
+      PrefetchHooks Function()
+    >;
 
 class $StepDatabaseManager {
   final _$StepDatabase _db;
   $StepDatabaseManager(this._db);
   $$DailyStepsTableTableManager get dailySteps =>
       $$DailyStepsTableTableManager(_db, _db.dailySteps);
+  $$HourlyStepsTableTableManager get hourlySteps =>
+      $$HourlyStepsTableTableManager(_db, _db.hourlySteps);
 }

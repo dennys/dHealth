@@ -67,7 +67,7 @@ class StepDataService {
   /// 回傳 null = 這次**沒讀到**（沒權限或 Health Connect 出錯）；
   /// 回傳的 map 只含步數 > 0 的日子。null 與「0 步」在資料庫層意義完全不同：
   /// 前者絕對不能刪資料，後者才應該把該段覆蓋成空。
-  Future<Map<String, int>?> _fetchDailySteps(DateTime start, DateTime end) async {
+  Future<({Map<String, int> days, Set<String> skipped})?> _fetchDailySteps(DateTime start, DateTime end) async {
     try {
       if (!await _hasReadPermission()) {
         appLog('未取得健康資料讀取權限，跳過同步（未刪除任何資料）');
@@ -82,14 +82,24 @@ class StepDataService {
         final (from, to) = _dayBounds(day, day);
         return () => health.getTotalStepsInInterval(from, to);
       }).toList());
+      final todayKey = formatDateKey(DateTime.now());
+      final skipped = <String>{};
       for (var i = 0; i < dayList.length; i++) {
         final steps = totals[i];
-        // 任一天沒讀到就整個同步不動資料庫：缺的那天會被 `deleteDataInRange` 刪掉而不會被寫回，
-        // 把 null 当地 0 就是拿使用者的真實資料去换一個好看的進度條。
-        if (steps == null) throw StateError('getTotalStepsInInterval 回傳 null（${formatDateKey(dayList[i])}）');
-        if (steps > 0) days[formatDateKey(dayList[i])] = steps;
+        final key = formatDateKey(dayList[i]);
+        if (steps == null) {
+          // 今天讀不到只跳過今天（寫入時保留它原有的列）；過去的日子讀不到仍整個不動資料庫，
+          // 把 null 當成 0 就是拿使用者的真實資料去換一個好看的進度條。
+          if (key == todayKey) {
+            skipped.add(key);
+            appLog('今天的步數讀不到，只跳過今天（保留既有資料）');
+            continue;
+          }
+          throw StateError('getTotalStepsInInterval 回傳 null（$key）');
+        }
+        if (steps > 0) days[key] = steps;
       }
-      return days;
+      return (days: days, skipped: skipped);
     } catch (error) {
       appError('讀取健康資料失敗（未刪除任何資料）', error);
       return null;
@@ -112,19 +122,19 @@ class StepDataService {
     final failure = read.failure;
     if (failure != null) return (status: failure, detail: read.detail);
 
-    await _writeDays(start, end, read.days!, clearAllFirst: clearAllFirst);
+    await _writeDays(start, end, read.days!, skipped: read.skipped, clearAllFirst: clearAllFirst);
     return (status: StepSyncStatus.success, detail: null);
   }
 
   /// 讀一段區間並聚合。回傳的 failure 非 null 時代表「這次沒讀到」，
   /// 呼叫端**絕對不能**拿去動資料庫。
   Future<_ReadResult> _readDays(DateTime start, DateTime end) async {
-    final days = await _fetchDailySteps(start, end);
-    if (days == null) {
+    final fetched = await _fetchDailySteps(start, end);
+    if (fetched == null) {
       final denied = await _permissionDenied();
-      return (days: null, failure: denied ? StepSyncStatus.permissionDenied : StepSyncStatus.unavailable, detail: null);
+      return (days: null, skipped: const <String>{}, failure: denied ? StepSyncStatus.permissionDenied : StepSyncStatus.unavailable, detail: null);
     }
-    return (days: days, failure: null, detail: null);
+    return (days: fetched.days, skipped: fetched.skipped, failure: null, detail: null);
   }
 
   /// 起訖補到「當天 00:00:00 ~ 23:59:59.999」，讓「含尾日」成立。
@@ -135,12 +145,19 @@ class StepDataService {
       );
 
   /// 唯一的寫入路徑：先刪這段（或全部）再寫，整個動作在同一個 transaction 內。
-  Future<void> _writeDays(DateTime start, DateTime end, Map<String, int> days, {bool clearAllFirst = false}) async {
+  /// [skipped] 是這次讀不到、必須保留原狀的日子（目前只有「今天」）：刪除前先記下它們的列，寫完再放回去。
+  Future<void> _writeDays(DateTime start, DateTime end, Map<String, int> days, {Set<String> skipped = const {}, bool clearAllFirst = false}) async {
     final (from, to) = _dayBounds(start, end);
     final now = DateTime.now();
     final todayStart = DateTime(now.year, now.month, now.day);
 
     await database.transaction(() async {
+      final preserved = <DailyStep>[];
+      for (final key in skipped) {
+        final row = await database.getDailyStep(DateTime.parse(key));
+        if (row != null) preserved.add(row);
+      }
+
       if (clearAllFirst) {
         await database.deleteAllData();
       } else {
@@ -154,6 +171,9 @@ class StepDataService {
           now,
           isComplete: day.isBefore(todayStart), // 只有「已經過去的日子」才算定案
         );
+      }
+      for (final row in preserved) {
+        await database.upsertDailyStep(row.date, row.stepCount, row.lastUpdated, isComplete: row.isComplete);
       }
     });
   }
@@ -184,6 +204,7 @@ class StepDataService {
     const chunkSize = 30;
     final totalChunks = endDate.difference(startDate).inDays ~/ chunkSize + 1;
     final merged = <String, int>{};
+    final skipped = <String>{};
 
     for (var i = 0; i < totalChunks; i++) {
       final chunkStart = startDate.add(Duration(days: i * chunkSize));
@@ -195,10 +216,11 @@ class StepDataService {
       final failure = read.failure;
       if (failure != null) return (status: failure, detail: read.detail); // 資料庫一個字節都沒動過
       merged.addAll(read.days!);
+      skipped.addAll(read.skipped);
       onProgress?.call((i + 1) / totalChunks);
     }
 
-    await _writeDays(startDate, endDate, merged, clearAllFirst: clearAllFirst);
+    await _writeDays(startDate, endDate, merged, skipped: skipped, clearAllFirst: clearAllFirst);
     return (status: StepSyncStatus.success, detail: null);
   }
 
@@ -269,4 +291,4 @@ class StepDataService {
 }
 
 /// 一次「讀取＋聚合」的結果：failure 非 null 時 days 是 null，且呼叫端不得動資料庫。
-typedef _ReadResult = ({Map<String, int>? days, StepSyncStatus? failure, Object? detail});
+typedef _ReadResult = ({Map<String, int>? days, Set<String> skipped, StepSyncStatus? failure, Object? detail});

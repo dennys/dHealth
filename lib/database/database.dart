@@ -22,12 +22,25 @@ class DailySteps extends Table {
   Set<Column> get primaryKey => {date};
 }
 
-@DriftDatabase(tables: [DailySteps])
+/// 今天每個小時的步數（小時圖的快取）。只存「讀到」的小時；0 步也要存。
+class HourlySteps extends Table {
+  // 與 DailySteps.date 同格式（YYYY-MM-DD）
+  TextColumn get date => text()();
+  // 0..23
+  IntColumn get hour => integer()();
+  IntColumn get stepCount => integer()();
+  DateTimeColumn get lastUpdated => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {date, hour};
+}
+
+@DriftDatabase(tables: [DailySteps, HourlySteps])
 class StepDatabase extends _$StepDatabase {
   StepDatabase(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   /// 下次改 schema（加欄位）時，老安裝升級不會直接崩潰 —— 沒有 onUpgrade 時 drift
   /// 對版本不符的資料庫直接丟例外，而本案 `allowBackup="false"`，崩了就等於沒資料。
@@ -40,10 +53,8 @@ class StepDatabase extends _$StepDatabase {
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) => m.createAll(),
         onUpgrade: (m, from, to) async {
-          for (final table in allTables) {
-            await m.deleteTable(table.actualTableName);
-            await m.createTable(table);
-          }
+          // v2 只新增小時表；每日資料保留，不能因為加表就把使用者的歷史步數砍掉。
+          if (from < 2) await m.createTable(hourlySteps);
         },
       );
 
@@ -91,5 +102,31 @@ class StepDatabase extends _$StepDatabase {
     await (delete(dailySteps)
           ..where((t) => t.date.isBiggerOrEqualValue(startDate) & t.date.isSmallerOrEqualValue(endDate)))
         .go();
+  }
+
+  /// 某一天已存的各小時步數（沒有的小時不會出現在 map 裡）。
+  Future<Map<int, int>> getHourlySteps(DateTime date) async {
+    final rows = await (select(hourlySteps)..where((t) => t.date.equals(formatDateKey(date)))).get();
+    return {for (final row in rows) row.hour: row.stepCount};
+  }
+
+  /// 逐小時 upsert。只覆蓋這次讀到的小時，不動其他小時（單小時讀取失敗時舊值保留）；
+  /// 順便清掉非 [date] 的舊日期，小時表只需要「今天」。
+  Future<void> upsertHourlySteps(DateTime date, Map<int, int> totals) async {
+    final key = formatDateKey(date);
+    final now = DateTime.now();
+    await transaction(() async {
+      await (delete(hourlySteps)..where((t) => t.date.equals(key).not())).go();
+      for (final entry in totals.entries) {
+        await into(hourlySteps).insertOnConflictUpdate(
+          HourlyStepsCompanion(
+            date: Value(key),
+            hour: Value(entry.key),
+            stepCount: Value(entry.value),
+            lastUpdated: Value(now),
+          ),
+        );
+      }
+    });
   }
 }
