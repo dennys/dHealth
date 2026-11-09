@@ -2,7 +2,6 @@
 
 [![GitHub Actions](https://github.com/dennys/dhealth/actions/workflows/github_action.yaml/badge.svg)](https://github.com/dennys/dHealth/actions/workflows/github_action.yaml)
 [![codecov](https://codecov.io/gh/dennys/dHealth/graph/badge.svg?token=IGNEDCQ0g2)](https://codecov.io/gh/dennys/dHealth)
-![GitHub Repo stars](https://img.shields.io/github/stars/:dennys/:dstep)
 
 Just another Health App.
 
@@ -47,20 +46,16 @@ Just another Health App.
   `android/app/build.gradle.kts` 的 `abiFilters` 加回去。
 - iOS: this app is built by Flutter, it works theoretically, but still need to implement iOS dependent code and test. For example, how to get health data and import/export data are platform dependent.
 
-# iOS
-
-App widget
-Notification
-
 # ToDo
 
-待辦都移到 [TODO.md](TODO.md)（慣例：一個待辦一段，寫清「檔案:行」與「為什麼现在是這樣」）。
+待辦都移到 [TODO.md](TODO.md)（慣例：一個待辦一段，寫清「檔案:行」與「為什麼现在是這樣」）；
+已完成的紀錄在 [CHANGELOG.md](CHANGELOG.md)。
 
 # For Developers
 
 # Development
 
-1. flutter >=3.27.0
+1. Flutter >=3.47.0（與 `pubspec.yaml` 的 `environment.flutter` 與 CI 的 `FLUTTER_VERSION` pin 同版）
 
 ## VSCode
 
@@ -126,7 +121,7 @@ CI 的 `Restore signing key` 會先清洗 secret 被判貼帶入的空白/`\r`�
 兩種都是假綠燈，實測於 JDK 21。）
 CI 另外產出 `dHealth-release-v<pubspec版本>.apk`。
 
-建置（只出 arm64，APK 約 22MB；不帶 flag 會把三個 ABI 全塞進去變 61MB）：
+建置（只出 arm64，APK 約 22MB（此數字待核：本機只實測過 debug 版）；不帶 flag 會把三個 ABI 全塞進去變 61MB）：
 
 ```powershell
 flutter build apk --release --target-platform android-arm64
