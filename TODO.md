@@ -6,10 +6,12 @@
 
 ## 本機建置（dgx1 = aarch64）— 2026-11-09
 
-本機只出 **debug**：`flutter build apk --debug --target-platform android-arm64`（實測 108 MiB，
-`CN=Android Debug`）。release/profile 要 AOT 的 `gen_snapshot`，Google 的 engine bucket 裡
-**沒有 linux-arm64 host 版**（`android-arm64-release/artifacts.zip` 只有 flutter.jar）→ release 由
-別台 x86-64 機器或 CI 出。需要的環境：`JAVA_HOME=~/jdk21`、`ANDROID_HOME=~/android-sdk`。
+**這一節只講 dgx1 這台主機，別外推成「本專案不能出 release」**：Windows（x86-64）出 release 已實測裝機、
+CI 也正常出 artifacts；卡住的只有 Linux/aarch64 —— AOT 的 `gen_snapshot`，Google 的 engine bucket 裡
+**沒有 linux-arm64 host 版**（`android-arm64-release/artifacts.zip` 只有 flutter.jar），qemu 模擬 x86-64 那條
+也試過行不通。所以在 dgx1 上日常就只出 **debug**：
+`flutter build apk --debug --target-platform android-arm64`（實測 108 MiB，`CN=Android Debug`）。
+需要的環境：`JAVA_HOME=~/jdk21`、`ANDROID_HOME=~/android-sdk`。
 
 - **本機专用的依賴釘選放 `pubspec_overrides.yaml`（已 gitignore → CI／正式版零影響）**：
   `path_provider_android: 2.2.23`、`shared_preferences_android: 2.4.8`。原因：11-08 `d9bcde6`
