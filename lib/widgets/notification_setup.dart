@@ -12,6 +12,11 @@ import '../settings_model.dart'; // Import your SettingsModel
 /// 使用者在這裡調好時段，實際生效的卻是另一頁的設定（而且兩個時間選譯器都預設成 end）。
 /// 所以把這組裝飾品刪掉，保留一個來源。
 
+/// dropdown 的選項清單。items 與「目前值是否可顯示」的判斷共用同一個來源 ——
+/// 兩邊各寫一次的話，日後加選項只改一邊就會重新踩進 DropdownButton 的 assertion。
+const _frequencies = [5, 15, 30, 60];
+const _timeLimits = [1, 2, 4, 8];
+
 class NotificationSetupScreen extends StatelessWidget {
   const NotificationSetupScreen({super.key});
 
@@ -42,12 +47,13 @@ class NotificationSetupScreen extends StatelessWidget {
             title: Text(localizations.notificationFrequency, style: TextStyle(color: textColor)),
             subtitle: Text(localizations.notificationFrequencyDescription, style: TextStyle(color: secondaryTextColor)),
             trailing: DropdownButton<int>(
-              value: settings.notificationFrequency,
+              // 自訂值（例如 45）不在 items 裡時一定要傳 null + hint：直接傳 value 會讓
+              // DropdownButton 在 debug 模式 assertion 炸、release 顯示空白看不到現值。
+              // （同專案 setup.dart 的同步頻率 dropdown 已經是這個寫法。）
+              value: _frequencies.contains(settings.notificationFrequency) ? settings.notificationFrequency : null,
+              hint: Text(localizations.minutes(settings.notificationFrequency)),
               items: [
-                DropdownMenuItem(value: 5, child: Text(localizations.minutes(5))),
-                DropdownMenuItem(value: 15, child: Text(localizations.minutes(15))),
-                DropdownMenuItem(value: 30, child: Text(localizations.minutes(30))),
-                DropdownMenuItem(value: 60, child: Text(localizations.minutes(60))),
+                for (final m in _frequencies) DropdownMenuItem(value: m, child: Text(localizations.minutes(m))),
                 DropdownMenuItem(value: -1, child: Text(localizations.custom)),
               ],
               onChanged: (value) async {
@@ -83,12 +89,12 @@ class NotificationSetupScreen extends StatelessWidget {
               title: Text(localizations.motivationTimeLimit, style: TextStyle(color: textColor)),
               subtitle: Text(localizations.motivationTimeLimitDescription, style: TextStyle(color: secondaryTextColor)),
               trailing: DropdownButton<int>(
-                value: settings.motivationTimeLimit,
+                // 同款防護：motivationTimeLimit 是 0..24 的任意值（_clampRange），
+                // 舊版殘留的 3 這種值落在 items 外，直接傳 value 會 assertion。
+                value: _timeLimits.contains(settings.motivationTimeLimit) ? settings.motivationTimeLimit : null,
+                hint: Text(localizations.hours(settings.motivationTimeLimit)),
                 items: [
-                  DropdownMenuItem(value: 1, child: Text(localizations.hours(1))),
-                  DropdownMenuItem(value: 2, child: Text(localizations.hours(2))),
-                  DropdownMenuItem(value: 4, child: Text(localizations.hours(4))),
-                  DropdownMenuItem(value: 8, child: Text(localizations.hours(8))),
+                  for (final h in _timeLimits) DropdownMenuItem(value: h, child: Text(localizations.hours(h))),
                 ],
                 onChanged: (value) {
                   if (value != null) {
