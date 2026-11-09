@@ -99,6 +99,9 @@ jobs:
       # release 簽章：keystore 與 key.properties 都在 GitHub secrets，repo 裡零機密
       # （與 dNeko 同格式：KEYSTORE_B64 = keystore 檔 base64，KEY_PROPERTIES = key.properties 全文）。
       # 沒設 secrets 就退回 debug 簽章（fork 也能過 CI）。
+      # 兩件必做的事：① secrets 從 GitHub UI 貼進來常帶 \r/\n/空白 —— base64 先把全部空白清掉再解，
+      # key.properties 只去 \r（properties 的內部版面有意義）；② 寫完立刻預驗，讓「兩個 secret 不配」
+      # 在這裡就 ::error::，而不是讓 Gradle 兩分鐘後死在 :app:packageRelease。
       - name: Restore signing key
         env:
           KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
@@ -115,9 +118,30 @@ jobs:
           # secret 常被判貼時帶進 \r\n 或空白：base64 全部清掉，properties 只去 \r（格式還在）
           printf '%s' "$KEYSTORE_B64" | tr -d '[:space:]' | base64 -d > android/app/dhealth.keystore
           printf '%s\n' "$KEY_PROPERTIES" | tr -d '\r' > android/key.properties
-          PW=$(grep '^storePassword=' android/key.properties | cut -d= -f2- | tr -d ' \t')
-          keytool -list -keystore android/app/dhealth.keystore -storepass "$PW" >/dev/null 2>&1 \
-            || { echo "::error::keystore 開不起來：KEYSTORE_B64 與 KEY_PROPERTIES 不是同一把 key（或值被剪到）"; exit 1; }
+          # Properties 允許「storePassword = xx」這種等號前後帶空格的寫法，grep '^storePassword=' 會漏抓
+          prop(){ sed -n "s/^[[:space:]]*$1[[:space:]]*=[[:space:]]*//p" android/key.properties | head -1 | tr -d '\r'; }
+          PW=$(prop storePassword); KP=$(prop keyPassword); ALIAS=$(prop keyAlias)
+          KP="${KP:-$PW}"
+          test -n "$PW" && test -n "$ALIAS" || { echo "::error::KEY_PROPERTIES 裡找不到 storePassword= 或 keyAlias= 這行"; exit 1; }
+          echo "::add-mask::$PW" # 後續步驟不小心印到時由 GitHub 打碼
+          echo "::add-mask::$KP"
+          KEYTOOL="${JAVA_HOME:-}/bin/keytool"
+          command -v "$KEYTOOL" >/dev/null 2>&1 || KEYTOOL=keytool # setup-java 有進 PATH，這裡只求穩
+          # 用 importkeystore 而不是 -list：-list 只驗 store 密碼，keyAlias/keyPassword 打錯照样綠燈。
+          #  Gradle 簽名時用的正是這三個值：load(storePassword) → getKey(alias, keyPassword) → 簽，
+          #  keyPassword 不對就在 :app:packageRelease 丟 UnrecoverableKeyException（實測過）。
+          #  -srckeypass 是必需品而不是可選（JDK 8/21/25 都有這個旗標）：不給的話 keytool
+          #  轉成互動提問連問三次，然後 "Too many failures - try later"，預檢變成假紅。
+          TMP=$(mktemp -u /tmp/preflight-XXXXXX.p12)
+          if ! "$KEYTOOL" -importkeystore -srckeystore android/app/dhealth.keystore \
+              -srcstorepass "$PW" -srcalias "$ALIAS" -srckeypass "$KP" \
+              -destkeystore "$TMP" -deststorepass preflight > /tmp/preflight.log 2>&1; then
+            cat /tmp/preflight.log
+            rm -f "$TMP" /tmp/preflight.log
+            echo "::error::KEYSTORE_B64 與 KEY_PROPERTIES 不是同一把 key（store/key 密碼或 keyAlias 不對，或內容被剪到），請重新產生並貼上這兩個 secrets"
+            exit 1
+          fi
+          rm -f "$TMP" /tmp/preflight.log
 
       # --no-tree-shake-icons：沿用原本註解掉的 build job 的意圖，避免動態引用的 Material icon
       # 被 tree-shake 掉變成豆腐

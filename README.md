@@ -110,9 +110,10 @@ keytool -genkeypair -keystore android\app\dhealth.keystore -storetype PKCS12 `
   -storepass <密碼> -keypass <密碼> -dname "CN=dHealth, OU=dev, O=denny, L=TP, C=TW"
 ```
 
-CI 的 `Restore signing key` 步驟會清洗 secret 被判貼帶入的空白/`\r`，再用 `keytool -list`
-預檢 keystore 與密碼是否同鑰——不對就一步報錯，不會等 Gradle 三分鐘後才炸
-`keystore password was incorrect`。CI 另外產出 `dHealth-release-v<pubspec版本>.apk`。
+CI 的 `Restore signing key` 步驟會清洗 secret 被判貼帶入的空白/`\r`，再用 `keytool -importkeystore`
+預檢到一個臨時檔——同時驗 store 與 key 密碼（`keytool -list` 只驗 store 密碼，`keyPassword`/`keyAlias`
+打錯照样綠燈）。不對就一步報錯，不會等 Gradle 三分鐘後才炸 `keystore password was incorrect`。
+CI 另外產出 `dHealth-release-v<pubspec版本>.apk`。
 
 建置（本地與 CI 相同，只出 arm64，APK 約 22MB；不帶 flag 會把三個 ABI 全塞進去變 61MB）：
 

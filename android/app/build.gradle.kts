@@ -9,7 +9,7 @@ plugins {
 }
 
 // release 簽章檔與密碼都放 android/key.properties（gitignored，絕不進 repo）。
-// CI 由 KEYSTORE_B64 / KEY_PASSWORD secrets 生成它；沒有就退回 debug 簽章，
+// CI 由 KEYSTORE_B64 / KEY_PROPERTIES secrets 生成它；沒有就退回 debug 簽章，
 // 讓 fork 和沒設 secret 的 CI 照样能 build。
 val keystoreProps = Properties().apply {
     val f = rootProject.file("key.properties")
