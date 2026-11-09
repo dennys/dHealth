@@ -34,12 +34,6 @@ void callbackDispatcher() {
   });
 }
 
-/// 這次同步讀到的步數。讀取失敗時是 null，**不是** 0，也不是任何魔術數字。
-///
-/// （舊版沒權限時回 999，而 999 會去和預設 300 的目標比較，於是使用者收到
-/// 「Goal Reached! 你走了 999 步，太棒了」這種憑空恭喜。）
-enum StepReading { ok, failed }
-
 /// 該發哪一種通知。**純函數**，不做 IO —— 這是本案最容易測、也最容易錯的一段。
 enum StepAlert { goalReached, almostThere, none }
 

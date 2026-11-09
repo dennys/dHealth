@@ -32,9 +32,10 @@ class StepDataService {
   /// 會變成排隊 + 一起逾時，6 是兩邊都不至于爆的折衰值。
   static const _concurrency = 6;
 
-  /// 手動/下拉同步舆 WorkManager 背景同步可能同時跑（`main.dart` 的 `_syncing` 只擋得住 UI 自己）。
-  /// 雨邊都是「先讀後寫 + transaction」，同源資料交錯时理論上會出現半套狀態，
-  /// 所以把寫入路径全程 serialize（排一條隊，一個跑完才換下一個）。
+  /// Serialises syncs *inside this isolate*. The WorkManager task runs in another
+  /// isolate with its own StepDataService, so it cannot share this queue: that pair
+  /// is kept safe by SQLite transactions plus `PRAGMA busy_timeout` (see
+  /// openStepDatabase), not by this mutex.
   Future<void> _tail = Future<void>.value();
 
   Future<T> _serialized<T>(Future<T> Function() body) {

@@ -34,10 +34,18 @@ class ChartRange {
   }
 
   /// 往前 [offset] 頁、共 [periods] 個月（起點對齊月初）。
+  /// Page back [offset] pages of [periods] months, aligned to the first day of a month.
+  /// The target month is computed with day 1 and today's day is then clamped into that
+  /// month's last day: keeping day 31 rolled into the next month, so page 2 showed
+  /// the current month again.
   ({DateTime from, DateTime to, int periods}) months() {
     final t = _dateOnly(today);
-    final to = DateTime(t.year, t.month - periods * offset, t.day);
-    return (from: DateTime(to.year, to.month - periods + 1, 1), to: to, periods: periods);
+    final endMonth = DateTime(t.year, t.month - periods * offset, 1);
+    final daysInMonth = DateTime(endMonth.year, endMonth.month + 1, 0).day;
+    final to = DateTime(endMonth.year, endMonth.month,
+        t.day <= daysInMonth ? t.day : daysInMonth);
+    final from = DateTime(endMonth.year, endMonth.month - periods + 1, 1);
+    return (from: from, to: to, periods: periods);
   }
 
   String encode() => '$periods';

@@ -37,7 +37,6 @@ class Prefs {
 
   // Charts
   static const dailyChartRange = 'dailyChartRange';
-  static const weekStartDay = 'week_start_day';
 
   // Backup（allowBackup=false 之後，匯出是使用者唯一的備份路）
   static const lastExportAt = 'last_export_at';
@@ -80,4 +79,8 @@ class PrefsDefaults {
 
   /// 首次同步往回取幾天（資料庫完全沒資料時）。
   static const firstSyncLookbackDays = 30;
+
+  // Frequency options offered on both settings pages; also the test for
+  // "is the stored value one of ours" reads this, so the lists cannot drift.
+  static const List<int> frequencyPresets = [15, 30, 60];
 }

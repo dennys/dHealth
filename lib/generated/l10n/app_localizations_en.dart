@@ -362,6 +362,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportFailed => 'Export failed';
 
   @override
+  String get databaseQuarantined =>
+      'Old health data could not be read and was saved as a .corrupt file. Sync again, or restore a file you exported.';
+
+  @override
   String get widgets => 'Widgets';
 
   @override

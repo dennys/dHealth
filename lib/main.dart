@@ -19,6 +19,7 @@ import 'package:health/health.dart';
 import 'package:provider/provider.dart';
 
 import 'database/database.dart';
+import 'database/util.dart';
 import 'utils/chart_range.dart';
 import 'utils/log.dart';
 import 'utils/sync_reason.dart';
@@ -215,7 +216,13 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: const EdgeInsets.all(8),
           children: [
             if (healthConnectUnavailable) _HealthConnectUnavailableBanner(onInstall: _installHealthConnect),
-            if (_permissionFailure != null) _PermissionBanner(message: _permissionMessage(l10n, _permissionFailure!), onRetry: _bootstrap),
+            if (_permissionFailure != null)
+              _PermissionBanner(
+                  message: _permissionMessage(l10n, _permissionFailure!),
+                  onRetry: _bootstrap),
+            // The old file SQLite could not read is still on the phone as *.corrupt;
+            // say so, otherwise the missing history looks like a sync bug.
+            if (databaseWasQuarantined) _NoticeCard(message: l10n.databaseQuarantined),
             SizedBox(height: 310, child: HourlyStepsChart(totals: _hourlyTotals)),
             ChartRangeSelector(
               range: range,
@@ -313,6 +320,22 @@ class _Drawer extends StatelessWidget {
             },
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _NoticeCard extends StatelessWidget {
+  const _NoticeCard({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: ListTile(
+        leading: const Icon(Icons.error_outline),
+        title: Text(message),
       ),
     );
   }

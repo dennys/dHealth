@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:dhealth/generated/l10n/app_localizations.dart';
+import '../settings_keys.dart';
 import '../settings_model.dart'; // Import your SettingsModel
 
 /// 通知設定頁。
@@ -18,7 +19,7 @@ import '../settings_model.dart'; // Import your SettingsModel
 /// 没有「5 分鐘」这一項：背景一律 `clamp(15, …)`（`background_service.dart`），
 /// WorkManager 也不允許更密 —— 放一顆「選了不會生效」的選項比不放更糟。
 /// 舊安裝存過 5 的話不會崩：下面的 value 判斷會改走 hint 顯示現值。
-const _frequencies = [15, 30, 60];
+const _frequencies = PrefsDefaults.frequencyPresets;
 const _timeLimits = [1, 2, 4, 8];
 
 class NotificationSetupScreen extends StatelessWidget {

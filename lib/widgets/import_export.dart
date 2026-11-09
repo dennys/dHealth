@@ -93,7 +93,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
         // 「最近 N 天」是自由輸入：在用的時候夾一次。每一次都是 Health Connect 呼叫，
         // 没上限就等於讓使用者一脚踩爆同步（9999 = 9999 次串行 IPC）；
         // 0/負数也不该透到下游才由 invalidRange 兵底。
-        final pastDays = _pastDays.clamp(1, 3650);
+        final pastDays = _pastDays.clamp(1, 365); // one IPC per day, 3650 froze the UI
         final startDate = _selectedMode == ImportMode.pastDays ? DateTime.now().subtract(Duration(days: pastDays)) : _startDate;
         result = await _stepService.importFromPhone(
           startDate: startDate,

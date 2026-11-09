@@ -24,7 +24,45 @@ Future<File> stepDatabaseFile() async {
   return File(p.join(appDir.path, databaseFileName));
 }
 
-Future<StepDatabase> openStepDatabase() async => StepDatabase(NativeDatabase(await stepDatabaseFile()));
+// True when the previous file could not be opened and was set aside as
+// `<name>.corrupt` so the app still starts (and the import screen stays reachable,
+// which matters because allowBackup="false" makes export the only restore path).
+bool databaseWasQuarantined = false;
+
+/// Open the step database, surviving a file SQLite refuses to read.
+///
+/// The old code let this throw before `runApp`, so one half-written file turned
+/// the app into a self-closing splash screen with no way to get the data back.
+Future<StepDatabase> openStepDatabase() async {
+  final file = await stepDatabaseFile();
+  final database = StepDatabase(NativeDatabase(file));
+  try {
+    // SQLite only opens the file on the first statement, so probe it here.
+    // busy_timeout: the WorkManager isolate writes through its own connection,
+    // so a manual sync and a background sync really can overlap.
+    await database.customStatement('PRAGMA busy_timeout = 4000');
+    await database.getAllDailySteps();
+    return database;
+  } catch (error) {
+    appError('openStepDatabase failed: keep the old file as *.corrupt, reopen a blank db', error);
+    await database.close();
+    await _setAsideCorruptFile(file);
+    databaseWasQuarantined = true;
+    return StepDatabase(NativeDatabase(await stepDatabaseFile()));
+  }
+}
+
+/// Keep the unreadable file next to the new one instead of deleting it: it may
+/// still hold health data the user cannot re-fetch.
+Future<void> _setAsideCorruptFile(File file) async {
+  final quarantined = File('${file.path}.corrupt');
+  if (await quarantined.exists()) await quarantined.delete();
+  await file.rename(quarantined.path);
+  for (final suffix in const ['-wal', '-shm']) {
+    final side = File('${file.path}$suffix');
+    if (await side.exists()) await side.delete();
+  }
+}
 
 /// 用 SQLite 的 `VACUUM INTO` 讓**活著的連線**自己寫出一份乾淨的快照。
 ///

@@ -31,7 +31,7 @@ class SettingsModel extends ChangeNotifier {
   // Health Data Sync
   bool _healthSyncEnabled = PrefsDefaults.healthSyncEnabled;
   int _syncFrequency = PrefsDefaults.syncFrequencyMinutes;
-  final List<int> _predefinedSyncFrequency = const [15, 30, 60]; // 15m, 30m, 1hr in minutes
+  final List<int> _predefinedSyncFrequency = PrefsDefaults.frequencyPresets;
   int _activeStartHour = PrefsDefaults.activeStartHour;
   int _activeEndHour = PrefsDefaults.activeEndHour;
 
