@@ -51,13 +51,14 @@ CI 也正常出 artifacts；卡住的只有 Linux/aarch64 —— AOT 的 `gen_sn
 
 ### 3. 測試覆蓋的洞
 現在有：`database`、`data_service`（同步安全回歸 + **同步 serialize** + **小時曲線的容忍行為**）、
-`step_calculator`、`weekday_utils`、`settings_model`、`decideStepAlert`、
+`step_calculator`、`settings_model`、`decideStepAlert`、`chart_range`（incl. the month-page day clamp）、
 **`notification_service`（時段視窗含跨午夜、節流、判斷不燒節流槽）**、**備份提醒的天數算法**。
 新增的斷言都做過變異檢查（把舊行為塞回去會紅），不是怎麼跑都過的假測試。
 
 完全沒有：**`Workmanager` 排程本身**、**`permission_service`**（唯一還沒測過的入口邏輯，
 真要補先補它）、**`BackgroundService.executeTask`**（要 mocks）、**`importStepsFromFile`**、
 `charts` 的取數路徑。
+- **`openStepDatabase` recovery path** (a corrupt file -> `.corrupt` + fresh db): untestable today because the path is hard-wired to path_provider; inject the path if you want a test.
 
 ### 4. 一致性 / 上架前
 - l10n 取字串慣例：本案到处是 `AppLocalizations.of(context)?.xxx ?? '英文 fallback'`，

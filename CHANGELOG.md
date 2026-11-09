@@ -5,7 +5,24 @@
 新的完成紀錄加在最上面。
 
 ---
+## 2026-11-10 five fixes around data and paging (device checks still zero)
 
+- `chart_range.dart` `months()`: the target month is built with day 1, then today's day is
+  clamped into that month. Day 31 used to roll into the next month, so paging the monthly
+  chart back showed the current month again (`test/chart_range_test.dart` covers 2026-03-31).
+- `util.dart` `openStepDatabase()`: a file SQLite cannot read no longer throws before `runApp`
+  (that made the app a self-closing splash screen with the import screen unreachable). It is
+  copied aside as `*.corrupt` and a fresh db opens; the home page shows one notice
+  (`l10n.databaseQuarantined`).
+- Same call sets `PRAGMA busy_timeout = 4000`: the WorkManager isolate writes through its
+  own connection, so the `_serialized` queue only covers its own isolate (comment corrected).
+- `background_service.dart`: cancels the retired `com.example.step_tracker` job once, so
+  updated installs stop paying a periodic task that only returns true; dead `StepReading` deleted.
+- Deleted dead code: `appstate.dart`, `weekday_utils.dart` (+ its test, `Prefs.weekStartDay`)
+  and shared the two `[15, 30, 60]` lists into `PrefsDefaults.frequencyPresets`.
+  `import_export.dart` clamps the day field to 365 (one Health Connect call per day).
+
+---
 ## 2026-11-09 本輪：審查報告剩下的 M/L 項全部做掉（commit `d116fdd`）
 
 `flutter analyze` 0 issue、`flutter test` 87 全過（70 → 87：刪掉 3 條測死碼的、新增 20 條）。

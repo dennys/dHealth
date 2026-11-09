@@ -48,6 +48,18 @@ void main() {
       expect(w.from, DateTime(2023, 10, 1));
       expect(w.to, DateTime(2023, 12, 10));
     });
+
+    // day 31 used to roll the target month into the next one, so paging back one
+    // month showed the current month again; the day must clamp into that month
+    test('date past the month length still pages back one month', () {
+      final mar31 = DateTime(2026, 3, 31);
+      final one = ChartRange(1, 1, mar31).months();
+      expect(one.from, DateTime(2026, 2, 1));
+      expect(one.to, DateTime(2026, 2, 28)); // day 31 clamped into February
+      final three = ChartRange(3, 1, mar31).months();
+      expect(three.from, DateTime(2025, 10, 1));
+      expect(three.to, DateTime(2025, 12, 31)); // day 31 fits December
+    });
   });
 
   group('previous / encode / decode', () {
