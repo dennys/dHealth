@@ -244,6 +244,8 @@ of Flutter`（guide：docs.flutter.dev/release/breaking-changes/migrate-to-built
 現在靠 `android/gradle.properties` 的 `android.builtInKotlin=false`／`android.newDsl=false`
 （Flutter migrator 自動加的）壓住，還跑得動；等它變成 error 就會被卡死在不能升 Flutter 版，到時是被動改。
 
-細節與步驟方向写在 **`../d2048/TODO.md`**（同一時間寫的同一件事）。**d2048 已於 2026-11-09 試通**（AGP 9.1.0；用 init script 實測 `:app` 的 `pluginManager.hasPlugin("org.jetbrains.kotlin.android")` 由 true 變 false，就真的生效了），可以照抄——
+細節與步驟方向写在 **`../d2048/TODO.md`**（同一時間寫的同一件事）。【2026-11-09 現況】**本案短期升不了**：有 7 個上游插件還在自己的 `android/build.gradle(.kts)` 裡套 KGP（`android_file_picker`、`device_info_plus`、`share_plus`、`package_info_plus`、`health`、`shared_preferences_android`、`workmanager_android`），而且這幾個我們鎖的都是 pub.dev 最新版，沒有「升一下就好」的路；上游 main 只有 `shared_preferences_android` 已改好待發版。別排程，定期重查即可。查證方式與 dNeko 那 1 個 blocker 的取捨見 `../dNeko/TODO.md`。
+
+**d2048 已於 2026-11-09 試通**（AGP 9.1.0；用 init script 實測 `:app` 的 `pluginManager.hasPlugin("org.jetbrains.kotlin.android")` 由 true 變 false，就真的生效了），可以照抄——
 本案有本地 fork 的原生插件／drift／health 等原生依賴，直接動風險高得多。驗收要含一次 release build
 （AOT 只能在 x86-64 機器或 CI 驗）。
