@@ -236,3 +236,14 @@ release 簽名（目前是 debug key）、CI 的 codecov token、真機驗收單
 - release 簽名仍是 debug key（`android/app/build.gradle.kts` 的 `signingConfig`）。- CI 的 `codecov/codecov-action@v4` 沒帶 token：public repo 沒事，**轉 private 會紅**。
 - 尚無 `dataExtractionRules`（`allowBackup="false"` 已設，健康資料已不进雲備份；
   要上架就得把 Play 的資料安全聲明對上實際行為）。
+
+## 2026-11-09 待辦：遷移到 Flutter Built-in Kotlin（三案共同，先拿 d2048 試）
+
+每次 build 都噴 `applies the Kotlin Gradle Plugin, which will cause build failures in future versions
+of Flutter`（guide：docs.flutter.dev/release/breaking-changes/migrate-to-built-in-kotlin）。
+現在靠 `android/gradle.properties` 的 `android.builtInKotlin=false`／`android.newDsl=false`
+（Flutter migrator 自動加的）壓住，還跑得動；等它變成 error 就會被卡死在不能升 Flutter 版，到時是被動改。
+
+細節與步驟方向写在 **`../d2048/TODO.md`**（同一時間寫的同一件事）。先在最單純的 d2048 試通再複製過來——
+本案有本地 fork 的原生插件／drift／health 等原生依賴，直接動風險高得多。驗收要含一次 release build
+（AOT 只能在 x86-64 機器或 CI 驗）。
