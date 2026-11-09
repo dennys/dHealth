@@ -300,5 +300,15 @@
   "importReasonFileNotFound": "選定的檔案不存在",
   "importReasonNoData": "這個檔案裡沒有步數資料",
   "importReasonReadFailed": "檔案讀不起來（不是 dHealth 的匯出檔？）",
-  "dailyStepGoalRange": "每日目標要介於 1000 與 20000 步之間"
+  "dailyStepGoalRange": "每日目標要介於 1000 與 20000 步之間",
+  "backupReminderTitle": "步數備份可能過期了",
+  "backupReminderBody": "距上次匯出已經 {days} 天。雲端備份是關著的，匯出出去的那份就是你唯一的一份。",
+  "@backupReminderBody": {
+    "description": "提醒使用者太久沒匯出（唯一備份路）",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  }
 }

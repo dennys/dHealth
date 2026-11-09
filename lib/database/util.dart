@@ -2,10 +2,12 @@ import 'dart:io';
 
 import 'package:drift/native.dart';
 import 'package:dhealth/database/database.dart';
+import 'package:dhealth/settings_keys.dart';
 import 'package:dhealth/utils/log.dart';
 import 'package:get_it/get_it.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// 本機資料庫的所在與備份/還原機制。
 ///
@@ -50,10 +52,23 @@ Future<File?> createDatabaseSnapshot(StepDatabase database, String fileName) asy
 
   try {
     await _writeSnapshot(database, dest);
-    return await dest.exists() ? dest : null;
+    if (!await dest.exists()) return null;
+    await markExported();
+    return dest;
   } catch (e) {
     appError('建立資料庫快照失敗', e);
     return null;
+  }
+}
+
+/// 記下「剛才真的匯出成功了」—— `allowBackup="false"` 之後匯出是唯一備份路，
+/// 背景排程靠這個時間戳提醒「備份可能過期」（`BackgroundService._maybeRemindBackup`）。
+/// 只在**成功寫出檔案**之後呼叫：記错了会让提醒永远不再出现。
+Future<void> markExported({DateTime? at}) async {
+  try {
+    await SharedPreferencesAsync().setInt(Prefs.lastExportAt, (at ?? DateTime.now()).millisecondsSinceEpoch);
+  } catch (e) {
+    appError('記錄匯出時間失敗（只会让备份提醒变多，不影响匯出本身）', e);
   }
 }
 
@@ -73,7 +88,9 @@ Future<String?> copyDatabaseToDirectory(StepDatabase database, String directoryP
     final stamp = DateTime.now().millisecondsSinceEpoch;
     final dest = File(p.join(dir.path, '${databaseFileName}_$stamp'));
     await _writeSnapshot(database, dest);
-    return await dest.exists() ? dest.path : null;
+    if (!await dest.exists()) return null;
+    await markExported();
+    return dest.path;
   } catch (e) {
     appError('匯出資料庫失敗', e);
     return null;
@@ -93,7 +110,7 @@ Future<String?> exportStepsToCsv(StepDatabase database, String directoryPath) as
     final steps = await database.getAllDailySteps();
     final csv = StringBuffer('Date,StepCount,LastUpdated,IsComplete\n');
     for (final step in steps) {
-      csv.writeln('${step.date},${step.stepCount},${step.lastUpdated.toIso8601String()},${step.isComplete}');
+      csv.writeln('${step.date},${step.stepCount},${step.lastUpdated.toUtc().toIso8601String()},${step.isComplete}');
     }
 
     final stamp = DateTime.now().millisecondsSinceEpoch;
@@ -101,7 +118,9 @@ Future<String?> exportStepsToCsv(StepDatabase database, String directoryPath) as
     final dest = File(p.join(dir.path, fileName));
     await dest.writeAsString(csv.toString(), flush: true);
 
-    return await dest.exists() ? dest.path : null;
+    if (!await dest.exists()) return null;
+    await markExported();
+    return dest.path;
   } catch (e) {
     appError('匯出 CSV 失敗', e);
     return null;

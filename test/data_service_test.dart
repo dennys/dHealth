@@ -222,6 +222,113 @@ void main() {
       verifyNever(mockDatabase.deleteDataInRange(any, any));
     });
   });
+
+  group('同步 serialize', () {
+    // main.dart 的 _syncing 只擋得住 UI 自己，WorkManager 那條是另一條 isolate/另一條路。
+    // 兩邊都是「先讀後寫 + transaction」，交錯時理論上會出現半套狀態 —— 這裡鎖住 serialize。
+    test('兩個同步同時進來也不能交錯跑', () async {
+      allowRead();
+      var inside = 0, maxInside = 0;
+      when(mockHealth.getTotalStepsInInterval(any, any)).thenAnswer((_) async {
+        inside++;
+        if (inside > maxInside) maxInside = inside;
+        await Future<void>.delayed(const Duration(milliseconds: 5));
+        inside--;
+        return 10;
+      });
+
+      // 每次都只取「一天」→ 一次同步就一次 Health Connect 呼叫，量到的併發數才是
+      // 「幾次同步之間有沒有交錯」，不會被單次同步內部的分批併發（一批 6 個）混淆。
+      await Future.wait([
+        stepDataService.syncRange(DateTime(2026, 3, 1), DateTime(2026, 3, 1)),
+        stepDataService.syncRange(DateTime(2026, 3, 2), DateTime(2026, 3, 2)),
+        stepDataService.importFromPhone(startDate: DateTime(2026, 3, 3), endDate: DateTime(2026, 3, 3)),
+      ]);
+
+      expect(maxInside, 1, reason: '讀取必須一條接一條，不能兩三次 Health Connect 同步交錯寫進同一個區間');
+    });
+  });
+
+  group('fetchHourlyTotals', () {
+    // 固定一個「現在」：今天 10:30 → 該查 0..10 共 11 小時
+    final now = DateTime(2026, 3, 10, 10, 30);
+    const hours = 11;
+
+    void stubByHour(Map<int, int?> stepsByHour, {Map<int, int>? secondTry}) {
+      final seen = <int, int>{};
+      when(mockHealth.getTotalStepsInInterval(any, any)).thenAnswer((invocation) async {
+        final from = invocation.positionalArguments[0] as DateTime;
+        final hour = from.hour;
+        seen[hour] = (seen[hour] ?? 0) + 1;
+        if (secondTry != null && seen[hour] != null && seen[hour]! > 1) return secondTry[hour];
+        return stepsByHour[hour];
+      });
+    }
+
+    test('逐小時都讀到 → 0..現在 每格都有值', () async {
+      allowRead();
+      stubByHour({for (var h = 0; h < hours; h++) h: h * 10});
+
+      final totals = await stepDataService.fetchHourlyTotals(now);
+
+      expect(totals?.length, hours);
+      expect(totals?[0], 0);
+      expect(totals?[10], 100);
+    });
+
+    // 舊版：任何一個小時回 null 就整批 throw，23 個好小時一起陪葬，主畫面變成「讀不到」。
+    test('某一小時讀不到：只缺那一格，其他小時要留著（不再牺牲整天）', () async {
+      allowRead();
+      stubByHour({for (var h = 0; h < hours; h++) h: 50, 5: null});
+
+      final totals = await stepDataService.fetchHourlyTotals(now);
+
+      expect(totals, isNotNull);
+      expect(totals!.containsKey(5), isFalse, reason: '讀不到的那格要省略，不能當成 0 步寫進去');
+      expect(totals.length, hours - 1);
+      expect(totals[4], 50);
+      expect(totals[6], 50);
+    });
+
+    test('單小時先讀不到、補插那次讀到 → 用補插到的值', () async {
+      allowRead();
+      stubByHour({for (var h = 0; h < hours; h++) h: 50, 5: null}, secondTry: {for (var h = 0; h < hours; h++) h: 50, 5: 77});
+
+      final totals = await stepDataService.fetchHourlyTotals(now);
+
+      expect(totals?[5], 77);
+      expect(totals?.length, hours);
+    });
+
+    test('單小時丟例外不影響整天（例外當成「這一格讀不到」處理）', () async {
+      allowRead();
+      when(mockHealth.getTotalStepsInInterval(any, any)).thenAnswer((invocation) async {
+        final from = invocation.positionalArguments[0] as DateTime;
+        if (from.hour == 3) throw Exception('Health Connect 抖了一下');
+        return 20;
+      });
+
+      final totals = await stepDataService.fetchHourlyTotals(now);
+
+      expect(totals, isNotNull);
+      expect(totals!.containsKey(3), isFalse);
+      expect(totals.length, hours - 1);
+    });
+
+    test('全部小時都讀不到 → 回 null（圖表畫「讀不到」而不是 0 步）', () async {
+      allowRead();
+      stubByHour({for (var h = 0; h < hours; h++) h: null});
+
+      expect(await stepDataService.fetchHourlyTotals(now), isNull);
+    });
+
+    test('沒有讀取授權 → null，且一次都不去查 Health Connect', () async {
+      denyRead();
+
+      expect(await stepDataService.fetchHourlyTotals(now), isNull);
+      verifyNever(mockHealth.getTotalStepsInInterval(any, any));
+    });
+  });
 }
 
 /// syncRange 把刪除與寫入包在 transaction 裡；Mockito 對泛型 transaction 只能回

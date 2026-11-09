@@ -26,31 +26,6 @@ void main() {
   });
 
 
-  test('getDailyAverageSteps returns correct average', () async {
-    final result = await db.getDailyAverageSteps(
-      DateTime(2025, 3, 20),
-      DateTime(2025, 3, 26), // 7 days: 20th to 26th inclusive
-    );
-    expect(result, 857); // 6000 steps over 7 days = 857.14 ≈ 857
-  });
-
-
-  test('getAllWeeklySteps returns correct weekly totals', () async {
-    final result = await db.getAllWeeklySteps(DateTime(2025, 3, 13), DateTime(2025, 3, 22));
-    expect(result[0].key, DateTime(2025, 3, 13));
-    expect(result[0].value, 60);
-    expect(result[1].key, DateTime(2025, 3, 20));
-    expect(result[1].value, 6000);
-  });
-
-  test('getAllMonthlySteps returns correct monthly totals', () async {
-    final result = await db.getAllMonthlySteps(DateTime(2025, 2, 1), DateTime(2025, 3, 31));
-    expect(result[0].key, DateTime(2025, 2, 1));
-    expect(result[0].value, 120);
-    expect(result[1].key, DateTime(2025, 3, 1));
-    expect(result[1].value, 6060);
-  });
-
   test('getLastDate 回最新的一天', () async {
     expect(await db.getLastDate(), DateTime(2025, 3, 22));
   });

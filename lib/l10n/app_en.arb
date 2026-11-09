@@ -300,5 +300,15 @@
   "importReasonFileNotFound": "The selected file does not exist",
   "importReasonNoData": "The file contains no step data",
   "importReasonReadFailed": "The file could not be read (not a dHealth export?)",
-  "dailyStepGoalRange": "The daily step goal must be between 1000 and 20000"
+  "dailyStepGoalRange": "The daily step goal must be between 1000 and 20000",
+  "backupReminderTitle": "Your step backup may be outdated",
+  "backupReminderBody": "{days} days since your last export. Cloud backup is off, so exporting is the only copy you have.",
+  "@backupReminderBody": {
+    "description": "提醒使用者太久沒匯出（唯一備份路）",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  }
 }

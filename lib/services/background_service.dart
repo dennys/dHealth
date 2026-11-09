@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
@@ -127,6 +128,10 @@ class BackgroundService {
     final settings = await _NotificationSettings.read(prefs);
     if (!settings.enabled) return;
 
+    // 先講備份：它跟今天的步數無關，而且同步失敗那趟已經在上面 return 掉了，
+    // 不會在 Health Connect 壞掉的時候又加一顆通知騷擾人。
+    await _maybeRemindBackup(settings);
+
     final alert = decideStepAlert(
       steps: steps,
       dailyStepGoal: dailyStepGoal,
@@ -167,6 +172,40 @@ class BackgroundService {
     if (!await NotificationService.canSend(Prefs.exception, settings.frequencyMinutes, settings.window)) return;
     if (await NotificationService.showSyncError(reason)) {
       await NotificationService.markSent(Prefs.exception);
+    }
+  }
+
+  /// 「距上次成功匯出幾天」的算法（純函式，抽出來是為了能測）。
+  ///
+  /// [lastExportAtMs] 為 null = 從沒匯出過 → 回門檻值（=「該提醒」），是否真的要念
+  /// 由呼叫端再確認資料庫已經有資料可備份。時間是負的（使用者把時鐘往後調）當作
+  /// 剛剛匯出過，不念 —— 與 `PetStats.hungerAfterAbsence` 同一個處理基準。
+  @visibleForTesting
+  static int daysSinceExport({
+    int? lastExportAtMs,
+    DateTime? now,
+    int thresholdDays = PrefsDefaults.backupStaleDays,
+  }) {
+    if (lastExportAtMs == null) return thresholdDays;
+    final days = (now ?? DateTime.now()).difference(DateTime.fromMillisecondsSinceEpoch(lastExportAtMs)).inDays;
+    return days < 0 ? 0 : days;
+  }
+
+  /// 太久沒匯出就提醒一次：`allowBackup="false"` 之後匯出是唯一備份路，
+  /// 而這件事使用者不會自己想到。節流沿用同一套 `canSend`（一個 frequencyMinutes 一顆），
+  /// 也只在通知時段內發。
+  ///
+  /// 「從沒匯出過」也提醒，但要先真的有資料可備份（剛裝好就催是騷擾）。
+  static Future<void> _maybeRemindBackup(_NotificationSettings settings) async {
+    final prefs = SharedPreferencesAsync();
+    if (await _service().database.getLastDate() == null) return;
+
+    final staleDays = daysSinceExport(lastExportAtMs: await prefs.getInt(Prefs.lastExportAt));
+    if (staleDays < PrefsDefaults.backupStaleDays) return;
+
+    if (!await NotificationService.canSend(Prefs.backupReminder, settings.frequencyMinutes, settings.window)) return;
+    if (await NotificationService.showBackupStale(staleDays)) {
+      await NotificationService.markSent(Prefs.backupReminder);
     }
   }
 

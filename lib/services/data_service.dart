@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dhealth/database/database.dart';
 import 'package:dhealth/settings_keys.dart';
 import 'package:get_it/get_it.dart';
@@ -25,6 +27,33 @@ class StepDataService {
   final Health health = GetIt.I<Health>();
   final StepDatabase database = GetIt.I<StepDatabase>();
 
+  /// 一批併發的 Health Connect 呼叫數量。
+  /// 串行 24 次（小時）/ 365 次（匯入一年）IPC 是冷啟動慢的主因；一次全發在慢的機器上
+  /// 會變成排隊 + 一起逾時，6 是兩邊都不至于爆的折衰值。
+  static const _concurrency = 6;
+
+  /// 手動/下拉同步舆 WorkManager 背景同步可能同時跑（`main.dart` 的 `_syncing` 只擋得住 UI 自己）。
+  /// 雨邊都是「先讀後寫 + transaction」，同源資料交錯时理論上會出現半套狀態，
+  /// 所以把寫入路径全程 serialize（排一條隊，一個跑完才換下一個）。
+  Future<void> _tail = Future<void>.value();
+
+  Future<T> _serialized<T>(Future<T> Function() body) {
+    final previous = _tail;
+    final done = Completer<void>();
+    _tail = done.future;
+    return previous.then((_) => body()).whenComplete(done.complete);
+  }
+
+  /// 分批 `Future.wait`（一次 [_concurrency] 個），结果順序與輸入一致。
+  Future<List<T>> _batchedWait<T>(List<Future<T> Function()> tasks) async {
+    final results = <T>[];
+    for (var i = 0; i < tasks.length; i += _concurrency) {
+      final slice = tasks.sublist(i, (i + _concurrency).clamp(0, tasks.length));
+      results.addAll(await Future.wait(slice.map((t) => t())));
+    }
+    return results;
+  }
+
   /// 讀取步數是否已授權。
   Future<bool> _hasReadPermission() async => await health.hasPermissions(stepTypes, permissions: stepPermissions) == true;
 
@@ -45,11 +74,19 @@ class StepDataService {
       }
       final days = <String, int>{};
       final last = DateTime(end.year, end.month, end.day);
-      for (var day = DateTime(start.year, start.month, start.day); !day.isAfter(last); day = DateTime(day.year, day.month, day.day + 1)) {
+      final dayList = <DateTime>[
+        for (var day = DateTime(start.year, start.month, start.day); !day.isAfter(last); day = DateTime(day.year, day.month, day.day + 1)) day,
+      ];
+      final totals = await _batchedWait(dayList.map((day) {
         final (from, to) = _dayBounds(day, day);
-        final steps = await health.getTotalStepsInInterval(from, to);
-        if (steps == null) throw StateError('getTotalStepsInInterval 回傳 null（${formatDateKey(day)}）');
-        if (steps > 0) days[formatDateKey(day)] = steps;
+        return () => health.getTotalStepsInInterval(from, to);
+      }).toList());
+      for (var i = 0; i < dayList.length; i++) {
+        final steps = totals[i];
+        // 任一天沒讀到就整個同步不動資料庫：缺的那天會被 `deleteDataInRange` 刪掉而不會被寫回，
+        // 把 null 当地 0 就是拿使用者的真實資料去换一個好看的進度條。
+        if (steps == null) throw StateError('getTotalStepsInInterval 回傳 null（${formatDateKey(dayList[i])}）');
+        if (steps > 0) days[formatDateKey(dayList[i])] = steps;
       }
       return days;
     } catch (error) {
@@ -62,7 +99,10 @@ class StepDataService {
   ///
   /// 順序固定是「**全部讀成功 → 才動資料庫**」，而且刪除與寫入在同一個 transaction 裡：
   /// 任何一步出錯，資料庫都維持原本的樣子。
-  Future<StepSyncResult> syncRange(DateTime start, DateTime end, {bool clearAllFirst = false}) async {
+  Future<StepSyncResult> syncRange(DateTime start, DateTime end, {bool clearAllFirst = false}) =>
+      _serialized(() => _syncRange(start, end, clearAllFirst: clearAllFirst));
+
+  Future<StepSyncResult> _syncRange(DateTime start, DateTime end, {bool clearAllFirst = false}) async {
     if (end.isBefore(start)) {
       return (status: StepSyncStatus.invalidRange, detail: 'endDate $end is before startDate $start');
     }
@@ -127,6 +167,14 @@ class StepDataService {
     required DateTime endDate,
     bool clearAllFirst = false,
     void Function(double progress)? onProgress,
+  }) =>
+      _serialized(() => _importFromPhone(startDate: startDate, endDate: endDate, clearAllFirst: clearAllFirst, onProgress: onProgress));
+
+  Future<StepSyncResult> _importFromPhone({
+    required DateTime startDate,
+    required DateTime endDate,
+    bool clearAllFirst = false,
+    void Function(double progress)? onProgress,
   }) async {
     if (endDate.isBefore(startDate)) {
       return (status: StepSyncStatus.invalidRange, detail: 'endDate $endDate is before startDate $startDate');
@@ -157,21 +205,45 @@ class StepDataService {
   ///
   /// 回傳 null 是「讀不到」，map 內的 0 才是「該小時真的 0 步」——兩者必須分開，
   /// 否則 Health Connect 一晃眼，主畫面就畫出一條 0 步的線，看起來像「今天沒走路」。
+  ///
+  /// 單個小時的容忍：**讀不到的那一個補插一次，還是 null 就只省略那個小時**，
+  /// 不再像舊版一样把 23 個好小時一起丢 throw 掉（一個小時的抖動牺牲整天）。
+  /// 全部小時都讀不到 = 真的讀不到，那时才回 null 讓圖表畫「讀不到」。
+  /// （圖表對缺的那格本來就畫 0，所以缺一格不會看起來壞掉。）
   Future<Map<int, int>?> fetchHourlyTotals(DateTime now) async {
     try {
       if (!await _hasReadPermission()) return null;
       final today = DateTime(now.year, now.month, now.day);
-      final totals = <int, int>{};
-      for (var hour = 0; hour <= now.hour; hour++) {
+      final hours = List.generate(now.hour + 1, (h) => h);
+      final totals = await _batchedWait(hours.map((hour) { return () async {
         final from = today.add(Duration(hours: hour));
         final to = hour == now.hour ? now : DateTime(today.year, today.month, today.day, hour, 59, 59, 999);
-        final steps = await health.getTotalStepsInInterval(from, to);
-        if (steps == null) throw StateError('getTotalStepsInInterval 回傳 null（$hour 時）');
-        totals[hour] = steps;
+        final once = await _hourSteps(from, to);
+        return once ?? await _hourSteps(from, to);
+      }; }).toList());
+
+      final result = <int, int>{};
+      for (var i = 0; i < hours.length; i++) {
+        final steps = totals[i];
+        if (steps == null) {
+          appLog('第 ${hours[i]} 小時的步數讀不到，這一格留空（不影響其他 23 小時）');
+          continue;
+        }
+        result[hours[i]] = steps;
       }
-      return totals;
+      return result.isEmpty ? null : result;
     } catch (error) {
       appError('讀取小時步數失敗', error);
+      return null;
+    }
+  }
+
+  /// 單小時查詢：例外當成一時讀不到（回 null）處理，否則一個小時抛例外就把整張圖帶走。
+  Future<int?> _hourSteps(DateTime from, DateTime to) async {
+    try {
+      return await health.getTotalStepsInInterval(from, to);
+    } catch (e) {
+      appError('單小時步數查詢失敗', e);
       return null;
     }
   }

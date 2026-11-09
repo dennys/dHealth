@@ -119,6 +119,13 @@ class NotificationService {
     return _show(title: l10n.errorNotificationTitle, body: l10n.errorNotificationBody(reason.label(l10n)));
   }
 
+  /// 「備份可能過期」。`allowBackup="false"` 之後匯出是唯一備份路，
+  /// 這件事不能假裝使用者自己會想到（而且現在完全沒提醒）。
+  static Future<bool> showBackupStale(int days) async {
+    final l10n = _l10n();
+    return _show(title: l10n.backupReminderTitle, body: l10n.backupReminderBody(days));
+  }
+
   static Future<bool> _show({required String title, required String body}) async {
     try {
       // 背景 isolate 沒有 Activity，不能在這裡 request 權限（那要 UI 走 PermissionService）。

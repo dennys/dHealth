@@ -587,6 +587,14 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get dailyStepGoalRange => '每日目標要介於 1000 與 20000 步之間';
+
+  @override
+  String get backupReminderTitle => '步數備份可能過期了';
+
+  @override
+  String backupReminderBody(int days) {
+    return '距上次匯出已經 $days 天。雲端備份是關著的，匯出出去的那份就是你唯一的一份。';
+  }
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -1171,6 +1179,14 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get dailyStepGoalRange => '每日目标要介于 1000 与 20000 步之间';
+
+  @override
+  String get backupReminderTitle => '步数备份可能过期了';
+
+  @override
+  String backupReminderBody(int days) {
+    return '距上次汇出已经 $days 天。云端备份是关着的，汇出去的那份就是你唯一的一份。';
+  }
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -1755,4 +1771,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get dailyStepGoalRange => '每日目標要介於 1000 與 20000 步之間';
+
+  @override
+  String get backupReminderTitle => '步數備份可能過期了';
+
+  @override
+  String backupReminderBody(int days) {
+    return '距上次匯出已經 $days 天。雲端備份是關著的，匯出出去的那份就是你唯一的一份。';
+  }
 }

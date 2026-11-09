@@ -611,4 +611,12 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get dailyStepGoalRange =>
       'The daily step goal must be between 1000 and 20000';
+
+  @override
+  String get backupReminderTitle => 'Your step backup may be outdated';
+
+  @override
+  String backupReminderBody(int days) {
+    return '$days days since your last export. Cloud backup is off, so exporting is the only copy you have.';
+  }
 }

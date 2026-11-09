@@ -1191,6 +1191,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The daily step goal must be between 1000 and 20000'**
   String get dailyStepGoalRange;
+
+  /// No description provided for @backupReminderTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your step backup may be outdated'**
+  String get backupReminderTitle;
+
+  /// 提醒使用者太久沒匯出（唯一備份路）
+  ///
+  /// In en, this message translates to:
+  /// **'{days} days since your last export. Cloud backup is off, so exporting is the only copy you have.'**
+  String backupReminderBody(int days);
 }
 
 class _AppLocalizationsDelegate

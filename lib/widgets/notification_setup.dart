@@ -14,7 +14,11 @@ import '../settings_model.dart'; // Import your SettingsModel
 
 /// dropdown 的選項清單。items 與「目前值是否可顯示」的判斷共用同一個來源 ——
 /// 兩邊各寫一次的話，日後加選項只改一邊就會重新踩進 DropdownButton 的 assertion。
-const _frequencies = [5, 15, 30, 60];
+///
+/// 没有「5 分鐘」这一項：背景一律 `clamp(15, …)`（`background_service.dart`），
+/// WorkManager 也不允許更密 —— 放一顆「選了不會生效」的選項比不放更糟。
+/// 舊安裝存過 5 的話不會崩：下面的 value 判斷會改走 hint 顯示現值。
+const _frequencies = [15, 30, 60];
 const _timeLimits = [1, 2, 4, 8];
 
 class NotificationSetupScreen extends StatelessWidget {

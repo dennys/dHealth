@@ -29,6 +29,24 @@ class StepDatabase extends _$StepDatabase {
   @override
   int get schemaVersion => 1;
 
+  /// 下次改 schema（加欄位）時，老安裝升級不會直接崩潰 —— 沒有 onUpgrade 時 drift
+  /// 對版本不符的資料庫直接丟例外，而本案 `allowBackup="false"`，崩了就等於沒資料。
+  ///
+  /// 現階段（測試期，人類 2026-11-09 同意資料可遺失）：整張表砍掉重建，下次同步會從
+  /// Health Connect 補回來，換得好記。
+  /// **上架前要改成逐版 `ALTER TABLE`**：那時候使用者手上只有一份資料，
+  /// 不能靠重抓補回來。
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (m) => m.createAll(),
+        onUpgrade: (m, from, to) async {
+          for (final table in allTables) {
+            await m.deleteTable(table.actualTableName);
+            await m.createTable(table);
+          }
+        },
+      );
+
   // Get all daily step records
   Future<List<DailyStep>> getAllDailySteps() => select(dailySteps).get();
 
@@ -73,71 +91,5 @@ class StepDatabase extends _$StepDatabase {
     await (delete(dailySteps)
           ..where((t) => t.date.isBiggerOrEqualValue(startDate) & t.date.isSmallerOrEqualValue(endDate)))
         .go();
-  }
-
-  Future<Map<DateTime, int>> getStepsMap(DateTime startDate, DateTime endDate) async {
-    final formattedStart = formatDateKey(startDate);
-    final formattedEnd = formatDateKey(endDate);
-    final results = await (select(dailySteps)
-          ..where((t) => t.date.isBiggerOrEqualValue(formattedStart) & t.date.isSmallerOrEqualValue(formattedEnd)))
-        .get();
-
-    return Map.fromEntries(results.map((entry) => MapEntry(DateTime.parse(entry.date), entry.stepCount)));
-  }
-
-  /// 區間内的日均（沒有資料的日子計入分母，才不會「只有三天走路」被算成那三天的高平均）。
-  Future<int> getDailyAverageSteps(DateTime startDate, DateTime endDate) async {
-    final daysInRange = endDate.difference(startDate).inDays + 1; // Includes both start and end dates
-    if (daysInRange <= 0) return 0;
-
-    final stepsMap = await getStepsMap(startDate, endDate);
-    final totalSteps = stepsMap.values.fold(0, (sum, steps) => sum + steps);
-    return (totalSteps / daysInRange).round();
-  }
-
-  /// 一律以週為單位加總（週的起始日由 [WeekdayUtils] 決定的是「顯示」用的星期標籤，
-  /// 分組在這裡固定用 ISO 週一起算）。
-  Future<List<MapEntry<DateTime, int>>> getAllWeeklySteps(DateTime startDate, DateTime endDate) async {
-    final stepsMap = await getStepsMap(startDate, endDate);
-    final results = <MapEntry<DateTime, int>>[];
-
-    DateTime currentStart = startDate;
-    while (currentStart.isBefore(endDate)) {
-      final weekEnd = currentStart.add(const Duration(days: 6));
-      final weekSteps = stepsMap.entries
-          .where((entry) => !entry.key.isBefore(currentStart) && !entry.key.isAfter(weekEnd))
-          .fold(0, (sum, entry) => sum + entry.value);
-
-      if (weekSteps > 0) {
-        results.add(MapEntry(currentStart, weekSteps));
-      }
-      currentStart = weekEnd.add(const Duration(days: 1));
-    }
-
-    return results;
-  }
-
-  Future<List<MapEntry<DateTime, int>>> getAllMonthlySteps(DateTime startDate, DateTime endDate) async {
-    if (endDate.isBefore(startDate)) {
-      throw ArgumentError('endDate must be after startDate');
-    }
-
-    final stepsMap = await getStepsMap(startDate, endDate);
-    final results = <MapEntry<DateTime, int>>[];
-
-    DateTime currentMonth = DateTime(startDate.year, startDate.month, 1);
-    while (currentMonth.isBefore(endDate) || currentMonth.isAtSameMomentAs(endDate)) {
-      final monthEnd = DateTime(currentMonth.year, currentMonth.month + 1, 0);
-      final monthSteps = stepsMap.entries
-          .where((entry) => !entry.key.isBefore(currentMonth) && !entry.key.isAfter(monthEnd))
-          .fold(0, (sum, entry) => sum + entry.value);
-
-      if (monthSteps > 0) {
-        results.add(MapEntry(currentMonth, monthSteps));
-      }
-      currentMonth = DateTime(currentMonth.year, currentMonth.month + 1, 1);
-    }
-
-    return results;
   }
 }

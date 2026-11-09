@@ -38,6 +38,10 @@ class Prefs {
   // Charts
   static const dailyChartRange = 'dailyChartRange';
   static const weekStartDay = 'week_start_day';
+
+  // Backup（allowBackup=false 之後，匯出是使用者唯一的備份路）
+  static const lastExportAt = 'last_export_at';
+  static const backupReminder = '${notificationPrefix}backup_reminder';
 }
 
 /// 預設值。同一個語意只准出現一次。
@@ -67,6 +71,9 @@ class PrefsDefaults {
   static const soundEnabled = true;
   static const vibrationEnabled = true;
   static const priority = 'default';
+
+  /// 距上次成功匯出超過這麼多天就提醒一次（見 `BackgroundService._maybeRemindBackup`）。
+  static const backupStaleDays = 14;
 
   /// 「差多少步以內」算「就差一點點」，發鼓勵通知而不是什麼都不做。
   static const almostThereStepMargin = 1000;
