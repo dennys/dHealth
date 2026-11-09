@@ -4,6 +4,29 @@
 
 ---
 
+## 本機建置（dgx1 = aarch64）— 2026-11-09
+
+本機只出 **debug**：`flutter build apk --debug --target-platform android-arm64`（實測 108 MiB，
+`CN=Android Debug`）。release/profile 要 AOT 的 `gen_snapshot`，Google 的 engine bucket 裡
+**沒有 linux-arm64 host 版**（`android-arm64-release/artifacts.zip` 只有 flutter.jar）→ release 由
+別台 x86-64 機器或 CI 出。需要的環境：`JAVA_HOME=~/jdk21`、`ANDROID_HOME=~/android-sdk`。
+
+- **本機专用的依賴釘選放 `pubspec_overrides.yaml`（已 gitignore → CI／正式版零影響）**：
+  `path_provider_android: 2.2.23`、`shared_preferences_android: 2.4.8`。原因：11-08 `d9bcde6`
+  全數升級後這兩支會拉 `jni`（有 `CMakeLists.txt`）→ 觸發 CMake+NDK 原生編譯，而本機 SDK 的
+  cmake 與 NDK 的 clang 都是 x86-64 檔（`Syntax error: ")" unexpected`）→ `:jni:configureCMakeDebug` 必敗。
+  舊版不需原生編譯、pub-cache 也已有 → 零下載。
+- 副作用：`pub get` 會把 `pubspec.lock` 與 `linux|windows/flutter/generated_plugins.cmake` 改髒
+  （本地 overrides 的固有行為）。**build 完請 `git checkout` 這三支**，別 commit 進去 ——
+  那等於把 11-08 的升級在 repo 層回退，CI 也會跟著用舊 plugin。
+- `android/gradlew` 與 `gradle/wrapper/gradle-wrapper.jar` 不在版控**不是 bug**：flutter 會從
+  `bin/cache/artifacts/gradle_wrapper` 自動注入。真正決定跑哪版 Gradle 的是有被追蹤的
+  `android/gradle/wrapper/gradle-wrapper.properties`（現行 pin 9.3.1，實測 `./gradlew --version` = Gradle 9.3.1）。
+- 另：NDK 的 `llvm-strip` 目前是 11-04 放的殼（GNU strip 代替，不認識的 arch 略過；原檔留檔
+  `llvm-strip.x86-real`）→ 非 arm64 的 native 庫其實沒被 strip，debug 版無妨，但 APK 偏大與這有關。
+
+---
+
 ## 2026-11-06 本輪已做（未 push，commit 見 `git log`）
 - **minSdk 34 → 33（支援 Android 13）**。實測 `checkDebugAarMetadata` 過得去
   （`connect-client 1.2.0-alpha02` 的 AAR 只宣告 minSdk 26，gradle cache 內 140 個 AAR 無一要求 ≥28）。
