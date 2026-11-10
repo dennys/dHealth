@@ -68,6 +68,10 @@ class BackgroundService {
 
   Future<void> init() async {
     await Workmanager().initialize(callbackDispatcher);
+    // 舊安裝排過 com.example.step_tracker（health 範例殘留的 task 名）：升級後不會自己消失，
+    // callbackDispatcher 對不認識的 task 只 return true —— 每 15 分鐘白啟一個 isolate。
+    // 取消一次（沒排過就是 no-op）。
+    await Workmanager().cancelByUniqueName('com.example.step_tracker');
     await scheduleTask();
   }
 
