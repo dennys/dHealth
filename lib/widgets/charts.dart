@@ -212,10 +212,10 @@ class HourlyStepsChart extends StatelessWidget {
 
 /// 區間內每一天。
 class DailyStepsChart extends StatelessWidget {
-  const DailyStepsChart({super.key, required this.database, required this.refreshToken, required this.range});
+  const DailyStepsChart({super.key, required this.steps, required this.range});
 
-  final StepDatabase database;
-  final int refreshToken;
+  /// 三張期圖共用的全表 future（由 HomeScreen 建立、同步 token 變動時重抓）。
+  final Future<List<DailyStep>> steps;
   final ChartRange range;
 
   @override
@@ -223,8 +223,7 @@ class DailyStepsChart extends StatelessWidget {
     final locale = Localizations.localeOf(context).languageCode;
 
     return _StepChart(
-      database: database,
-      refreshToken: refreshToken,
+      steps: steps,
       range: range,
       plan: (r) => r.days(),
       group: StepCalculator.calculateDailySteps,
@@ -238,10 +237,9 @@ class DailyStepsChart extends StatelessWidget {
 
 /// 區間涵蓋的每一週（對齊到週一）。
 class WeeklyStepsChart extends StatelessWidget {
-  const WeeklyStepsChart({super.key, required this.database, required this.refreshToken, required this.range});
+  const WeeklyStepsChart({super.key, required this.steps, required this.range});
 
-  final StepDatabase database;
-  final int refreshToken;
+  final Future<List<DailyStep>> steps;
   final ChartRange range;
 
   @override
@@ -249,8 +247,7 @@ class WeeklyStepsChart extends StatelessWidget {
     final locale = Localizations.localeOf(context).languageCode;
 
     return _StepChart(
-      database: database,
-      refreshToken: refreshToken,
+      steps: steps,
       range: range,
       plan: (r) => r.weeks(),
       group: StepCalculator.calculateWeeklySteps,
@@ -264,10 +261,9 @@ class WeeklyStepsChart extends StatelessWidget {
 
 /// 區間涵蓋的每一月（對齊到月初）。
 class MonthlyStepsChart extends StatelessWidget {
-  const MonthlyStepsChart({super.key, required this.database, required this.refreshToken, required this.range});
+  const MonthlyStepsChart({super.key, required this.steps, required this.range});
 
-  final StepDatabase database;
-  final int refreshToken;
+  final Future<List<DailyStep>> steps;
   final ChartRange range;
 
   @override
@@ -275,8 +271,7 @@ class MonthlyStepsChart extends StatelessWidget {
     final locale = Localizations.localeOf(context).languageCode;
 
     return _StepChart(
-      database: database,
-      refreshToken: refreshToken,
+      steps: steps,
       range: range,
       plan: (r) => r.months(),
       group: StepCalculator.calculateMonthlySteps,
@@ -296,10 +291,9 @@ List<DailyStep> _within(List<DailyStep> steps, DateTime from, DateTime to) {
   }).toList();
 }
 
-class _StepChart extends StatefulWidget {
+class _StepChart extends StatelessWidget {
   const _StepChart({
-    required this.database,
-    required this.refreshToken,
+    required this.steps,
     required this.range,
     required this.plan,
     required this.group,
@@ -309,8 +303,7 @@ class _StepChart extends StatefulWidget {
     required this.bottomTitleFormat,
   });
 
-  final StepDatabase database;
-  final int refreshToken;
+  final Future<List<DailyStep>> steps;
   final ChartRange range;
 
   /// 由期數與頁碼算出這個週期的起訖與期數。
@@ -322,25 +315,10 @@ class _StepChart extends StatefulWidget {
   final String Function(DateTime) bottomTitleFormat;
 
   @override
-  State<_StepChart> createState() => _StepChartState();
-}
-
-class _StepChartState extends State<_StepChart> {
-  late Future<List<DailyStep>> _future = widget.database.getAllDailySteps();
-
-  @override
-  void didUpdateWidget(_StepChart oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.refreshToken != widget.refreshToken || oldWidget.database != widget.database) {
-      setState(() => _future = widget.database.getAllDailySteps());
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return FutureBuilder<List<DailyStep>>(
-      future: _future,
+      future: steps,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
           return const Center(child: CircularProgressIndicator());
@@ -352,17 +330,16 @@ class _StepChartState extends State<_StepChart> {
         final all = snapshot.data ?? const <DailyStep>[];
         if (all.isEmpty) return _EmptyCard(message: l10n.noDataInDatabase);
 
-        final range = widget.range;
-        final plan = widget.plan(range);
-        final inRange = _within(all, plan.from, plan.to);
+        final currentPlan = plan(range);
+        final inRange = _within(all, currentPlan.from, currentPlan.to);
         // 區間內一列都沒有 → 「資料庫沒有資料」；有資料但某些天/週/月是 0 步
         // （DB 不存 0 步的列）→ group 會補零，不能當成「沒有資料」。
         if (inRange.isEmpty) return _EmptyCard(message: l10n.noDataInDatabase);
-        final processed = widget.group(inRange, plan.from, plan.periods);
+        final processed = group(inRange, currentPlan.from, currentPlan.periods);
 
         final prevRange = range.previous;
-        final prevPlan = widget.plan(prevRange);
-        final prevProcessed = widget.group(_within(all, prevPlan.from, prevPlan.to), prevPlan.from, prevPlan.periods);
+        final prevPlan = plan(prevRange);
+        final prevProcessed = group(_within(all, prevPlan.from, prevPlan.to), prevPlan.from, prevPlan.periods);
 
         final currentAvg = StepCalculator.calculateAverageSteps(processed);
         final prevAvg = StepCalculator.calculateAverageSteps(prevProcessed);
@@ -372,13 +349,13 @@ class _StepChartState extends State<_StepChart> {
 
         return _BarChart(
           periodSteps: processed,
-          periods: plan.periods,
+          periods: currentPlan.periods,
           title:
-              '$prefix${plan.periods} ${widget.titlePrefix}: ${l10n.average} ${NumberFormat.decimalPattern().format(currentAvg.toInt())} ${l10n.steps} ($percentageString)',
-          barWidth: widget.barWidth,
-          showDayOfWeek: widget.showDayOfWeek,
+              '$prefix${currentPlan.periods} $titlePrefix: ${l10n.average} ${NumberFormat.decimalPattern().format(currentAvg.toInt())} ${l10n.steps} ($percentageString)',
+          barWidth: barWidth,
+          showDayOfWeek: showDayOfWeek,
           averageSteps: currentAvg,
-          bottomTitleFormat: widget.bottomTitleFormat,
+          bottomTitleFormat: bottomTitleFormat,
         );
       },
     );

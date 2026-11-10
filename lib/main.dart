@@ -84,6 +84,19 @@ class _HomeScreenState extends State<HomeScreen> {
   PermissionFailure? _permissionFailure;
   HealthConnectSdkStatus? _healthConnectStatus;
 
+  /// 三張期圖共用的全表 future：token 不變就不重查（以前每張圖各自查，
+  /// 每次刷新讀三遍全表）。
+  Future<List<DailyStep>>? _stepsFuture;
+  int _stepsToken = -1;
+
+  Future<List<DailyStep>> _stepsFor(int token) {
+    if (_stepsFuture == null || _stepsToken != token) {
+      _stepsToken = token;
+      _stepsFuture = _database.getAllDailySteps();
+    }
+    return _stepsFuture!;
+  }
+
   /// null = 「今天到底走了多少我們不知道」（讀取失敗）；有值才是真的讀到（0 步也是有值）。
   Map<int, int>? _hourlyTotals;
 
@@ -216,6 +229,16 @@ class _HomeScreenState extends State<HomeScreen> {
     await _loadHourlyTotals();
   }
 
+  /// 翻頁：先記下舊 offset（決定動畫方向）再改新值。
+  /// 只在手勢/按鈕的 callback 裡做 —— 放在 build 裡的話，resize/換主題/
+  /// SnackBar 這類不相干的重建會把方向翻掉。
+  void _setOffset(int offset) {
+    setState(() {
+      _lastOffset = _rangeOffset;
+      _rangeOffset = offset;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -224,7 +247,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final healthConnectUnavailable = Platform.isAndroid && _healthConnectStatus != null && _healthConnectStatus != HealthConnectSdkStatus.sdkAvailable;
     // 翻頁動畫方向：offset 變大 = 往舊頁走，新頁從左邊滑入。
     final older = _rangeOffset >= _lastOffset;
-    _lastOffset = _rangeOffset;
+    final steps = _stepsFor(_refreshToken);
     final pageKey = ValueKey('${range.periods}-$_rangeOffset');
 
     return Scaffold(
@@ -262,10 +285,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ChartRangeSelector(
               range: range,
               onPeriods: (periods) {
-                setState(() => _rangeOffset = 0);
+                _setOffset(0);
                 settings.setDailyChartRange(ChartRange(periods, 0, DateTime.now()).encode());
               },
-              onOffset: (offset) => setState(() => _rangeOffset = offset),
+              onOffset: _setOffset,
             ),
             GestureDetector(
               behavior: HitTestBehavior.translucent,
@@ -273,9 +296,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 // 往右滑 = 看更舊的一頁（手指帶動頁面，與常見相簿手勢一致）。
                 final dx = details.velocity.pixelsPerSecond.dx;
                 if (dx > 200) {
-                  setState(() => _rangeOffset++);
+                  _setOffset(_rangeOffset + 1);
                 } else if (dx < -200 && _rangeOffset > 0) {
-                  setState(() => _rangeOffset--);
+                  _setOffset(_rangeOffset - 1);
                 }
               },
               child: AnimatedSwitcher(
@@ -292,9 +315,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   key: pageKey,
                   children: [
-                    SizedBox(height: 300, child: DailyStepsChart(database: _database, refreshToken: _refreshToken, range: range)),
-                    SizedBox(height: 300, child: WeeklyStepsChart(database: _database, refreshToken: _refreshToken, range: range)),
-                    SizedBox(height: 300, child: MonthlyStepsChart(database: _database, refreshToken: _refreshToken, range: range)),
+                    SizedBox(height: 300, child: DailyStepsChart(steps: steps, range: range)),
+                    SizedBox(height: 300, child: WeeklyStepsChart(steps: steps, range: range)),
+                    SizedBox(height: 300, child: MonthlyStepsChart(steps: steps, range: range)),
                   ],
                 ),
               ),
