@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:dhealth/generated/l10n/app_localizations.dart';
+import 'package:dhealth/utils/log.dart';
 import 'package:package_info_plus/package_info_plus.dart'; // For app version
 
 /// 上架前要填的聯絡信箱（Play 控制台填的也要同一個）。
@@ -26,10 +27,17 @@ class _AboutScreenState extends State<AboutScreen> {
   }
 
   Future<void> _loadAppVersion() async {
-    final packageInfo = await PackageInfo.fromPlatform();
-    setState(() {
-      _appVersion = packageInfo.version;
-    });
+    try {
+      final packageInfo = await PackageInfo.fromPlatform();
+      // await 期間使用者可能已經離開這頁：State 已 dispose，不能再 setState。
+      if (!mounted) return;
+      setState(() {
+        _appVersion = packageInfo.version;
+      });
+    } catch (e, st) {
+      // platform 呼叫炸掉時頁面維持 'Unknown'，不要讓整個 About 頁沒有 fallback。
+      appError('讀取 app 版本失敗', e, st);
+    }
   }
 
   @override
