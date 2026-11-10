@@ -195,12 +195,13 @@ void main() {
       when(mockDb.getLastDate()).thenAnswer((_) async => DateTime.now().subtract(const Duration(days: 3)));
       await prefs.setInt(Prefs.lastExportAt, DateTime.now().subtract(const Duration(days: 15)).millisecondsSinceEpoch);
       const key = 'notification_last_sent_${Prefs.backupReminder}';
-      await prefs.setInt(key, DateTime.now().subtract(const Duration(minutes: 30)).millisecondsSinceEpoch);
+      final ts30minAgo = DateTime.now().subtract(const Duration(minutes: 30)).millisecondsSinceEpoch;
+      await prefs.setInt(key, ts30minAgo);
       await stubSync(steps: 1000);
 
       await service.executeTask();
 
-      expect(await prefs.getInt(key), DateTime.now().subtract(const Duration(minutes: 30)).millisecondsSinceEpoch,
+      expect(await prefs.getInt(key), ts30minAgo,
           reason: '24h 節流內不該再發（時間戳不該被更新）');
     });
   });
