@@ -11,13 +11,10 @@ import 'package:provider/provider.dart';
 /// 圖表群。公開四個元件：[HourlyStepsChart]、[DailyStepsChart]、[WeeklyStepsChart]、
 /// [MonthlyStepsChart]。
 ///
-/// 本輪刪掉的重複：`buildLastNDaysChart2` / `…WeeksChart2` / `…MonthsChart2` /
-/// `_buildBarChart2` / `buildLastNYearsChart` 與三個 `_fetch*ChartData` —— 全部無人
-/// 呼叫的平行實作（約 350 行）。
-///
-/// 也修掉「FutureBuilder 的 future 在 build 裡現做」：那樣每次父層重建都重查一次 DB，
-/// 就是檔案開頭那張備忘單裡「畫面會閃嗎」的由來。現在 future 放在 State，
-/// 只在 [refreshToken] 變動（同步完成）時重抓。
+/// 三張期圖（日/週/月）共用同一個 `getAllDailySteps()` future（由 HomeScreen 建立、
+/// 同步 token 變動時重抓）—— 以前每張圖各自查全表，每次刷新讀三遍。
+/// 日/週/月的資料是「補零」的：0 步的天/週/月在 DB 沒有列，不補的話「最近 N 期」
+/// 會變成「最近 N 個有步數的期」，平均高估（見 `StepCalculator`）。
 
 /// 今天每小時的步數曲線。[totals] 是今天每個小時的步數（由 HomeScreen 同步後取得，已在 Health Connect 去重）。
 ///
@@ -357,8 +354,11 @@ class _StepChartState extends State<_StepChart> {
 
         final range = widget.range;
         final plan = widget.plan(range);
-        final processed = widget.group(_within(all, plan.from, plan.to), plan.from, plan.periods);
-        if (processed.isEmpty) return _EmptyCard(message: l10n.noDataInDatabase);
+        final inRange = _within(all, plan.from, plan.to);
+        // 區間內一列都沒有 → 「資料庫沒有資料」；有資料但某些天/週/月是 0 步
+        // （DB 不存 0 步的列）→ group 會補零，不能當成「沒有資料」。
+        if (inRange.isEmpty) return _EmptyCard(message: l10n.noDataInDatabase);
+        final processed = widget.group(inRange, plan.from, plan.periods);
 
         final prevRange = range.previous;
         final prevPlan = widget.plan(prevRange);

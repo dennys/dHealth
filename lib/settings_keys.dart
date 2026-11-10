@@ -58,7 +58,7 @@ class PrefsDefaults {
   static const showCumulative = true;
   static const showDailyStepGoal = false;
   static const dailyStepGoal = 6000;
-  /// 見 `ChartRange.encode`：預設最近 7 天。
+  /// 見 `ChartRange.encode`：預設最近 7 期（日圖 = 7 天、週圖 = 7 週、月圖 = 7 月）。
   static const dailyChartRange = '7';
 
   static const notificationsEnabled = true;
