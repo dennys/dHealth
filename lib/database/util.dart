@@ -67,19 +67,18 @@ Future<void> _setAsideCorruptFile(File file) async {
 ///
 /// 不能直接 copy 活著的 DB 檔：drift 那條連線可能正在寫，複製到一半就是一份開不起來的
 /// 「備份」。而 `allowBackup="false"` 之後這條就是使用者唯一的備份路，不能賭運氣。
-/// （bundled SQLite 3.4x 支援 VACUUM INTO；真的失敗再退回直接複製，並在 log 留痕。）
+/// （bundled SQLite 3.4x 支援 VACUUM INTO。）
+///
+/// 失敗就讓它 throw：兩個呼叫端（`createDatabaseSnapshot`／`copyDatabaseToDirectory`）
+/// 都 catch 後回 null，UI 會 toast 失敗。不能退回直接複製活檔 —— 那正是上面說的
+/// 「可能複製到寫一半」，而 VACUUM 失敗通常代表磁盤/檔案系統已經出問題，
+/// 那份「成功」的備份到還原時才發現開不起來，資料已經丟了。
 Future<void> _vacuumInto(StepDatabase database, String destPath) =>
     database.customStatement('VACUUM INTO ?', [destPath]);
 
 Future<void> _writeSnapshot(StepDatabase database, File dest) async {
   if (await dest.exists()) await dest.delete();
-  try {
-    await _vacuumInto(database, dest.path);
-  } catch (e) {
-    appError('VACUUM INTO 不可用，退回直接複製資料庫檔（可能複製到寫一半的內容）', e);
-    final live = await stepDatabaseFile();
-    await live.copy(dest.path);
-  }
+  await _vacuumInto(database, dest.path);
 }
 
 /// 備份用的穩定快照（分享／送出用）。失敗回 null，呼叫端一定要讓使用者看得見。
