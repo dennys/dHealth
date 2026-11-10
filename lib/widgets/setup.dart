@@ -17,12 +17,41 @@ class SetupScreen extends StatefulWidget {
 }
 
 class _SetupScreenState extends State<SetupScreen> {
+  // 每日目標輸入框的 controller 收進 State：以前每次 build 現做一顆新的 ——
+  // 傳了 controller 的 TextField 不會 dispose 它（每 build 洩一顆），
+  // 而且游標/輸入法狀態每次重建都跳回結尾。
+  final _goalController = TextEditingController();
+  bool _goalInitialized = false;
+
+  @override
+  void dispose() {
+    _goalController.dispose();
+    super.dispose();
+  }
+
+  /// 外部改目標（+/- 按鈕、合法 submit）時同步進 controller。
+  /// 只在 handler 裡動 controller（不在 build 裡 —— build 中 notify 會讓
+  /// TextField 在 build 期間 setState）。
+  void _setGoal(SettingsModel settings, int value) {
+    settings.setDailyStepGoal(value);
+    _goalController.text = value.toString();
+    _goalController.selection = TextSelection.fromPosition(TextPosition(offset: value.toString().length));
+  }
+
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context)!;
     final settings = Provider.of<SettingsModel>(context);
     final isDarkTheme = Theme.of(context).brightness == Brightness.dark;
     final secondaryTextColor = isDarkTheme ? Colors.white.withValues(alpha: .8) : Theme.of(context).hintColor;
+
+    // 首次 build 把現值放進 controller（此刻 TextField 的 State 還沒建立、
+    // 沒有 listener，設 text 不會 notify；之後的同步都走 _setGoal 的 handler）。
+    if (!_goalInitialized) {
+      _goalInitialized = true;
+      _goalController.text = settings.dailyStepGoal.toString();
+      _goalController.selection = TextSelection.fromPosition(TextPosition(offset: _goalController.text.length));
+    }
 
     // Custom Sync Frequency Dialog
     Future<void> showCustomDialog(SettingsModel settings) async {
@@ -245,7 +274,7 @@ class _SetupScreenState extends State<SetupScreen> {
                   icon: const Icon(Icons.remove),
                   onPressed: () {
                     if (settings.dailyStepGoal > 1000) {
-                      settings.setDailyStepGoal(settings.dailyStepGoal - 1000);
+                      _setGoal(settings, settings.dailyStepGoal - 1000);
                     }
                   },
                 ),
@@ -259,12 +288,11 @@ class _SetupScreenState extends State<SetupScreen> {
                       border: const OutlineInputBorder(),
                       contentPadding: const EdgeInsets.symmetric(vertical: 8.0),
                     ),
-                    controller: TextEditingController(text: settings.dailyStepGoal.toString())
-                      ..selection = TextSelection.fromPosition(TextPosition(offset: settings.dailyStepGoal.toString().length)),
+                    controller: _goalController,
                     onSubmitted: (value) {
                       final int? newValue = int.tryParse(value);
                       if (newValue != null && newValue >= 1000 && newValue <= 20000) {
-                        settings.setDailyStepGoal(newValue);
+                        _setGoal(settings, newValue);
                         return;
                       }
                       // 原本這裡是 `if (合法) 才 set`，不合法就什麼都不做 —— 欄位下次 build
@@ -279,7 +307,7 @@ class _SetupScreenState extends State<SetupScreen> {
                   icon: const Icon(Icons.add),
                   onPressed: () {
                     if (settings.dailyStepGoal < 20000) {
-                      settings.setDailyStepGoal(settings.dailyStepGoal + 1000);
+                      _setGoal(settings, settings.dailyStepGoal + 1000);
                     }
                   },
                 ),
