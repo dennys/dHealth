@@ -4,18 +4,18 @@
 
 ---
 
-## 本機建置（dgx1 = aarch64）— 2026-11-09
+## 本機建置（aarch64 Linux）— 2026-11-09
 
-**這一節只講 dgx1 這台主機，別外推成「本專案不能出 release」**：Windows（x86-64）出 release 已實測裝機、
+**這一節只講 aarch64 Linux 這台主機，別外推成「本專案不能出 release」**：Windows（x86-64）出 release 已實測裝機、
 CI 也正常出 artifacts；卡住的只有 Linux/aarch64 —— AOT 的 `gen_snapshot`，Google 的 engine bucket 裡
 **沒有 linux-arm64 host 版**（`android-arm64-release/artifacts.zip` 只有 flutter.jar），qemu 模擬 x86-64 那條
-也試過行不通。所以在 dgx1 上日常就只出 **debug**：
-`flutter build apk --debug --target-platform android-arm64`（實測 108 MiB，`CN=Android Debug`）。
-需要的環境：`JAVA_HOME=~/jdk21`、`ANDROID_HOME=~/android-sdk`。
+也試過行不通。所以在 aarch64 Linux 上日常就只出 **debug**：
+`flutter build apk --debug --target-platform android-arm64`。
+主機環境（`JAVA_HOME`／`ANDROID_HOME`、實測 APK 大小、NDK `llvm-strip` 殼）記在 `~/dennys/AGENTS.md`。
 
 - **本機专用的依賴釘選放 `pubspec_overrides.yaml`（已 gitignore → CI／正式版零影響）**：
   `path_provider_android: 2.2.23`、`shared_preferences_android: 2.4.8`。原因：11-08 `d9bcde6`
-  全數升級後這兩支會拉 `jni`（有 `CMakeLists.txt`）→ 觸發 CMake+NDK 原生編譯，而本機 SDK 的
+  全數升級後這兩支會拉 `jni`（有 `CMakeLists.txt`）→ 觸發 CMake+NDK 原生編譯，而 aarch64 主機的 SDK
   cmake 與 NDK 的 clang 都是 x86-64 檔（`Syntax error: ")" unexpected`）→ `:jni:configureCMakeDebug` 必敗。
   舊版不需原生編譯、pub-cache 也已有 → 零下載。
 - 副作用：`pub get` 會把 `pubspec.lock` 與 `linux|windows/flutter/generated_plugins.cmake` 改髒
@@ -24,8 +24,6 @@ CI 也正常出 artifacts；卡住的只有 Linux/aarch64 —— AOT 的 `gen_sn
 - `android/gradlew` 與 `gradle/wrapper/gradle-wrapper.jar` 不在版控**不是 bug**：flutter 會從
   `bin/cache/artifacts/gradle_wrapper` 自動注入。真正決定跑哪版 Gradle 的是有被追蹤的
   `android/gradle/wrapper/gradle-wrapper.properties`（現行 pin 9.3.1，實測 `./gradlew --version` = Gradle 9.3.1）。
-- 另：NDK 的 `llvm-strip` 目前是 11-04 放的殼（GNU strip 代替，不認識的 arch 略過；原檔留檔
-  `llvm-strip.x86-real`）→ 非 arm64 的 native 庫其實沒被 strip，debug 版無妨，但 APK 偏大與這有關。
 
 ---
 
@@ -124,5 +122,5 @@ of Flutter`（guide：docs.flutter.dev/release/breaking-changes/migrate-to-built
   然後**靜默用 debug 簽章**（fork 友善的設計），那種 APK 每版簽名不同，只能砍掉重裝。
 - **CI 覆蓋率**：codecov action 沒帶 token。
 - **`android.newDsl`** 仍未翻（AGP 舊 DSL 型別），不要跟 `android.builtInKotlin` 同時動。
-- 本機（dgx1）**已經能 build debug**：`JAVA_HOME=~/jdk21` + `pubspec_overrides.yaml`（見上面「本機建置」節）；
+- 本機（aarch64 Linux）**已經能 build debug**：環境與 `pubspec_overrides.yaml` 見上面「本機建置」節（主機細節在 `~/dennys/AGENTS.md`）；
   CHANGELOG 裡舊輪次寫的「本機只有 JDK 8、build 不了 apk」是當時的狀態，已過時。

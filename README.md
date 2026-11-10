@@ -7,6 +7,10 @@ Just another Health App.
 
 # Features
 
+- 從 [Health Connect](https://play.google.com/store/apps/details?id=com.google.android.apps.healthdata) 讀步數：日／小時／月圖表
+- 每日步數目標通知（達標／接近／同步異常），含時段視窗與節流
+- 備份過期提醒＋ CSV 匯入／匯出
+
 # Requirement
 
 - [Health Connect](https://play.google.com/store/apps/details?id=com.google.android.apps.healthdata): because I use [Health](https://pub.dev/packages/health) package and it's based on Health Connect
@@ -51,11 +55,9 @@ Just another Health App.
 待辦都移到 [TODO.md](TODO.md)（慣例：一個待辦一段，寫清「檔案:行」與「為什麼现在是這樣」）；
 已完成的紀錄在 [CHANGELOG.md](CHANGELOG.md)。
 
-# For Developers
-
 # Development
 
-1. Flutter >=3.47.0（與 `pubspec.yaml` 的 `environment.flutter` 與 CI 的 `FLUTTER_VERSION` pin 同版）
+1. Flutter >=3.47.0（`pubspec.yaml` 的 `environment.flutter`；CI 的 `FLUTTER_VERSION` pin 3.47.9）
 
 ## VSCode
 
@@ -84,7 +86,7 @@ Download file and copy / resize it to `android\app\src\main\res\drawable-\*\*\*h
 
 | 位置 | 存放方式 |
 |---|---|
-| 開發機（Windows 或 dgx1） | `android/app/dhealth.keystore` + `android/key.properties`（gitignored，**從既有備份複製**） |
+| 開發機（Windows 或 aarch64 Linux） | `android/app/dhealth.keystore` + `android/key.properties`（gitignored，**從既有備份複製**） |
 | GitHub Actions | secrets：`KEYSTORE_B64`（keystore 檔的 base64）、`KEY_PROPERTIES`（key.properties 全文） |
 | 兩者都沒有（如 fork） | release 退回 debug 簽章，CI 不會紅 |
 
@@ -121,7 +123,7 @@ CI 的 `Restore signing key` 會先清洗 secret 被判貼帶入的空白/`\r`�
 兩種都是假綠燈，實測於 JDK 21。）
 CI 另外產出 `dHealth-release-v<pubspec版本>.apk`。
 
-建置（只出 arm64，APK 約 22MB（此數字待核：本機只實測過 debug 版）；不帶 flag 會把三個 ABI 全塞進去變 61MB）：
+建置（只出 arm64；不帶 flag 會把三個 ABI 全塞進去，APK 變大）：
 
 ```powershell
 flutter build apk --release --target-platform android-arm64
@@ -134,11 +136,11 @@ flutter build apk --release --target-platform android-arm64
 |---|---|---|
 | Windows（x86-64） | ✅ | ✅ 實測可裝機（需上面那兩支簽章檔） |
 | GitHub Actions（ubuntu-latest，x86-64） | ✅ | ✅ 產 `dHealth-release-v<版本>.apk` 到 artifacts |
-| dgx1（Linux / aarch64） | ✅ 實測 108 MiB（需 `pubspec_overrides.yaml`，見 TODO.md） | ❌ 沒有 linux-arm64 的 `gen_snapshot` |
+| aarch64 Linux（開發機） | ✅（需 `pubspec_overrides.yaml`，見 TODO.md） | ❌ 沒有 linux-arm64 的 `gen_snapshot` |
 
-在 dgx1 上日常只跑 `--debug`；**要 release 就在 Windows 出，或 push 後取 CI 的 artifact。**
+在 aarch64 Linux 上日常只跑 `--debug`；**要 release 就在 Windows 出，或 push 後取 CI 的 artifact。**
 
-> 📌 遺失風險：`dhealth.keystore` 不在版控，本機（dgx1）也沒有副本 —— 它只存在於你的備份與
+> 📌 遺失風險：`dhealth.keystore` 不在版控，aarch64 開發機上也没有副本 —— 它只存在於你的備份與
 > GitHub secrets。請確認手上至少有一份可讀回的拷貝（secrets 只能覆寫、讀不出來）。
 >
 > ⚠️ 洩密處理：public repo 中只要 keystore 或密碼進過 commit，視為該鑰作廢——
