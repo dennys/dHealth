@@ -5,6 +5,45 @@
 新的完成紀錄加在最上面。
 
 ---
+## 2026-11-10 REVIEW.md 全項修完（16 項；commits `8bb4707`..`67c8b27`）
+
+`flutter analyze` 0 issue、`flutter test` 117 全過（107 → 117：刪 6 條測死碼的、
+新增 16 條）。逐條對 HEAD `6660036` 驗證過才動手；Must fix 四項全做：
+
+- **刪五支死檔**（#1，`8bb4707`）：`data.dart`／`util.dart`／`database/exporter.dart`／
+  `appstate.dart`／`utils/weekday_utils.dart`（+test、`Prefs.weekStartDay`），-530 行。
+  下方 2026-11-10 那節的「已刪除」當時**並不在 HEAD**（`247dfff` 把其中三支加回來、
+  appstate/weekday 從未刪過），這輪才真正刪掉。
+- **備份提醒改天級節流**（#2，`7ba4adb`）：間隔曾誤用同步頻率（預設 15 分鐘）→
+  過期後每次背景同步都再發一顆（一天 96 顆）。固定 24h；三顆步數通知照舊用
+  使用者設定的頻率。新增回歸測試。
+- **0 步天/週/月補零**（#3，`ee3c0b0`）：DB 只存 steps > 0，舊的取「有資料的最後 N 列」
+  → 「最近 7 天」變成「最近 7 個有步數的天」，平均最多高估 1.75×。三個粒度都改
+  （週/月圖是同一個 bug）；圖表層保留「區間內一列都沒有 → 沒有資料」的空卡。
+- **刪 VACUUM fallback**（#4，`af50b51`）：失敗時直接複製活檔（可能半套）—— 唯一備份路，
+  假的「成功」比看得見的失敗更糟。讓它 throw，呼叫端 catch 後 toast。
+- **dark mode drawer**（#5，`808053f`）：刪寫死的 `Colors.green[50]` 底，走 colorScheme。
+- **三顆 dropdown null+hint**（#6，`5bd087c`）：language/theme/priority，比照專案已修好的
+  兩顆；三條回歸測試。
+- **取消退役 job**（#7，`6b66c47`）：`init()` 取消 `com.example.step_tracker` 一次
+  （下方那節的「cancels the retired job」當時也**不在 HEAD**，這輪才真正做掉）。
+- **keep.xml**（#8，`d1f306f`）：改保護真正動態引用的 `ic_stat_notification`
+  （以前保護不存在的 `res_ic_stat_accessibility_new`）。
+- **setup.dart controller**（#9，`c70da76`）：收進 State（以前每 build 現做一顆 →
+  洩漏 + 游標重置）。
+- **about.dart mounted**（#10，`8688e5e`）：`if (!mounted) return` + try/catch。
+- **測試 + 文件**（#11，`6554564` + 本節）：`importStepsFromFile` 改注入 DB（以前直接
+  `GetIt.instance`，全案唯一沒 constructor injection 的，測不了）；新增
+  `permission_service_test`（5）+ `import_steps_test`（6）；TODO/CHANGELOG 對齊現況。
+- **三圖共用 future**（#13，`3e62da2`）：以前每張圖各自查全表（每次刷新讀三遍）；
+  `_lastOffset` 移出 build（不相干的重建會把翻頁方向翻掉）。
+- **CI**（#16，`67c8b27`）：缺簽名 secret 直接 `::error::` + `exit 1`（以前靜默
+  debug 簽章）；upload 去掉重複路徑（同一個 release APK 上傳兩次）。
+
+**沒做**（REVIEW 自己就說要延後）：#12 匯入併發度（要先真機 B-4 實測）、
+#14 拆檔（碰到再拆）。
+
+---
 ## 2026-11-10 five fixes around data and paging (device checks still zero)
 
 - `chart_range.dart` `months()`: the target month is built with day 1, then today's day is
@@ -16,9 +55,12 @@
   (`l10n.databaseQuarantined`).
 - Same call sets `PRAGMA busy_timeout = 4000`: the WorkManager isolate writes through its
   own connection, so the `_serialized` queue only covers its own isolate (comment corrected).
-- `background_service.dart`: cancels the retired `com.example.step_tracker` job once, so
-  updated installs stop paying a periodic task that only returns true; dead `StepReading` deleted.
-- Deleted dead code: `appstate.dart`, `weekday_utils.dart` (+ its test, `Prefs.weekStartDay`)
+- `background_service.dart`: ~~cancels the retired `com.example.step_tracker` job once~~ ——
+  **這條當時不在 HEAD**（`git log -S` 查證只有加過又刪掉的 commit）；REVIEW 輪才真正做掉
+  （見上方 `6b66c47`）。dead `StepReading` 當時也還在 `data.dart` 裡，同批刪掉。
+- ~~Deleted dead code: `appstate.dart`, `weekday_utils.dart` (+ its test, `Prefs.weekStartDay`)~~ ——
+  **這條當時也不在 HEAD**（`247dfff` 把 data/util/exporter 加回來、appstate/weekday 從未刪過）；
+  REVIEW 輪才真正刪掉（見上方 `8bb4707`）。
   and shared the two `[15, 30, 60]` lists into `PrefsDefaults.frequencyPresets`.
   `import_export.dart` clamps the day field to 365 (one Health Connect call per day).
 

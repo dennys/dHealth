@@ -6,7 +6,7 @@ import 'package:dhealth/database/util.dart';
 import 'package:test/test.dart';
 
 /// importStepsFromFile 是唯一的還原路（allowBackup="false" 之後），
-/// 以前它直接 GetIt.instance<StepDatabase>() —— 測試裡走不通。
+/// 以前它直接 `GetIt.instance<StepDatabase>()` —— 測試裡走不通。
 /// 改成注入 DB 之後，成敗的每一條路都有測試。
 void main() {
   late StepDatabase live;

@@ -49,20 +49,20 @@ CI 也正常出 artifacts；卡住的只有 Linux/aarch64 —— AOT 的 `gen_sn
 
 ### 3. 測試覆蓋的洞
 現在有：`database`、`data_service`（同步安全回歸 + **同步 serialize** + **小時曲線的容忍行為**）、
-`step_calculator`、`settings_model`、`decideStepAlert`、`chart_range`（incl. the month-page day clamp）、
-**`notification_service`（時段視窗含跨午夜、節流、判斷不燒節流槽）**、**備份提醒的天數算法**。
+`step_calculator`（含 0 步天/週/月補零）、`settings_model`、`decideStepAlert`、`chart_range`（incl. the month-page day clamp）、
+**`notification_service`（時段視窗含跨午夜、節流、判斷不燒節流槽）**、**備份提醒的天數算法**、
+**`background_service`（executeTask 全分支 + 備份提醒天級節流）**、**`permission_service`**（關鍵權限失敗必回
+PermissionFailure）、**`importStepsFromFile`**（成敗六條路，DB 已注入）。
 新增的斷言都做過變異檢查（把舊行為塞回去會紅），不是怎麼跑都過的假測試。
 
-完全沒有：**`Workmanager` 排程本身**、**`permission_service`**（唯一還沒測過的入口邏輯，
-真要補先補它）、**`BackgroundService.executeTask`**（要 mocks）、**`importStepsFromFile`**、
-`charts` 的取數路徑。
+完全沒有：**`Workmanager` 排程本身**、`charts` 的取數路徑（widget 層）。
 - **`openStepDatabase` recovery path** (a corrupt file -> `.corrupt` + fresh db): untestable today because the path is hard-wired to path_provider; inject the path if you want a test.
 
 ### 4. 一致性 / 上架前
 - l10n 取字串慣例：本案到处是 `AppLocalizations.of(context)?.xxx ?? '英文 fallback'`，
   缺字串時會**靜靜顯示英文**（上批中文缺字串就是被它掩蓋掉的）。建議統一成 dNeko 那套
   `AppLocalizations.of(context)!`，讓缺字串在開發期就爆出來。
-- release 簽名仍是 debug key（`android/app/build.gradle.kts` 的 `signingConfig`）。- CI 的 `codecov/codecov-action@v4` 沒帶 token：public repo 沒事，**轉 private 會紅**。
+- release 簽名仍是 debug key（`android/app/build.gradle.kts` 的 `signingConfig`）。
 - 尚無 `dataExtractionRules`（`allowBackup="false"` 已設，健康資料已不进雲備份；
   要上架就得把 Play 的資料安全聲明對上實際行為）。
 
@@ -82,21 +82,13 @@ CI 也正常出 artifacts；卡住的只有 Linux/aarch64 —— AOT 的 `gen_sn
 `createNotificationChannel()` 更新既有 channel，或在 subtitle 寫「重啟後生效」
 （要一個新的 l10n 字串）。真機 B-2e 就是驗這個。
 
-### 3. `setup.dart` 的三個小毛病（L2/L3/L7 同一支檔案附近）
-- 每次 build 現做 `TextEditingController` → 游標/IME 狀態脆，目標輸入框偶發不順。
-  收進 State 持有，`didUpdateWidget` 同步外部值。
+### 3. `setup.dart` Active Hours 只取小時（L3）
 - Active Hours 用 TimePicker 但只取 `.hour`，分鐘悄悄丟棄（選 7:30 變 7:00）。
   改成「小時下拉 ×2」講清楚，或乾脆把設定做成分鐘解析度。
-- `settings_keys.dart` 還寫「預設最近 7 天」（期數制之後應是「最近 7 期」）、
-  `charts.dart:14` 的檔案備忘行數也過時了。
 
 ### 4. 節流時間戳的裸字串 key（L6）
 `notification_service.dart` 用 `'notification_last_sent_' + kind` 直接寫 prefs，繞過
 `settings_keys.dart` 的「全案唯一定義」慣例。收進 `Prefs` 就好（鍵名不変，不動既有安裝）。
-
-### 5. Drawer 顏色寫死亮色綠（L10）
-`main.dart` 的 `DrawerThemeData(backgroundColor: Colors.green[50])` 沒走 colorScheme，
-亮色模式下 drawer 上的文字對比沒保障。換 `surfaceContainerLow` 之類的 colorScheme 色。
 
 ---
 
@@ -118,9 +110,9 @@ of Flutter`（guide：docs.flutter.dev/release/breaking-changes/migrate-to-built
 
 - **上架前必填**：`lib/widgets/about.dart` 的 `kSupportEmail`（沒填 About 頁就不顯示聯絡信箱，
   故意不放假信箱）；Play 控制台要填同一個。
-- **CI 簽章**：`KEYSTORE_B64` / `KEY_PROPERTIES` 要確認有設 —— 沒設時 workflow 會 `::warning::`
-  然後**靜默用 debug 簽章**（fork 友善的設計），那種 APK 每版簽名不同，只能砍掉重裝。
-- **CI 覆蓋率**：codecov action 沒帶 token。
+- **CI 簽章**：`KEYSTORE_B64` / `KEY_PROPERTIES` 要確認有設 —— 沒設時 workflow 直接
+  `::error::` + `exit 1`（2026-11-10 REVIEW 輪改的；以前是 `::warning::` 後靜默用 debug 簽章，
+  那種 APK 每版簽名不同，只能砍掉重裝）。
 - **`android.newDsl`** 仍未翻（AGP 舊 DSL 型別），不要跟 `android.builtInKotlin` 同時動。
 - 本機（aarch64 Linux）**已經能 build debug**：環境與 `pubspec_overrides.yaml` 見上面「本機建置」節（主機細節在 `~/dennys/AGENTS.md`）；
   CHANGELOG 裡舊輪次寫的「本機只有 JDK 8、build 不了 apk」是當時的狀態，已過時。
