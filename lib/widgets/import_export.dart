@@ -128,7 +128,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
       if (file?.path == null) return;
 
       setState(() => _isBusy = true);
-      final result = await importStepsFromFile(file!.path!, replaceAll: _clearBeforeFileImport);
+      final result = await importStepsFromFile(getIt<StepDatabase>(), file!.path!, replaceAll: _clearBeforeFileImport);
 
       if (result.imported == null) {
         // 只有「原因」給使用者看；例外內容（result.detail）進 log，不要拿一堆英文堆疊去糊面板。

@@ -37,7 +37,6 @@ class Prefs {
 
   // Charts
   static const dailyChartRange = 'dailyChartRange';
-  static const weekStartDay = 'week_start_day';
 
   // Backup（allowBackup=false 之後，匯出是使用者唯一的備份路）
   static const lastExportAt = 'last_export_at';

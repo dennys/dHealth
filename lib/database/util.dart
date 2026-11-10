@@ -4,7 +4,6 @@ import 'package:drift/native.dart';
 import 'package:dhealth/database/database.dart';
 import 'package:dhealth/settings_keys.dart';
 import 'package:dhealth/utils/log.dart';
-import 'package:get_it/get_it.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -174,10 +173,10 @@ typedef StepImportResult = ({int? imported, ImportFailure? failure, Object? deta
 
 /// 從匯出檔還原：用**唯讀**連線讀來源檔，再把每天資料 upsert 進目前的資料庫。
 ///
-/// 刻意不「把檔案蓋過去再重開連線」：那要先關掉 GetIt 裡活著的連線，而舊版
-/// exporter.dart 就是關了之後 new 一個新的丟掉，讓整個 app 繼續用一個已關閉的 DB。
-/// 讀來源→寫本機這條路不需要動到連線，來源檔損毀也只會回失敗。
-Future<StepImportResult> importStepsFromFile(String filePath, {bool replaceAll = false}) async {
+/// 刻意不「把檔案蓋過去再重開連線」：那要先關掉活著的連線，關了之後若忘了重新註冊，
+/// 整個 app 就繼續用一個已關閉的 DB。讀來源→寫本機這條路不需要動到連線，
+/// 來源檔損毀也只會回失敗。
+Future<StepImportResult> importStepsFromFile(StepDatabase database, String filePath, {bool replaceAll = false}) async {
   StepDatabase? source;
   try {
     final file = File(filePath);
@@ -192,12 +191,11 @@ Future<StepImportResult> importStepsFromFile(String filePath, {bool replaceAll =
     final rows = await source.getAllDailySteps(); // 不是我們的 sqlite 檔會在這裡炸，被下面接住
     if (rows.isEmpty) return (imported: null, failure: ImportFailure.noData, detail: filePath);
 
-    final live = GetIt.instance<StepDatabase>();
     var imported = 0;
-    await live.transaction(() async {
-      if (replaceAll) await live.deleteAllData();
+    await database.transaction(() async {
+      if (replaceAll) await database.deleteAllData();
       for (final row in rows) {
-        await live.upsertDailyStep(row.date, row.stepCount, row.lastUpdated, isComplete: row.isComplete);
+        await database.upsertDailyStep(row.date, row.stepCount, row.lastUpdated, isComplete: row.isComplete);
         imported++;
       }
     });
