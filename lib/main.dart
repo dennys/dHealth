@@ -48,9 +48,10 @@ class HealthApp extends StatelessWidget {
       title: 'dHealth',
       // 與 dNeko 用同一顆 seed（Colors.green）+ 同一個 ColorScheme.fromSeed 做法，
       // 兩案看起來才是一家人；accentColor 已 deprecated，不再手調。
+      // drawer 背景也走 colorScheme（以前寫死 Colors.green[50]，dark mode 下變成
+      // 淺綠底 + 近白文字，選單整頁讀不到）。
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
-        drawerTheme: DrawerThemeData(backgroundColor: Colors.green[50]),
       ),
       darkTheme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.green, brightness: Brightness.dark)),
       themeMode: settings.getThemeMode(),
