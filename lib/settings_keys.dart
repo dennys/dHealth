@@ -11,6 +11,7 @@ class Prefs {
   // Interface
   static const language = 'language';
   static const theme = 'theme';
+  static const weekStartDay = 'week_start_day';
 
   // Health data sync
   static const healthSyncEnabled = 'health_sync_enabled';
