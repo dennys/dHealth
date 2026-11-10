@@ -88,7 +88,7 @@ Download file and copy / resize it to `android\app\src\main\res\drawable-\*\*\*h
 |---|---|
 | 開發機（Windows 或 aarch64 Linux） | `android/app/dhealth.keystore` + `android/key.properties`（gitignored，**從既有備份複製**） |
 | GitHub Actions | secrets：`KEYSTORE_B64`（keystore 檔的 base64）、`KEY_PROPERTIES`（key.properties 全文） |
-| 兩者都沒有（如 fork） | release 退回 debug 簽章，CI 不會紅 |
+| 兩者都沒有（如 fork） | CI 直接 `::error::` + `exit 1`（2026-11-10 起；以前是靜默退回 debug 簽章） |
 
 ⚠️ **全案只准有一把 keystore。** 換一把（或在新機器上自己 `genkeypair`）簽出來的 APK 就跟使用者已裝的
 簽名不同 → 無法覆蓋升級，只能砍掉重裝。新機器請從既有機器／備份複製同一份過來；

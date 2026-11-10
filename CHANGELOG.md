@@ -41,7 +41,10 @@
   debug 簽章）；upload 去掉重複路徑（同一個 release APK 上傳兩次）。
 
 **沒做**（REVIEW 自己就說要延後）：#12 匯入併發度（要先真機 B-4 實測）、
-#14 拆檔（碰到再拆）。
+#14 拆檔（碰到再拆）—— 兩項都已搬進 TODO.md。
+
+**REVIEW.md 已刪**：完成項在本節、未完成項（#12、#14）在 TODO.md、
+「未驗證」清單併入 TODO 的真機驗收節；其餘（repo 說明、結論）與 README/CHANGELOG 重複，直接刪。
 
 ---
 ## 2026-11-10 five fixes around data and paging (device checks still zero)

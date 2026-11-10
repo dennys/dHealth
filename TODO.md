@@ -43,9 +43,12 @@ CI 也正常出 artifacts；卡住的只有 Linux/aarch64 —— AOT 的 `gen_sn
 也留在單裡同場再掃一次就好，成本很低。本輪新增的**分批併發同步**與**備份過期提醒**的
 驗收步驟（含匯出前後應該看到什麼）也寫在同一份。
 
+另有一項只有 **release** 才看得見：`ic_stat_notification`（通知小圖標）真的留在 release APK 裡
+（`keep.xml` 已改對，但本機只有 debug build 驗過；release 的資源剪枝只在 CI/Windows 出）。
+
 ### 2. 兩個超大檔案該拆
-- `lib/widgets/charts.dart` 651 行單檔 → 圖表元件按類型拆（現況：4 個圖表類別同一檔，但已無死碼）
-- `lib/widgets/import_export.dart` 457 行 → 匯入/匯出/分享三塊可分
+- `lib/widgets/charts.dart` 681 行單檔 → 圖表元件按類型拆（現況：4 個圖表類別同一檔，但已無死碼）
+- `lib/widgets/import_export.dart` 468 行 → 匯入/匯出/分享三塊可分
 
 ### 3. 測試覆蓋的洞
 現在有：`database`、`data_service`（同步安全回歸 + **同步 serialize** + **小時曲線的容忍行為**）、
@@ -69,12 +72,15 @@ PermissionFailure）、**`importStepsFromFile`**（成敗六條路，DB 已注�
 ## 2026-11-09 審查後仍開著的（代碼面；已做的都進 CHANGELOG 了）
 
 ### 1. 聚合 API 還沒用（M1 剩下的那一半）
-現在是「分批併發的逐小時」（一批 6 個）。真正一次拿回全天逐小時桶的是
-`getHealthAggregateDataFromTypes(..., activitySegmentDuration: Duration(hours: 1))`
-—— 注意審查報告写的 `getTotalStepsInInterval(..., HealthIntervalArgument(timeUnitPolicy:))`
-**在 health 13.3.2 並不存在**（實查 pub-cache：`health_plugin.dart:1248` 只有兩個位置參數）。
+現在是「分批併發的逐日/逐小時」（一批 6 個）。真正一次拿回全天逐小時桶的是
+`getHealthAggregateDataFromTypes(..., activitySegmentDuration: 1)`
+—— 注意：health 13.3.2 的簽名是 `int activitySegmentDuration = 1`（`health_plugin.dart:1298`），
+**不是 `Duration`**（舊審查報告寫 `Duration(hours: 1)` 是型別錯誤，貼之前改）；
+`getTotalStepsInInterval(..., HealthIntervalArgument(timeUnitPolicy:))` 則根本不存在。
 換過去之前要在真機確認回傳的時間桶邊界與時區，否則可能把「整天讀不到」换成「整天錯位」；
 驗收見 `../DEVICE_TEST.md` B-4（前後各測一輪冷啟動/下拉刷新/匯入 365 天）。
+B-4 實測後可順手把 `_concurrency`（`data_service.dart`，現 6）調到 12/24（零邏輯改動）；
+資料量一直 ≤90 天的話不用做。
 
 ### 2. 通知 channel 只在啟動時建（M4）
 聲音／震動／重要性屬於 channel 層，Android 會快取，所以設定的開關要重啟才生效。
