@@ -1,5 +1,6 @@
 import 'package:dhealth/services/notification_service.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
@@ -10,7 +11,8 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(() {
-    // canSend/markSent 自己 new SharedPreferencesAsync()，所以要換掉 platform instance
+    // NotificationService 的 prefs 由 constructor 注入，但底下還是同一個 platform
+    // instance，所以換掉它就能讓 canSend/markSent 走記憶體。
     SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
   });
 
@@ -49,38 +51,41 @@ void main() {
     // 0–23 涵蓋所有小時 → 這一組只測節流，不受時段影響
     const allDay = NotificationWindow(startHour: 0, endHour: 23);
     final t0 = DateTime(2026, 11, 9, 12);
+    late NotificationService service;
+
+    setUp(() => service = NotificationService(SharedPreferencesAsync()));
 
     test('從沒發過 → 可以發', () async {
-      expect(await NotificationService.canSend('reach_goal', 15, allDay, now: t0), isTrue);
+      expect(await service.canSend('reach_goal', 15, allDay, now: t0), isTrue);
     });
 
     test('剛發過就再問 → 不發（同一類）', () async {
-      await NotificationService.markSent('reach_goal', now: t0);
-      expect(await NotificationService.canSend('reach_goal', 15, allDay, now: t0.add(const Duration(minutes: 14))), isFalse);
+      await service.markSent('reach_goal', now: t0);
+      expect(await service.canSend('reach_goal', 15, allDay, now: t0.add(const Duration(minutes: 14))), isFalse);
     });
 
     test('隔到間隔才放行（15 分鐘：14 分不發、15 分發）', () async {
-      await NotificationService.markSent('reach_goal', now: t0);
-      expect(await NotificationService.canSend('reach_goal', 15, allDay, now: t0.add(const Duration(minutes: 15))), isTrue);
+      await service.markSent('reach_goal', now: t0);
+      expect(await service.canSend('reach_goal', 15, allDay, now: t0.add(const Duration(minutes: 15))), isTrue);
     });
 
     test('不同類各走各的節流槽', () async {
-      await NotificationService.markSent('reach_goal', now: t0);
-      expect(await NotificationService.canSend('motivation', 15, allDay, now: t0), isTrue);
-      expect(await NotificationService.canSend('reach_goal', 15, allDay, now: t0), isFalse);
+      await service.markSent('reach_goal', now: t0);
+      expect(await service.canSend('motivation', 15, allDay, now: t0), isTrue);
+      expect(await service.canSend('reach_goal', 15, allDay, now: t0), isFalse);
     });
 
     // 這一條是當初那個 bug 的網：舊版在「判斷能不能發」的當下就寫時間戳，
     // 於是權限沒給、建立通知失敗那幾種情況也會把節流槽燒掉 ——
     // 使用者一顆通知都沒看到，卻要再等一個 frequencyMinutes。
     test('canSend 只判斷、不留記錄（要發成功了才由 markSent 記）', () async {
-      expect(await NotificationService.canSend('reach_goal', 15, allDay, now: t0), isTrue);
-      expect(await NotificationService.canSend('reach_goal', 15, allDay, now: t0), isTrue);
+      expect(await service.canSend('reach_goal', 15, allDay, now: t0), isTrue);
+      expect(await service.canSend('reach_goal', 15, allDay, now: t0), isTrue);
     });
 
     test('時段外就算沒發過也不發', () async {
       const nightOnly = NotificationWindow(startHour: 22, endHour: 7);
-      expect(await NotificationService.canSend('reach_goal', 15, nightOnly, now: t0), isFalse);
+      expect(await service.canSend('reach_goal', 15, nightOnly, now: t0), isFalse);
     });
   });
 }

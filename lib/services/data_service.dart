@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:dhealth/database/database.dart';
 import 'package:dhealth/settings_keys.dart';
-import 'package:get_it/get_it.dart';
 import 'package:health/health.dart';
 
 import 'permission_service.dart';
@@ -27,8 +26,10 @@ typedef StepSyncResult = ({StepSyncStatus status, Object? detail, bool todaySkip
 
 /// 步數的唯一寫入路徑：從 Health Connect 讀 → 依日聚合 → 覆蓋寫進 [StepDatabase]。
 class StepDataService {
-  final Health health = GetIt.I<Health>();
-  final StepDatabase database = GetIt.I<StepDatabase>();
+  StepDataService(this.health, this.database);
+
+  final Health health;
+  final StepDatabase database;
 
   /// 一批併發的 Health Connect 呼叫數量。
   /// 串行 24 次（小時）/ 365 次（匯入一年）IPC 是冷啟動慢的主因；一次全發在慢的機器上

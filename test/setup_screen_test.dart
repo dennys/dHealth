@@ -1,4 +1,6 @@
+import 'package:dhealth/di.dart';
 import 'package:dhealth/generated/l10n/app_localizations.dart';
+import 'package:dhealth/services/background_service.dart';
 import 'package:dhealth/settings_model.dart';
 import 'package:dhealth/widgets/setup.dart';
 import 'package:flutter/material.dart';
@@ -7,11 +9,22 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
+import 'settings_model_test.mocks.dart'; // MockBackgroundService
+
 /// 設定頁的開關「綁對欄位沒有」—— 這是這頁反覆中過的 bug 類型（copy-paste 時把
 /// `value:` 留成上一顆開關的 getter），而 setter 表掃不到它：setter 本身是對的，
 /// 錯的是 UI 讀的欄位。所以直接在 widget 層驗。
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUp(() async {
+    // 會重排背景同步的 setter 走 getIt<BackgroundService>()；mock 掉，
+    // widget test 不碰 Workmanager 的 pigeon channel。
+    await getIt.reset();
+    getIt.registerSingleton<BackgroundService>(MockBackgroundService());
+  });
+
+  tearDown(() async => getIt.reset());
 
   Future<SettingsModel> pumpSetup(WidgetTester tester, Map<String, Object> initial) async {
     // ListView 是 lazy 的：視窗不够高時「顯示設定」那區根本沒被 build，find 會找不到元素。

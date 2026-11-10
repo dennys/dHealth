@@ -34,15 +34,46 @@ class NotificationWindow {
 /// 2. 權限沒給時回 999 步被當成測量值，對預設 300 步的目標就發「Goal Reached!
 ///    你走了 999 步」。現在錯誤就是錯誤，不會憑空恭喜。
 /// 3. 設定頁的「通知類型 / 音訊 / 震動 / 重要性 / 通知時段」全都没接；現在接了。
+///
+/// 依賴（prefs、permission 檢查）由 constructor 注入：static 版每處 inline new
+/// `SharedPreferencesAsync()`、`Permission.notification` 直接碰平台 channel，
+/// 背景同步的整條通知路（executeTask）因此沒法在測試裡走通。
 class NotificationService {
+  /// [permissionCheck] 與 [display] 都是平台邊界（permission_handler / awesome_notifications
+  /// 的 platform channel）：測試注入 stub，生產用預設。
+  NotificationService(
+    this.prefs, {
+    Future<bool> Function()? permissionCheck,
+    Future<bool> Function(String title, String body)? display,
+  })  : _permissionCheck = permissionCheck ?? _defaultPermissionCheck,
+        _display = display ?? _defaultDisplay;
+
   static const String _defaultChannel = 'dhealth_step_tracker_channel';
   static const String _lastSentPrefix = 'notification_last_sent_';
 
+  final SharedPreferencesAsync prefs;
+  final Future<bool> Function() _permissionCheck;
+  final Future<bool> Function(String, String) _display;
+
+  static Future<bool> _defaultPermissionCheck() => Permission.notification.isGranted;
+
+  static Future<bool> _defaultDisplay(String title, String body) async {
+    await AwesomeNotifications().createNotification(
+      content: NotificationContent(
+        id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        channelKey: _defaultChannel,
+        title: title,
+        body: body,
+        notificationLayout: NotificationLayout.Default,
+      ),
+    );
+    return true;
+  }
+
   /// 建通知管道。聲音／震動／重要性屬於 **channel** 等級（Android 會快取 channel），
   /// 所以在啟動時從設定讀一次；之後改了要下次啟動才生效 —— 這是平台限制，不是實作偷工。
-  static Future<void> initialize() async {
+  Future<void> initialize() async {
     final l10n = _l10n();
-    final prefs = SharedPreferencesAsync();
     final sound = await prefs.getBool(Prefs.soundEnabled) ?? PrefsDefaults.soundEnabled;
     final vibration = await prefs.getBool(Prefs.vibrationEnabled) ?? PrefsDefaults.vibrationEnabled;
     final priority = await prefs.getString(Prefs.priority) ?? PrefsDefaults.priority;
@@ -77,12 +108,12 @@ class NotificationService {
   /// 之前是判斷的同時就寫時間戳，結果「通知權限還沒給」或「建立通知失敗」那幾種情況
   /// 也會把節流槽燒掉，使用者連一顆通知都沒看到，卻要再等一個 frequencyMinutes。
   /// 任何一步出錯都採保守做法（發）：通知是加分功能，不該讓整個同步任務失敗。
-  static Future<bool> canSend(String kindKey, int minIntervalMinutes, NotificationWindow window, {DateTime? now}) async {
+  Future<bool> canSend(String kindKey, int minIntervalMinutes, NotificationWindow window, {DateTime? now}) async {
     final at = now ?? DateTime.now();
     if (!window.contains(at)) return false;
 
     try {
-      final last = await SharedPreferencesAsync().getInt('$_lastSentPrefix$kindKey');
+      final last = await prefs.getInt('$_lastSentPrefix$kindKey');
       return last == null || at.difference(DateTime.fromMillisecondsSinceEpoch(last)) >= Duration(minutes: minIntervalMinutes);
     } catch (e) {
       appError('通知節流狀態讀取失敗，照常發送', e);
@@ -91,21 +122,21 @@ class NotificationService {
   }
 
   /// 記下「這一類剛剛真的發出去了」，供 [canSend] 節流。
-  static Future<void> markSent(String kindKey, {DateTime? now}) async {
+  Future<void> markSent(String kindKey, {DateTime? now}) async {
     try {
-      await SharedPreferencesAsync().setInt('$_lastSentPrefix$kindKey', (now ?? DateTime.now()).millisecondsSinceEpoch);
+      await prefs.setInt('$_lastSentPrefix$kindKey', (now ?? DateTime.now()).millisecondsSinceEpoch);
     } catch (e) {
       appError('記錄通知發送時間失敗', e);
     }
   }
 
   /// 回傳「是否真的顯示了」，呼叫端據此決定要不要 [markSent]。
-  static Future<bool> showGoalReached(int steps, int goal) async {
+  Future<bool> showGoalReached(int steps, int goal) async {
     final l10n = _l10n();
     return _show(title: l10n.stepGoalReachedTitle, body: l10n.stepGoalReachedBody(steps));
   }
 
-  static Future<bool> showAlmostThere(int steps, int gap, int goal) async {
+  Future<bool> showAlmostThere(int steps, int gap, int goal) async {
     final l10n = _l10n();
     return _show(title: l10n.motivationTitle, body: l10n.motivationBody(gap, goal));
   }
@@ -114,34 +145,24 @@ class NotificationService {
   ///
   /// 收的是 `StepSyncStatus`（原因）而不是字串：服務層不吐使用者文字，
   /// 否則英文介面就會混出硬編的中文。
-  static Future<bool> showSyncError(StepSyncStatus reason) async {
+  Future<bool> showSyncError(StepSyncStatus reason) async {
     final l10n = _l10n();
     return _show(title: l10n.errorNotificationTitle, body: l10n.errorNotificationBody(reason.label(l10n)));
   }
 
   /// 「備份可能過期」。`allowBackup="false"` 之後匯出是唯一備份路，
   /// 這件事不能假裝使用者自己會想到（而且現在完全沒提醒）。
-  static Future<bool> showBackupStale(int days) async {
+  Future<bool> showBackupStale(int days) async {
     final l10n = _l10n();
     return _show(title: l10n.backupReminderTitle, body: l10n.backupReminderBody(days));
   }
 
-  static Future<bool> _show({required String title, required String body}) async {
+  Future<bool> _show({required String title, required String body}) async {
     try {
       // 背景 isolate 沒有 Activity，不能在這裡 request 權限（那要 UI 走 PermissionService）。
       // 沒授權就靜默跳過：通知是加分功能，不該因此讓同步任務失敗。
-      if (!await Permission.notification.isGranted) return false;
-
-      await AwesomeNotifications().createNotification(
-        content: NotificationContent(
-          id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
-          channelKey: _defaultChannel,
-          title: title,
-          body: body,
-          notificationLayout: NotificationLayout.Default,
-        ),
-      );
-      return true;
+      if (!await _permissionCheck()) return false;
+      return await _display(title, body);
     } catch (e) {
       appError('發通知失敗', e);
       return false;

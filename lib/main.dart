@@ -32,8 +32,8 @@ void main() async {
 
   await configureDependencies();
   final settings = await SettingsModel.load(); // 載入完成才 runApp：首幀就是正確的設定值
-  await NotificationService.initialize();
-  await BackgroundService.init();
+  await getIt<NotificationService>().initialize();
+  await getIt<BackgroundService>().init();
 
   runApp(ChangeNotifierProvider.value(value: settings, child: const HealthApp()));
 }
@@ -110,7 +110,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _bootstrap() async {
     // 今天的小時圖不該等「整段歷史同步」跑完才有資料：先獨立查一次，同步結束後會再查一次。
     unawaited(_loadHourlyTotals());
-    final failure = await PermissionService.requestStepAccess();
+    final failure = await getIt<PermissionService>().requestStepAccess();
     if (!mounted) return;
     setState(() => _permissionFailure = failure);
     if (failure != null) {

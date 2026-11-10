@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dhealth/di.dart';
 import 'package:dhealth/services/background_service.dart';
 import 'package:dhealth/settings_keys.dart';
 import 'package:flutter/material.dart';
@@ -118,7 +119,7 @@ class SettingsModel extends ChangeNotifier {
 
   /// 會動到 WorkManager 排程的三個 setter 共用：重排即可，不要重新 initialize。
   void _rescheduleBackground() {
-    unawaited(BackgroundService.scheduleTask().catchError((Object e) => appError('重新排程背景同步失敗', e)));
+    unawaited(getIt<BackgroundService>().scheduleTask().catchError((Object e) => appError('重新排程背景同步失敗', e)));
   }
 
   // Setters

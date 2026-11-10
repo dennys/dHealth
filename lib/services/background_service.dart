@@ -15,6 +15,11 @@ const String stepTrackerTask = 'com.dennys.dhealth.step_tracker';
 
 /// 背景 isolate 的進入點。這裡面每個 await 都要包好：拋出未處理例外時 WorkManager
 /// 只會把任務標記失敗，使用者什麼都看不到。
+///
+/// 平台邊界（WorkManager 的 callback）只存在於這個函式：它把背景 isolate 的
+/// 依賴組裝好（configureDependencies + 通知插件 per-isolate initialize），
+/// 然後把活交給 [BackgroundService] 的實例方法 —— 那部分不碰任何平台 API，
+/// 所以能在測試裡直接跑。
 @pragma('vm:entry-point')
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
@@ -24,8 +29,8 @@ void callbackDispatcher() {
       await configureDependencies();
       // 通知插件是 per-isolate 的：只在 UI 那側 initialize() 過，背景這條 isolate 沒過，
       // createNotification 就永遠发不出去（而且被 catch 吃掉，看不出問題）。
-      await NotificationService.initialize();
-      await BackgroundService.executeTask();
+      await GetIt.instance<NotificationService>().initialize();
+      await GetIt.instance<BackgroundService>().executeTask(inputData);
       return true;
     } catch (e, st) {
       appError('Workmanager 任務異常', e, st);
@@ -50,17 +55,24 @@ StepAlert decideStepAlert({required int? steps, required int dailyStepGoal, requ
   return StepAlert.none;
 }
 
+/// 一次背景同步的編排：讀步數 → 寫 DB → （照設定）發通知。
+///
+/// 依賴全部由 constructor 注入（static 版每處 inline new `SharedPreferencesAsync()`、
+/// `GetIt.instance<StepDataService>()`，整條路在測試裡走不通）。
 class BackgroundService {
-  BackgroundService._();
+  BackgroundService(this.dataService, this.notifications, this.prefs);
 
-  static Future<void> init() async {
+  final StepDataService dataService;
+  final NotificationService notifications;
+  final SharedPreferencesAsync prefs;
+
+  Future<void> init() async {
     await Workmanager().initialize(callbackDispatcher);
     await scheduleTask();
   }
 
   /// 依目前設定（重）排周期任務。設定頁改動後呼叫這個，不是 init()。
-  static Future<void> scheduleTask() async {
-    final prefs = SharedPreferencesAsync();
+  Future<void> scheduleTask() async {
     final interval = await prefs.getInt(Prefs.syncFrequency) ?? PrefsDefaults.syncFrequencyMinutes;
     final dailyStepGoal = await prefs.getInt(Prefs.dailyStepGoal) ?? PrefsDefaults.dailyStepGoal;
 
@@ -94,13 +106,12 @@ class BackgroundService {
   ///
   /// inputData 只當「排程當時的目標快照」用；真正比對前一律以 prefs 現值為準，
   /// 否則使用者改了目標，還要等舊的排程資料被替換掉才生效。
-  static Future<void> executeTask([Map<String, dynamic>? inputData]) async {
-    final prefs = SharedPreferencesAsync();
+  Future<void> executeTask([Map<String, dynamic>? inputData]) async {
     // 一律以 prefs 現值為準：inputData 是「排程當時」的快照，拿它會讓使用者改了目標
     // 之後還要等排程被替換才生效（本檔上方的註解講的就是這件事，之前的程式碼做反了）。
     final dailyStepGoal = await prefs.getInt(Prefs.dailyStepGoal) ?? inputData?['dailyStepGoal'] as int? ?? PrefsDefaults.dailyStepGoal;
 
-    final result = await _service().syncNewData();
+    final result = await dataService.syncNewData();
 
     switch (result.status) {
       case StepSyncStatus.permissionDenied:
@@ -147,16 +158,16 @@ class BackgroundService {
 
     switch (alert) {
       case StepAlert.goalReached:
-        if (settings.reachGoal && await NotificationService.canSend(Prefs.reachGoal, settings.frequencyMinutes, settings.window)) {
-          if (await NotificationService.showGoalReached(steps, dailyStepGoal)) {
-            await NotificationService.markSent(Prefs.reachGoal);
+        if (settings.reachGoal && await notifications.canSend(Prefs.reachGoal, settings.frequencyMinutes, settings.window)) {
+          if (await notifications.showGoalReached(steps, dailyStepGoal)) {
+            await notifications.markSent(Prefs.reachGoal);
           }
         }
       case StepAlert.almostThere:
         final gap = dailyStepGoal - steps;
-        if (settings.motivation && await NotificationService.canSend(Prefs.motivation, settings.motivationMinutes, settings.window)) {
-          if (await NotificationService.showAlmostThere(steps, gap, dailyStepGoal)) {
-            await NotificationService.markSent(Prefs.motivation);
+        if (settings.motivation && await notifications.canSend(Prefs.motivation, settings.motivationMinutes, settings.window)) {
+          if (await notifications.showAlmostThere(steps, gap, dailyStepGoal)) {
+            await notifications.markSent(Prefs.motivation);
           }
         }
       case StepAlert.none:
@@ -164,21 +175,20 @@ class BackgroundService {
     }
   }
 
-  static Future<int?> _todayStepCount() async {
+  Future<int?> _todayStepCount() async {
     final now = DateTime.now();
     final midnight = DateTime(now.year, now.month, now.day);
-    final row = await _service().database.getDailyStep(midnight);
+    final row = await dataService.database.getDailyStep(midnight);
     return row?.stepCount;
   }
 
   /// 只在使用者開了「例外」通知、且現在在通知時段內時才發。
-  static Future<void> _notifyException(StepSyncStatus reason) async {
-    final prefs = SharedPreferencesAsync();
+  Future<void> _notifyException(StepSyncStatus reason) async {
     final settings = await _NotificationSettings.read(prefs);
     if (!settings.enabled || !settings.exception) return;
-    if (!await NotificationService.canSend(Prefs.exception, settings.frequencyMinutes, settings.window)) return;
-    if (await NotificationService.showSyncError(reason)) {
-      await NotificationService.markSent(Prefs.exception);
+    if (!await notifications.canSend(Prefs.exception, settings.frequencyMinutes, settings.window)) return;
+    if (await notifications.showSyncError(reason)) {
+      await notifications.markSent(Prefs.exception);
     }
   }
 
@@ -203,23 +213,16 @@ class BackgroundService {
   /// 也只在通知時段內發。
   ///
   /// 「從沒匯出過」也提醒，但要先真的有資料可備份（剛裝好就催是騷擾）。
-  static Future<void> _maybeRemindBackup(_NotificationSettings settings) async {
-    final prefs = SharedPreferencesAsync();
-    if (await _service().database.getLastDate() == null) return;
+  Future<void> _maybeRemindBackup(_NotificationSettings settings) async {
+    if (await dataService.database.getLastDate() == null) return;
 
     final staleDays = daysSinceExport(lastExportAtMs: await prefs.getInt(Prefs.lastExportAt));
     if (staleDays < PrefsDefaults.backupStaleDays) return;
 
-    if (!await NotificationService.canSend(Prefs.backupReminder, settings.frequencyMinutes, settings.window)) return;
-    if (await NotificationService.showBackupStale(staleDays)) {
-      await NotificationService.markSent(Prefs.backupReminder);
+    if (!await notifications.canSend(Prefs.backupReminder, settings.frequencyMinutes, settings.window)) return;
+    if (await notifications.showBackupStale(staleDays)) {
+      await notifications.markSent(Prefs.backupReminder);
     }
-  }
-
-  static StepDataService _service() {
-    // 背景 isolate 有自己的 GetIt，裡面的 Health/StepDatabase 由外掛自行重建；
-    // 沒註冊過的話這裡會丟例外，由 callbackDispatcher 接住並標記任務失敗。
-    return GetIt.instance<StepDataService>();
   }
 }
 

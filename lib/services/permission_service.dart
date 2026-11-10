@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:get_it/get_it.dart';
 import 'package:health/health.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -22,9 +21,12 @@ enum PermissionFailure {
   healthRead, // Health Connect 對 STEPS 的讀取授權
 }
 
-/// 所有權限相關的唯一入口。
+/// 所有權限相關的唯一入口。依賴（Health、prefs）由 constructor 注入。
 class PermissionService {
-  PermissionService._();
+  PermissionService(this.health, this.prefs);
+
+  final Health health;
+  final SharedPreferencesAsync prefs;
 
   /// 取得讀步數所需的全部權限。
   ///
@@ -34,9 +36,7 @@ class PermissionService {
   ///
   /// 通知、歷史資料（>30 天）、背景讀取这三項是**加分項**：拿不到就少個功能，
   /// 不該讓整個 app 進不去，所以只在這裡記錄、不當成失敗。
-  static Future<PermissionFailure?> requestStepAccess({bool wantNotifications = true}) async {
-    final health = GetIt.I<Health>();
-
+  Future<PermissionFailure?> requestStepAccess({bool wantNotifications = true}) async {
     try {
       // 不在這裡 openAppSettings()：選單是「一次性的」，而這條是每次進場都會走的路徑，
       // 一旦使用者選過「拒絕且不再詢問」，就會變成「一開 app 就被丟到系統設定頁」的迴圈。
@@ -70,9 +70,8 @@ class PermissionService {
     }
   }
 
-  static Future<void> _requestOptionalNotifications(bool wantNotifications) async {
+  Future<void> _requestOptionalNotifications(bool wantNotifications) async {
     if (!wantNotifications) return;
-    final prefs = SharedPreferencesAsync();
     if (!(await prefs.getBool(Prefs.notificationsEnabled) ?? PrefsDefaults.notificationsEnabled)) return;
 
     // 同上：不自動跳系統設定頁，只記下來（通知是加分項，沒給就用不到通知而已）。
@@ -81,7 +80,7 @@ class PermissionService {
     }
   }
 
-  static Future<void> _requestOptional(String label, Future<bool> Function() isGranted, Future<bool> Function() request) async {
+  Future<void> _requestOptional(String label, Future<bool> Function() isGranted, Future<bool> Function() request) async {
     try {
       if (await isGranted()) return;
       await request();
