@@ -126,6 +126,19 @@ class BackgroundService {
     // 不會在 Health Connect 壞掉的時候又加一顆通知騷擾人。
     await _maybeRemindBackup(settings);
 
+    // 同步成功後「DB 沒有今天的列」有兩種成因，處理不同：
+    //   今天讀到 0 步 → 正當的 0，本來就無通知可發（decideStepAlert(0) 也是 none）；
+    //   今天讀不到（只跳過今天）且沒有舊列可保留 → 未知。舊版這種讀取失敗會把整個
+    //   sync 帶進例外通知路，2ad6e9c 改「只跳過今天」後它變成什麼都不發的靜默
+    //   （decideStepAlert(steps:null) 直接 none），所以這裡補回例外路。
+    if (steps == null) {
+      if (result.todaySkipped) {
+        appLog('背景同步成功但今天讀不到（無舊值可保留），發例外通知');
+        await _notifyException(StepSyncStatus.unavailable);
+      }
+      return;
+    }
+
     final alert = decideStepAlert(
       steps: steps,
       dailyStepGoal: dailyStepGoal,
@@ -135,12 +148,12 @@ class BackgroundService {
     switch (alert) {
       case StepAlert.goalReached:
         if (settings.reachGoal && await NotificationService.canSend(Prefs.reachGoal, settings.frequencyMinutes, settings.window)) {
-          if (await NotificationService.showGoalReached(steps!, dailyStepGoal)) {
+          if (await NotificationService.showGoalReached(steps, dailyStepGoal)) {
             await NotificationService.markSent(Prefs.reachGoal);
           }
         }
       case StepAlert.almostThere:
-        final gap = dailyStepGoal - steps!;
+        final gap = dailyStepGoal - steps;
         if (settings.motivation && await NotificationService.canSend(Prefs.motivation, settings.motivationMinutes, settings.window)) {
           if (await NotificationService.showAlmostThere(steps, gap, dailyStepGoal)) {
             await NotificationService.markSent(Prefs.motivation);

@@ -20,7 +20,10 @@ enum StepSyncStatus {
 
 /// 一次同步的結果。失敗時**資料庫完全沒被動過**（見 [StepDataService.syncRange] 的註解）。
 /// [detail] 是給 log 看的技術細節（例外內容），不要拿去顯示。
-typedef StepSyncResult = ({StepSyncStatus status, Object? detail});
+/// [todaySkipped] = 這次「今天的步數讀不到、只跳過今天」（見 [_fetchDailySteps]）：
+/// 同步成功後 DB 若沒有今天的列，那代表「未知」而不是「0 步」，
+/// 背景通知端（`background_service.dart`）靠這個決定要不要走例外通知路。
+typedef StepSyncResult = ({StepSyncStatus status, Object? detail, bool todaySkipped});
 
 /// 步數的唯一寫入路徑：從 Health Connect 讀 → 依日聚合 → 覆蓋寫進 [StepDatabase]。
 class StepDataService {
@@ -115,15 +118,16 @@ class StepDataService {
 
   Future<StepSyncResult> _syncRange(DateTime start, DateTime end, {bool clearAllFirst = false}) async {
     if (end.isBefore(start)) {
-      return (status: StepSyncStatus.invalidRange, detail: 'endDate $end is before startDate $start');
+      return (status: StepSyncStatus.invalidRange, detail: 'endDate $end is before startDate $start', todaySkipped: false);
     }
 
     final read = await _readDays(start, end);
     final failure = read.failure;
-    if (failure != null) return (status: failure, detail: read.detail);
+    if (failure != null) return (status: failure, detail: read.detail, todaySkipped: false);
 
     await _writeDays(start, end, read.days!, skipped: read.skipped, clearAllFirst: clearAllFirst);
-    return (status: StepSyncStatus.success, detail: null);
+    // skipped 只可能含今天（其他日子讀不到會整個失敗），所以 isNotEmpty 即「今天被跳過」。
+    return (status: StepSyncStatus.success, detail: null, todaySkipped: read.skipped.isNotEmpty);
   }
 
   /// 讀一段區間並聚合。回傳的 failure 非 null 時代表「這次沒讀到」，
@@ -198,7 +202,7 @@ class StepDataService {
     void Function(double progress)? onProgress,
   }) async {
     if (endDate.isBefore(startDate)) {
-      return (status: StepSyncStatus.invalidRange, detail: 'endDate $endDate is before startDate $startDate');
+      return (status: StepSyncStatus.invalidRange, detail: 'endDate $endDate is before startDate $startDate', todaySkipped: false);
     }
 
     const chunkSize = 30;
@@ -214,14 +218,14 @@ class StepDataService {
 
       final read = await _readDays(chunkStart, chunkEnd);
       final failure = read.failure;
-      if (failure != null) return (status: failure, detail: read.detail); // 資料庫一個字節都沒動過
+      if (failure != null) return (status: failure, detail: read.detail, todaySkipped: false); // 資料庫一個字節都沒動過
       merged.addAll(read.days!);
       skipped.addAll(read.skipped);
       onProgress?.call((i + 1) / totalChunks);
     }
 
     await _writeDays(startDate, endDate, merged, skipped: skipped, clearAllFirst: clearAllFirst);
-    return (status: StepSyncStatus.success, detail: null);
+    return (status: StepSyncStatus.success, detail: null, todaySkipped: skipped.isNotEmpty);
   }
 
   /// 給小時圖表用：今天 0 點到現在，每個小時的步數（去重後的聚合值，不寫 DB）。

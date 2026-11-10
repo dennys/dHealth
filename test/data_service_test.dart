@@ -48,6 +48,7 @@ void main() {
       final result = await stepDataService.syncRange(DateTime(2025, 3, 10), DateTime(2025, 3, 10));
 
       expect(result.status, StepSyncStatus.success);
+      expect(result.todaySkipped, isFalse);
       verify(mockDatabase.deleteDataInRange(any, any)).called(1);
       verify(mockDatabase.upsertDailyStep('2025-03-10', 150, any, isComplete: anyNamed('isComplete'))).called(1);
     });
@@ -114,6 +115,8 @@ void main() {
       final result = await stepDataService.syncRange(yesterday, now);
 
       expect(result.status, StepSyncStatus.success);
+      // 背景通知端靠這個旗號決定「今天無列」要不要走例外路
+      expect(result.todaySkipped, isTrue);
       verify(mockDatabase.upsertDailyStep(formatDateKey(yesterday), 500, any, isComplete: true)).called(1);
       verify(mockDatabase.upsertDailyStep(todayKey, 321, any, isComplete: false)).called(1);
     });
