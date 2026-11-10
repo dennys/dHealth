@@ -98,7 +98,8 @@ jobs:
 
       # release 簽章：keystore 與 key.properties 都在 GitHub secrets，repo 裡零機密
       # （與 dNeko 同格式：KEYSTORE_B64 = keystore 檔 base64，KEY_PROPERTIES = key.properties 全文）。
-      # 沒設 secrets 就退回 debug 簽章（fork 也能過 CI）。
+      # 沒設 secrets 直接 fail：debug 簽章的 release APK 每版簽名不同，使用者裝機後
+      # 不能覆蓋升級 —— 靜默綠燈讓這種 APK 混進 artifacts 是最糟的結果（fork 忽略此 job 即可）。
       # 兩件必做的事：① secrets 從 GitHub UI 貼進來常帶 \r/\n/空白 —— base64 先把全部空白清掉再解，
       # key.properties 只去 \r（properties 的內部版面有意義）；② 寫完立刻預驗，讓「兩個 secret 不配」
       # 在這裡就 ::error::，而不是讓 Gradle 兩分鐘後死在 :app:packageRelease。
@@ -108,8 +109,8 @@ jobs:
           KEY_PROPERTIES: ${{ secrets.KEY_PROPERTIES }}
         run: |
           if [ -z "$KEYSTORE_B64" ]; then
-            echo "::warning::KEYSTORE_B64 not set, release APK will be debug-signed"
-            exit 0
+            echo "::error::KEYSTORE_B64 not set —— release APK 會變成 debug 簽章（每版簽名不同，裝機後不能覆蓋升級）。本 repo 請設好 secret；fork 可忽略此 job。"
+            exit 1
           fi
           if [ -z "$KEY_PROPERTIES" ]; then
             echo "::error::KEY_PROPERTIES not set（storeFile/storePassword/keyAlias/keyPassword 四行）"
@@ -186,7 +187,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: apks
+          # 以前同時列 `build/app/outputs/flutter-apk/*.apk` 與 `dHealth-release-v*.apk`
+          # —— 同一個 release APK 上傳兩次（app-release.apk + 改名版）。
           path: |
-            build/app/outputs/flutter-apk/*.apk
+            build/app/outputs/flutter-apk/app-debug.apk
             dHealth-release-v*.apk
           retention-days: 14
