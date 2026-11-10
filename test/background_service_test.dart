@@ -188,6 +188,21 @@ void main() {
 
       expect(await sent('notification_backup_reminder'), isFalse);
     });
+
+    // 回歸：節流間隔曾誤用同步頻率（預設 15 分鐘）—— 備份過期後每次背景同步
+    // 都再發一顆（一天 96 顆）。條件是天級的，節流也該是天級的。
+    test('節流是天級：30 分鐘前發過就不該再發（15 分鐘同步頻率不能當節流）', () async {
+      when(mockDb.getLastDate()).thenAnswer((_) async => DateTime.now().subtract(const Duration(days: 3)));
+      await prefs.setInt(Prefs.lastExportAt, DateTime.now().subtract(const Duration(days: 15)).millisecondsSinceEpoch);
+      const key = 'notification_last_sent_${Prefs.backupReminder}';
+      await prefs.setInt(key, DateTime.now().subtract(const Duration(minutes: 30)).millisecondsSinceEpoch);
+      await stubSync(steps: 1000);
+
+      await service.executeTask();
+
+      expect(await prefs.getInt(key), DateTime.now().subtract(const Duration(minutes: 30)).millisecondsSinceEpoch,
+          reason: '24h 節流內不該再發（時間戳不該被更新）');
+    });
   });
 
   group('inputData 回退', () {

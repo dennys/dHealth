@@ -209,7 +209,9 @@ class BackgroundService {
   }
 
   /// 太久沒匯出就提醒一次：`allowBackup="false"` 之後匯出是唯一備份路，
-  /// 而這件事使用者不會自己想到。節流沿用同一套 `canSend`（一個 frequencyMinutes 一顆），
+  /// 而這件事使用者不會自己想到。節流沿用同一套 `canSend`，但間隔固定 24 小時：
+  /// 條件本身是天級的（14 天沒匯出），若用同步頻率（預設 15 分鐘）當節流，
+  /// 過期後每次背景同步都會再發一顆（一天 96 顆），提醒變成騷擾。
   /// 也只在通知時段內發。
   ///
   /// 「從沒匯出過」也提醒，但要先真的有資料可備份（剛裝好就催是騷擾）。
@@ -219,7 +221,7 @@ class BackgroundService {
     final staleDays = daysSinceExport(lastExportAtMs: await prefs.getInt(Prefs.lastExportAt));
     if (staleDays < PrefsDefaults.backupStaleDays) return;
 
-    if (!await notifications.canSend(Prefs.backupReminder, settings.frequencyMinutes, settings.window)) return;
+    if (!await notifications.canSend(Prefs.backupReminder, 24 * 60, settings.window)) return;
     if (await notifications.showBackupStale(staleDays)) {
       await notifications.markSent(Prefs.backupReminder);
     }
