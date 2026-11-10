@@ -88,4 +88,20 @@ void main() {
 
     expect(find.text('1 hr'), findsOneWidget);
   });
+
+  // 存了不在清單的值（舊版殘留／手工改過）：debug 不能 assertion 炸，
+  // release 不能空白 —— 要走 null + hint 讓使用者看得到現值。
+  testWidgets('language 存了不在清單的值：不崩，且看得到目前值', (tester) async {
+    await pumpSetup(tester, {'language': 'fr'});
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('fr'), findsOneWidget);
+  });
+
+  testWidgets('theme 存了不在清單的值：不崩，且看得到目前值', (tester) async {
+    await pumpSetup(tester, {'theme': 'sepia'});
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('sepia'), findsOneWidget);
+  });
 }

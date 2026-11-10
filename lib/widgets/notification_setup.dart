@@ -21,6 +21,7 @@ import '../settings_model.dart'; // Import your SettingsModel
 /// 舊安裝存過 5 的話不會崩：下面的 value 判斷會改走 hint 顯示現值。
 const _frequencies = PrefsDefaults.frequencyPresets;
 const _timeLimits = [1, 2, 4, 8];
+const _priorities = ['low', 'default', 'high'];
 
 class NotificationSetupScreen extends StatelessWidget {
   const NotificationSetupScreen({super.key});
@@ -136,7 +137,9 @@ class NotificationSetupScreen extends StatelessWidget {
             title: Text(localizations.notificationPriority, style: TextStyle(color: textColor)),
             subtitle: Text(localizations.notificationPriorityDescription, style: TextStyle(color: secondaryTextColor)),
             trailing: DropdownButton<String>(
-              value: settings.priority,
+              // 同款防護：priority 存了不在清單的值（舊版殘留）時走 null + hint。
+              value: _priorities.contains(settings.priority) ? settings.priority : null,
+              hint: Text(settings.priority),
               items: [
                 DropdownMenuItem(value: 'low', child: Text(localizations.lowPriority)),
                 DropdownMenuItem(value: 'default', child: Text(localizations.defaultPriority)),

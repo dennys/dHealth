@@ -3,6 +3,12 @@ import 'package:dhealth/settings_model.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+/// dropdown 的選項清單。items 與「目前值是否可顯示」的判斷共用同一個來源 ——
+/// 兩邊各寫一次的話，日後加選項只改一邊就會重新踩進 DropdownButton 的 assertion
+/// （value 不在 items 裡：debug 直接炸、release 空白看不到現值）。
+const _languages = ['system', 'en', 'zh_Hant', 'zh_Hans'];
+const _themes = ['system', 'light', 'dark'];
+
 class SetupScreen extends StatefulWidget {
   const SetupScreen({super.key});
 
@@ -90,7 +96,9 @@ class _SetupScreenState extends State<SetupScreen> {
             dense: true, // Reduces height
             title: Text(localizations.selectLanguage),
             subtitle: DropdownButton<String>(
-              value: settings.language,
+              // 存了不在清單的值（舊版殘留／手工改過）時走 null + hint 顯示現值。
+              value: _languages.contains(settings.language) ? settings.language : null,
+              hint: Text(settings.language),
               isExpanded: true,
               items: [
                 DropdownMenuItem(value: 'system', child: Text(localizations.followSystem)),
@@ -105,7 +113,9 @@ class _SetupScreenState extends State<SetupScreen> {
             dense: true, // Reduces height
             title: Text(localizations.selectTheme),
             subtitle: DropdownButton<String>(
-              value: settings.theme,
+              // 同款防護（見 language 那顆的註解）。
+              value: _themes.contains(settings.theme) ? settings.theme : null,
+              hint: Text(settings.theme),
               isExpanded: true,
               items: [
                 DropdownMenuItem(value: 'system', child: Text(localizations.followSystem)),

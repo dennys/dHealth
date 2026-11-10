@@ -49,4 +49,15 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('30 minutes'), findsOneWidget);
   });
+
+  testWidgets('priority 存了不在清單的值：不崩，且看得到目前值', (tester) async {
+    // ListView 是 lazy 的：priority 那顆在頁面底部，視窗不夠高根本不會被 build。
+    tester.view.physicalSize = const Size(1200, 3000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    await pump(tester, {'notification_priority': 'urgent'});
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('urgent'), findsOneWidget);
+  });
 }
