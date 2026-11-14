@@ -76,18 +76,6 @@ jobs:
           lcov --ignore-errors unused --remove coverage/lcov.info '**/*.g.dart' '**/app_localizations*.dart' '**/database.g.dart' -o coverage/lcov.info
           genhtml coverage/lcov.info -o coverage/html --ignore-errors source
 
-      - name: Sanitize Codecov token
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        run: |
-          # GitHub 秘密從 Windows 貼上常帶 \r / 尾端空白，會導致上傳 header 失效
-          CLEAN=$(printf '%s' "$CODECOV_TOKEN" | tr -d '\r' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
-          {
-            echo 'CODECOV_TOKEN<<TOKEN_EOF'
-            printf '%s' "$CLEAN"
-            echo 'TOKEN_EOF'
-          } >> $GITHUB_ENV
-
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
@@ -95,6 +83,7 @@ jobs:
           flags: flutter
           name: flutter-coverage
           fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
